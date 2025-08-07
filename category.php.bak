@@ -1,0 +1,341 @@
+<?php
+require_once 'includes/functions.php';
+
+// Get category slug from URL
+$slug = $_GET['slug'] ?? '';
+
+if (empty($slug)) {
+    header('Location: /ampmkp/shop.php');
+    exit;
+}
+
+// Get category details
+$category = getCategoryBySlug($slug);
+
+if (!$category) {
+    header('HTTP/1.0 404 Not Found');
+    $page_title = 'Category Not Found';
+    include 'includes/header.php';
+    ?>
+    <div class="container mx-auto px-4 py-16 text-center">
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">Category Not Found</h1>
+        <p class="text-gray-600 mb-8">The category you're looking for doesn't exist or has been removed.</p>
+        <a href="/ampmkp/shop.php" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md font-medium">
+            Continue Shopping
+        </a>
+    </div>
+    <?php
+    include 'includes/footer.php';
+    exit;
+}
+
+// Get filter parameters
+$searchQuery = $_GET['search'] ?? '';
+$sortBy = $_GET['sort'] ?? 'name';
+$page = max(1, intval($_GET['page'] ?? 1));
+$itemsPerPage = 12;
+
+// Get all categories for filter
+$categories = getCategories();
+
+// Get products for this category
+if (!empty($searchQuery)) {
+    $products = searchProducts($searchQuery, $category['id']);
+} else {
+    $products = getProducts($category['id']);
+}
+
+// Sort products
+switch ($sortBy) {
+    case 'price_low':
+        usort($products, function($a, $b) { return $a['price'] <=> $b['price']; });
+        break;
+    case 'price_high':
+        usort($products, function($a, $b) { return $b['price'] <=> $a['price']; });
+        break;
+    case 'featured':
+        usort($products, function($a, $b) { 
+            if ($a['featured'] == $b['featured']) {
+                return strcasecmp($a['name'], $b['name']);
+            }
+            return $b['featured'] <=> $a['featured'];
+        });
+        break;
+    case 'name':
+    default:
+        usort($products, function($a, $b) { return strcasecmp($a['name'], $b['name']); });
+        break;
+}
+
+// Pagination
+$totalProducts = count($products);
+$pagination = paginate($totalProducts, $itemsPerPage, $page);
+$products = array_slice($products, $pagination['offset'], $itemsPerPage);
+
+$page_title = $category['name'];
+$page_description = $category['description'];
+
+include 'includes/header.php';
+?>
+
+<!-- Breadcrumb -->
+<div class="bg-gray-50 py-4">
+    <div class="container mx-auto px-4">
+        <nav class="text-sm">
+            <a href="/ampmkp/" class="text-blue-600 hover:text-blue-700">Home</a>
+            <span class="mx-2 text-gray-500">/</span>
+            <a href="/ampmkp/shop.php" class="text-blue-600 hover:text-blue-700">Shop</a>
+            <span class="mx-2 text-gray-500">/</span>
+            <span class="text-gray-700"><?php echo htmlspecialchars($category['name']); ?></span>
+        </nav>
+    </div>
+</div>
+
+<!-- Category Header -->
+<section class="bg-white py-12">
+    <div class="container mx-auto px-4">
+        <div class="text-center mb-12">
+            <div class="mb-6">
+                <img 
+                    src="/ampmkp/assets/images/<?php echo $category['image']; ?>" 
+                    alt="<?php echo htmlspecialchars($category['name']); ?>"
+                    class="w-32 h-32 mx-auto rounded-lg object-cover border border-gray-200"
+                    onerror="this.src='/ampmkp/assets/images/general/placeholder.jpg'"
+                >
+            </div>
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">
+                <?php echo htmlspecialchars($category['name']); ?>
+            </h1>
+            <p class="text-gray-600 max-w-2xl mx-auto text-lg">
+                <?php echo htmlspecialchars($category['description']); ?>
+            </p>
+        </div>
+        
+        <!-- Search and Filters -->
+        <div class="bg-gray-50 p-6 rounded-lg mb-8">
+            <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Search -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Search in <?php echo htmlspecialchars($category['name']); ?></label>
+                    <input 
+                        type="text" 
+                        name="search" 
+                        value="<?php echo htmlspecialchars($searchQuery); ?>"
+                        placeholder="Search products..." 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                </div>
+                
+                <!-- Sort -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+                    <select name="sort" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="name" <?php echo $sortBy === 'name' ? 'selected' : ''; ?>>Name A-Z</option>
+                        <option value="featured" <?php echo $sortBy === 'featured' ? 'selected' : ''; ?>>Featured First</option>
+                        <option value="price_low" <?php echo $sortBy === 'price_low' ? 'selected' : ''; ?>>Price: Low to High</option>
+                        <option value="price_high" <?php echo $sortBy === 'price_high' ? 'selected' : ''; ?>>Price: High to Low</option>
+                    </select>
+                </div>
+                
+                <!-- Submit -->
+                <div class="flex items-end">
+                    <button 
+                        type="submit" 
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition-colors duration-200"
+                    >
+                        Apply Filters
+                    </button>
+                </div>
+                
+                <!-- Hidden field to preserve category -->
+                <input type="hidden" name="slug" value="<?php echo htmlspecialchars($slug); ?>">
+                <input type="hidden" name="page" value="1">
+            </form>
+            
+            <!-- Clear Filters -->
+            <?php if ($searchQuery || $sortBy !== 'name'): ?>
+                <div class="mt-4">
+                    <a href="/ampmkp/category.php?slug=<?php echo htmlspecialchars($slug); ?>" class="text-sm text-blue-600 hover:text-blue-700">
+                        Clear all filters
+                    </a>
+                </div>
+            <?php endif; ?>
+        </div>
+        
+        <!-- Results Info -->
+        <div class="flex justify-between items-center mb-6">
+            <p class="text-gray-600">
+                Showing <?php echo ($pagination['offset'] + 1); ?>-<?php echo min($pagination['offset'] + $itemsPerPage, $totalProducts); ?> 
+                of <?php echo $totalProducts; ?> products in <?php echo htmlspecialchars($category['name']); ?>
+            </p>
+            <a href="/ampmkp/shop.php" class="text-blue-600 hover:text-blue-700 text-sm">
+                Browse all categories →
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Products Grid -->
+<section class="bg-white pb-16">
+    <div class="container mx-auto px-4">
+        <?php if (empty($products)): ?>
+            <div class="text-center py-16">
+                <div class="text-gray-400 mb-4">
+                    <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2 2v-5m16 0h-6m-10 0h6"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-700 mb-2">No products found</h3>
+                <p class="text-gray-500 mb-6">
+                    <?php if ($searchQuery): ?>
+                        No products match your search criteria in this category.
+                    <?php else: ?>
+                        This category doesn't have any products yet.
+                    <?php endif; ?>
+                </p>
+                <div class="space-x-4">
+                    <?php if ($searchQuery): ?>
+                        <a href="/ampmkp/category.php?slug=<?php echo htmlspecialchars($slug); ?>" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md font-medium transition-colors duration-200">
+                            View All in <?php echo htmlspecialchars($category['name']); ?>
+                        </a>
+                    <?php endif; ?>
+                    <a href="/ampmkp/shop.php" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-3 rounded-md font-medium transition-colors duration-200">
+                        Browse All Products
+                    </a>
+                </div>
+            </div>
+        <?php else: ?>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                <?php foreach ($products as $product): ?>
+                    <div class="bg-white rounded-lg border border-gray-100 hover:shadow-md transition-shadow duration-200 overflow-hidden">
+                        <!-- Featured Badge -->
+                        <?php if ($product['featured']): ?>
+                            <div class="relative">
+                                <div class="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-full z-10">
+                                    Featured
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <div class="aspect-w-1 aspect-h-1 bg-gray-200">
+                            <img 
+                                src="/ampmkp/assets/images/<?php echo $product['image']; ?>" 
+                                alt="<?php echo htmlspecialchars($product['name']); ?>"
+                                class="w-full h-64 object-cover"
+                                onerror="this.src='/ampmkp/assets/images/general/placeholder.jpg'"
+                            >
+                        </div>
+                        <div class="p-4">
+                            <h3 class="font-semibold text-gray-900 mb-2 text-sm">
+                                <?php echo htmlspecialchars($product['name']); ?>
+                            </h3>
+                            <p class="text-gray-600 text-sm mb-3 line-clamp-2">
+                                <?php echo htmlspecialchars($product['description']); ?>
+                            </p>
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-lg font-bold text-gray-900">
+                                    <?php echo formatPrice($product['price']); ?>
+                                </span>
+                                <?php if ($product['stock'] <= 5): ?>
+                                    <span class="text-xs text-orange-600 font-medium">
+                                        Only <?php echo $product['stock']; ?> left
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="flex gap-2">
+                                <a 
+                                    href="/ampmkp/product.php?slug=<?php echo $product['slug']; ?>" 
+                                    class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-md text-sm font-medium text-center transition-colors duration-200"
+                                >
+                                    View Details
+                                </a>
+                                <button 
+                                    onclick="addToCart(<?php echo $product['id']; ?>)"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+                                    <?php echo $product['stock'] <= 0 ? 'disabled' : ''; ?>
+                                >
+                                    Add to Cart
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+            
+            <!-- Pagination -->
+            <?php if ($pagination['total_pages'] > 1): ?>
+                <div class="mt-12 flex justify-center">
+                    <nav class="flex space-x-2">
+                        <?php if ($pagination['has_prev']): ?>
+                            <a 
+                                href="?<?php echo http_build_query(array_merge($_GET, ['page' => $pagination['prev_page']])); ?>" 
+                                class="px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                            >
+                                Previous
+                            </a>
+                        <?php endif; ?>
+                        
+                        <?php for ($i = max(1, $pagination['current_page'] - 2); $i <= min($pagination['total_pages'], $pagination['current_page'] + 2); $i++): ?>
+                            <a 
+                                href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>" 
+                                class="px-4 py-2 text-sm font-medium <?php echo $i === $pagination['current_page'] ? 'text-white bg-blue-600 border border-blue-600' : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'; ?> rounded-md"
+                            >
+                                <?php echo $i; ?>
+                            </a>
+                        <?php endfor; ?>
+                        
+                        <?php if ($pagination['has_next']): ?>
+                            <a 
+                                href="?<?php echo http_build_query(array_merge($_GET, ['page' => $pagination['next_page']])); ?>" 
+                                class="px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                            >
+                                Next
+                            </a>
+                        <?php endif; ?>
+                    </nav>
+                </div>
+            <?php endif; ?>
+        <?php endif; ?>
+    </div>
+</section>
+
+<!-- Other Categories -->
+<section class="bg-gray-50 py-16">
+    <div class="container mx-auto px-4">
+        <h2 class="text-3xl font-bold text-gray-900 mb-8 text-center">Explore Other Categories</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <?php 
+            $otherCategories = array_filter($categories, function($cat) use ($category) {
+                return $cat['id'] !== $category['id'];
+            });
+            $otherCategories = array_slice($otherCategories, 0, 6);
+            ?>
+            <?php foreach ($otherCategories as $otherCategory): ?>
+                <a 
+                    href="/ampmkp/category.php?slug=<?php echo $otherCategory['slug']; ?>" 
+                    class="bg-white rounded-lg border border-gray-100 hover:shadow-md transition-shadow duration-200 p-6 text-center"
+                >
+                    <div class="mb-4">
+                        <img 
+                            src="/ampmkp/assets/images/<?php echo $otherCategory['image']; ?>" 
+                            alt="<?php echo htmlspecialchars($otherCategory['name']); ?>"
+                            class="w-16 h-16 mx-auto rounded-lg object-cover border border-gray-200"
+                            onerror="this.src='/ampmkp/assets/images/general/placeholder.jpg'"
+                        >
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">
+                        <?php echo htmlspecialchars($otherCategory['name']); ?>
+                    </h3>
+                    <p class="text-gray-600 text-sm">
+                        <?php echo htmlspecialchars($otherCategory['description']); ?>
+                    </p>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- Cart functionality is now handled by cart.js -->
+
+<?php include 'includes/footer.php'; ?>

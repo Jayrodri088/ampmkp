@@ -1,0 +1,241 @@
+<?php
+$page_title = 'Order Confirmed';
+$page_description = 'Thank you for your order! Your order has been successfully placed at Angel Marketplace.';
+
+require_once 'includes/functions.php';
+
+// Get order ID from URL
+$orderId = $_GET['order'] ?? '';
+
+if (empty($orderId)) {
+    header('Location: /ampmkp/');
+    exit;
+}
+
+// Find the order
+$orders = readJsonFile('orders.json');
+$order = null;
+
+foreach ($orders as $o) {
+    if ($o['id'] === $orderId) {
+        $order = $o;
+        break;
+    }
+}
+
+if (!$order) {
+    header('Location: /ampmkp/');
+    exit;
+}
+
+// Get some featured products for recommendations
+$featuredProducts = getProducts(null, true, 4);
+
+include 'includes/header.php';
+?>
+
+<!-- Success Page -->
+<section class="bg-white py-16">
+    <div class="container mx-auto px-4">
+        <div class="max-w-4xl mx-auto text-center">
+            <!-- Success Icon -->
+            <div class="text-green-500 mb-8">
+                <svg class="w-24 h-24 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            
+            <!-- Success Message -->
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">Order Confirmed!</h1>
+            <p class="text-xl text-gray-600 mb-8">
+                Thank you for your order. We've received your order and will process it shortly.
+            </p>
+            
+            <!-- Order Details Card -->
+            <div class="bg-gray-50 rounded-lg p-8 text-left mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Order Info -->
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-900 mb-4">Order Details</h2>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Order Number:</span>
+                                <span class="font-semibold text-gray-900"><?php echo htmlspecialchars($order['id']); ?></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Order Date:</span>
+                                <span class="text-gray-900"><?php echo date('F j, Y', strtotime($order['created_at'])); ?></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Total Amount:</span>
+                                <span class="font-semibold text-gray-900"><?php echo formatPrice($order['total']); ?></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Payment Method:</span>
+                                <span class="text-gray-900 capitalize"><?php echo str_replace('_', ' ', $order['customer']['payment_method']); ?></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Status:</span>
+                                <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">
+                                    <?php echo ucfirst($order['status']); ?>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Customer Info -->
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-900 mb-4">Shipping Information</h2>
+                        <div class="text-sm text-gray-600">
+                            <p class="font-medium text-gray-900">
+                                <?php echo htmlspecialchars($order['customer']['first_name'] . ' ' . $order['customer']['last_name']); ?>
+                            </p>
+                            <p><?php echo htmlspecialchars($order['customer']['address']); ?></p>
+                            <p><?php echo htmlspecialchars($order['customer']['city'] . ', ' . $order['customer']['postal_code']); ?></p>
+                            <p><?php echo htmlspecialchars($order['customer']['country']); ?></p>
+                            <p class="mt-2"><?php echo htmlspecialchars($order['customer']['email']); ?></p>
+                            <?php if (!empty($order['customer']['phone'])): ?>
+                                <p><?php echo htmlspecialchars($order['customer']['phone']); ?></p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Items List -->
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Items Ordered</h2>
+                    <div class="space-y-4">
+                        <?php foreach ($order['items'] as $item): ?>
+                            <div class="flex items-center">
+                                <img 
+                                    src="/ampmkp/assets/images/<?php echo $item['product']['image']; ?>" 
+                                    alt="<?php echo htmlspecialchars($item['product']['name']); ?>"
+                                    class="w-16 h-16 object-cover rounded border border-gray-200"
+                                    onerror="this.src='/ampmkp/assets/images/general/placeholder.jpg'"
+                                >
+                                <div class="ml-4 flex-1">
+                                    <h4 class="font-medium text-gray-900">
+                                        <?php echo htmlspecialchars($item['product']['name']); ?>
+                                    </h4>
+                                    <p class="text-sm text-gray-600">
+                                        Quantity: <?php echo $item['quantity']; ?> × <?php echo formatPrice($item['product']['price']); ?>
+                                    </p>
+                                </div>
+                                <div class="font-semibold text-gray-900">
+                                    <?php echo formatPrice($item['item_total']); ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    
+                    <!-- Order Totals -->
+                    <div class="mt-6 border-t border-gray-200 pt-4">
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-gray-600">Subtotal:</span>
+                            <span class="text-gray-900"><?php echo formatPrice($order['subtotal']); ?></span>
+                        </div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-gray-600">Shipping:</span>
+                            <span class="text-gray-900"><?php echo formatPrice($order['shipping_cost']); ?></span>
+                        </div>
+                        <div class="flex justify-between text-lg font-semibold border-t border-gray-200 pt-2">
+                            <span class="text-gray-900">Total:</span>
+                            <span class="text-gray-900"><?php echo formatPrice($order['total']); ?></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- What's Next -->
+            <div class="bg-blue-50 rounded-lg p-6 mb-8">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">What's Next?</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+                    <div class="text-center">
+                        <div class="w-12 h-12 mx-auto mb-3 bg-blue-100 rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="font-medium text-gray-900 mb-1">Order Confirmation</h3>
+                        <p class="text-gray-600">You'll receive a confirmation email shortly with your order details.</p>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="w-12 h-12 mx-auto mb-3 bg-blue-100 rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4-8-4m16 0v10l-8 4-8-4V7"></path>
+                            </svg>
+                        </div>
+                        <h3 class="font-medium text-gray-900 mb-1">Processing</h3>
+                        <p class="text-gray-600">We'll process your order within 1-2 business days.</p>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="w-12 h-12 mx-auto mb-3 bg-blue-100 rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2 2v-5m16 0h-6m-10 0h6"></path>
+                            </svg>
+                        </div>
+                        <h3 class="font-medium text-gray-900 mb-1">Shipping</h3>
+                        <p class="text-gray-600">Your order will be shipped within 3-7 business days.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+                <a href="/ampmkp/" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-md font-medium transition-colors duration-200">
+                    Continue Shopping
+                </a>
+                <a href="/ampmkp/contact.php" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-8 py-3 rounded-md font-medium transition-colors duration-200">
+                    Contact Support
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Recommended Products -->
+<?php if (!empty($featuredProducts)): ?>
+<section class="bg-gray-50 py-16">
+    <div class="container mx-auto px-4">
+        <div class="text-center mb-12">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">You Might Also Like</h2>
+            <p class="text-gray-600">Discover more products from our collection</p>
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
+            <?php foreach ($featuredProducts as $product): ?>
+                <div class="bg-white rounded-lg border border-gray-100 hover:shadow-md transition-shadow duration-200 overflow-hidden">
+                    <div class="aspect-w-1 aspect-h-1 bg-gray-200">
+                        <img 
+                            src="/ampmkp/assets/images/<?php echo $product['image']; ?>" 
+                            alt="<?php echo htmlspecialchars($product['name']); ?>"
+                            class="w-full h-48 object-cover"
+                            onerror="this.src='/ampmkp/assets/images/general/placeholder.jpg'"
+                        >
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-900 mb-2 text-sm">
+                            <?php echo htmlspecialchars($product['name']); ?>
+                        </h3>
+                        <div class="flex justify-between items-center">
+                            <span class="text-lg font-bold text-gray-900">
+                                <?php echo formatPrice($product['price']); ?>
+                            </span>
+                            <a 
+                                href="/ampmkp/product.php?slug=<?php echo $product['slug']; ?>" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors duration-200"
+                            >
+                                View
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
+
+<?php include 'includes/footer.php'; ?>

@@ -1,0 +1,327 @@
+<?php
+$page_title = 'Shopping Cart';
+$page_description = 'Review your selected items and proceed to checkout at Angel Marketplace.';
+
+require_once 'includes/functions.php';
+
+$cart = getCart();
+$cartItems = [];
+$total = 0;
+
+// Get detailed cart information
+foreach ($cart as $item) {
+    $product = getProductById($item['product_id']);
+    if ($product) {
+        $itemTotal = $product['price'] * $item['quantity'];
+        $cartItems[] = [
+            'product' => $product,
+            'quantity' => $item['quantity'],
+            'item_total' => $itemTotal
+        ];
+        $total += $itemTotal;
+    }
+}
+
+include 'includes/header.php';
+?>
+
+<!-- Breadcrumb -->
+<div class="bg-gray-50 py-4">
+    <div class="container mx-auto px-4">
+        <nav class="text-sm">
+            <a href="/ampmkp/" class="text-blue-600 hover:text-blue-700">Home</a>
+            <span class="mx-2 text-gray-500">/</span>
+            <span class="text-gray-700">Shopping Cart</span>
+        </nav>
+    </div>
+</div>
+
+<!-- Cart Content -->
+<section class="bg-white py-12">
+    <div class="container mx-auto px-4">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-3xl font-bold text-gray-900 mb-8">Shopping Cart</h1>
+            
+            <?php if (empty($cartItems)): ?>
+                <!-- Empty Cart -->
+                <div class="text-center py-16">
+                    <div class="text-gray-400 mb-6">
+                        <svg class="w-24 h-24 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l-2.5 5m12.5 0H9"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-4">Your cart is empty</h2>
+                    <p class="text-gray-500 mb-8">Looks like you haven't added any items to your cart yet.</p>
+                    <a href="/ampmkp/shop.php" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-md font-medium transition-colors duration-200">
+                        Continue Shopping
+                    </a>
+                </div>
+            <?php else: ?>
+                <!-- Cart Items -->
+                <div class="space-y-4 mb-8">
+                    <?php foreach ($cartItems as $index => $item): ?>
+                        <div class="bg-gray-50 rounded-lg p-6 flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6" id="cart-item-<?php echo $item['product']['id']; ?>">
+                            <!-- Product Image -->
+                            <div class="flex-shrink-0">
+                                <img 
+                                    src="/ampmkp/assets/images/<?php echo $item['product']['image']; ?>" 
+                                    alt="<?php echo htmlspecialchars($item['product']['name']); ?>"
+                                    class="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                                    onerror="this.src='/ampmkp/assets/images/general/placeholder.jpg'"
+                                >
+                            </div>
+                            
+                            <!-- Product Details -->
+                            <div class="flex-1 text-center md:text-left">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-1">
+                                    <a href="/ampmkp/product.php?slug=<?php echo $item['product']['slug']; ?>" class="hover:text-blue-600">
+                                        <?php echo htmlspecialchars($item['product']['name']); ?>
+                                    </a>
+                                </h3>
+                                <p class="text-gray-600 text-sm mb-2">
+                                    <?php echo htmlspecialchars($item['product']['description']); ?>
+                                </p>
+                                <div class="text-lg font-bold text-gray-900">
+                                    <?php echo formatPrice($item['product']['price']); ?> each
+                                </div>
+                            </div>
+                            
+                            <!-- Quantity Controls -->
+                            <div class="flex items-center space-x-3">
+                                <button 
+                                    onclick="updateQuantity(<?php echo $item['product']['id']; ?>, <?php echo $item['quantity'] - 1; ?>)"
+                                    class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-600 transition-colors duration-200"
+                                    <?php echo $item['quantity'] <= 1 ? 'disabled' : ''; ?>
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                                    </svg>
+                                </button>
+                                <span class="w-12 text-center font-semibold" id="quantity-<?php echo $item['product']['id']; ?>">
+                                    <?php echo $item['quantity']; ?>
+                                </span>
+                                <button 
+                                    onclick="updateQuantity(<?php echo $item['product']['id']; ?>, <?php echo $item['quantity'] + 1; ?>)"
+                                    class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-600 transition-colors duration-200"
+                                    <?php echo $item['quantity'] >= $item['product']['stock'] ? 'disabled' : ''; ?>
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            
+                            <!-- Item Total -->
+                            <div class="text-lg font-bold text-gray-900 min-w-0 md:min-w-[100px] text-center">
+                                <span id="item-total-<?php echo $item['product']['id']; ?>">
+                                    <?php echo formatPrice($item['item_total']); ?>
+                                </span>
+                            </div>
+                            
+                            <!-- Remove Button -->
+                            <button 
+                                onclick="removeFromCart(<?php echo $item['product']['id']; ?>)"
+                                class="text-red-600 hover:text-red-700 p-2 transition-colors duration-200"
+                                title="Remove item"
+                            >
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                
+                <!-- Cart Summary -->
+                <div class="bg-gray-50 rounded-lg p-6">
+                    <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                        <div class="text-center md:text-left">
+                            <div class="text-2xl font-bold text-gray-900 mb-2">
+                                Total: <span id="cart-total"><?php echo formatPrice($total); ?></span>
+                            </div>
+                            <p class="text-gray-600">
+                                <?php echo count($cartItems); ?> item(s) in your cart
+                            </p>
+                        </div>
+                        
+                        <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                            <button 
+                                onclick="clearCart()"
+                                class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-md font-medium transition-colors duration-200"
+                            >
+                                Clear Cart
+                            </button>
+                            <a href="/ampmkp/shop.php" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-3 rounded-md font-medium text-center transition-colors duration-200">
+                                Continue Shopping
+                            </a>
+                            <a href="/ampmkp/checkout.php" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-md font-medium text-center transition-colors duration-200">
+                                Proceed to Checkout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+</section>
+
+<script>
+function updateQuantity(productId, newQuantity) {
+    if (newQuantity < 1) {
+        removeFromCart(productId);
+        return;
+    }
+    
+    fetch('/ampmkp/api/cart.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            action: 'update',
+            product_id: productId,
+            quantity: newQuantity
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            Swal.fire({
+                title: 'Error!',
+                text: data.message || 'Failed to update quantity.',
+                icon: 'error'
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Error!',
+            text: 'An error occurred while updating the cart.',
+            icon: 'error'
+        });
+    });
+}
+
+function removeFromCart(productId) {
+    Swal.fire({
+        title: 'Remove Item?',
+        text: 'Are you sure you want to remove this item from your cart?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, remove it'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/ampmkp/api/cart.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'remove',
+                    product_id: productId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Removed!',
+                        text: 'Item has been removed from your cart.',
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: data.message || 'Failed to remove item.',
+                        icon: 'error'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'An error occurred while removing the item.',
+                    icon: 'error'
+                });
+            });
+        }
+    });
+}
+
+function clearCart() {
+    Swal.fire({
+        title: 'Clear Cart?',
+        text: 'Are you sure you want to remove all items from your cart?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, clear cart'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/ampmkp/api/cart.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'clear'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Cart Cleared!',
+                        text: 'All items have been removed from your cart.',
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: data.message || 'Failed to clear cart.',
+                        icon: 'error'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'An error occurred while clearing the cart.',
+                    icon: 'error'
+                });
+            });
+        }
+    });
+}
+
+function proceedToCheckout() {
+    Swal.fire({
+        title: 'Checkout',
+        text: 'Checkout functionality is coming soon! For now, you can contact us to place your order.',
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonText: 'Contact Us',
+        cancelButtonText: 'Continue Shopping'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = '/ampmkp/contact.php';
+        }
+    });
+}
+</script>
+
+<?php include 'includes/footer.php'; ?>

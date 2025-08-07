@@ -1,0 +1,86 @@
+[
+    {
+        "id": 1,
+        "name": "Rhapsody Bomber Jacket",
+        "slug": "rhapsody-bomber-jacket",
+        "price": 90,
+        "prices": {
+            "GBP": 90,
+            "USD": 100,
+            "EUR": 90,
+            "ESP": 100,
+            "NGN": 175000
+        },
+        "category_id": 8,
+        "description": "Rhapsody Jackets, finest quality materials",
+        "image": "products\/rhapsody-bomber-jacket_main_1751469905.jpeg",
+        "stock": 30,
+        "featured": true,
+        "active": true,
+        "has_sizes": true,
+        "available_sizes": [
+            "S",
+            "M",
+            "L",
+            "XL",
+            "XXL"
+        ],
+        "features": [
+            {
+                "name": "Material",
+                "value": "Perfect Quality"
+            }
+        ],
+        "has_colors": true,
+        "available_colors": [
+            "Red",
+            "Blue"
+        ],
+        "images": [
+            "products\/rhapsody-bomber-jacket_1_1751469905.jpeg",
+            "products\/rhapsody-bomber-jacket_2_1751483770.jpeg"
+        ]
+    },
+    {
+        "id": 2,
+        "name": "Rhapsody Bomber Jacket",
+        "slug": "rhapsody-bomber-jacket",
+        "price": 30,
+        "prices": {
+            "GBP": 30,
+            "USD": 30,
+            "EUR": 30,
+            "ESP": 30,
+            "NGN": 30
+        },
+        "category_id": 8,
+        "description": "Rhapsody Jackets, finest quality materials",
+        "image": "products\/rhapsody-bomber-jacket_main_1751469905.jpeg",
+        "stock": 30,
+        "featured": true,
+        "active": true,
+        "has_sizes": true,
+        "available_sizes": [
+            "S",
+            "M",
+            "L",
+            "XL",
+            "XXL"
+        ],
+        "features": [
+            {
+                "name": "Material",
+                "value": "Perfect Quality"
+            }
+        ],
+        "has_colors": true,
+        "available_colors": [
+            "Red",
+            "Blue"
+        ],
+        "images": [
+            "products\/rhapsody-bomber-jacket_1_1751469905.jpeg",
+            "products\/rhapsody-bomber-jacket_2_1751483770.jpeg"
+        ]
+    }
+]

@@ -1,0 +1,11 @@
+{
+  "require": {
+      "stripe/stripe-php": "^17.0",
+      "phpmailer/phpmailer": "^6.8"
+  },
+  "autoload": {
+      "psr-4": {
+          "App\\": "includes/"
+      }
+  }
+}

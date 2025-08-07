@@ -1,0 +1,274 @@
+<?php
+require_once 'includes/functions.php';
+
+// Get product slug from URL
+$slug = $_GET['slug'] ?? '';
+
+if (empty($slug)) {
+    header('Location: /ampmkp/shop.php');
+    exit;
+}
+
+// Get product details
+$product = getProductBySlug($slug);
+
+if (!$product) {
+    header('HTTP/1.0 404 Not Found');
+    $page_title = 'Product Not Found';
+    include 'includes/header.php';
+    ?>
+    <div class="container mx-auto px-4 py-16 text-center">
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">Product Not Found</h1>
+        <p class="text-gray-600 mb-8">The product you're looking for doesn't exist or has been removed.</p>
+        <a href="/ampmkp/shop.php" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md font-medium">
+            Continue Shopping
+        </a>
+    </div>
+    <?php
+    include 'includes/footer.php';
+    exit;
+}
+
+// Get category information
+$categories = getCategories();
+$category = null;
+foreach ($categories as $cat) {
+    if ($cat['id'] == $product['category_id']) {
+        $category = $cat;
+        break;
+    }
+}
+
+// Get related products (same category, excluding current product)
+$relatedProducts = array_filter(
+    getProducts($product['category_id'], null, 8),
+    function($p) use ($product) {
+        return $p['id'] !== $product['id'];
+    }
+);
+$relatedProducts = array_slice($relatedProducts, 0, 4);
+
+$page_title = $product['name'];
+$page_description = $product['description'];
+
+include 'includes/header.php';
+?>
+
+<!-- Breadcrumb -->
+<div class="bg-gray-50 py-4">
+    <div class="container mx-auto px-4">
+        <nav class="text-sm">
+            <a href="/ampmkp/" class="text-blue-600 hover:text-blue-700">Home</a>
+            <span class="mx-2 text-gray-500">/</span>
+            <a href="/ampmkp/shop.php" class="text-blue-600 hover:text-blue-700">Shop</a>
+            <?php if ($category): ?>
+                <span class="mx-2 text-gray-500">/</span>
+                <a href="/ampmkp/category.php?slug=<?php echo $category['slug']; ?>" class="text-blue-600 hover:text-blue-700">
+                    <?php echo htmlspecialchars($category['name']); ?>
+                </a>
+            <?php endif; ?>
+            <span class="mx-2 text-gray-500">/</span>
+            <span class="text-gray-700"><?php echo htmlspecialchars($product['name']); ?></span>
+        </nav>
+    </div>
+</div>
+
+<!-- Product Details -->
+<section class="bg-white py-12">
+    <div class="container mx-auto px-4">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <!-- Product Image -->
+            <div class="space-y-4">
+                <div class="aspect-w-1 aspect-h-1 bg-gray-200 rounded-lg overflow-hidden">
+                    <img 
+                        src="/ampmkp/assets/images/<?php echo $product['image']; ?>" 
+                        alt="<?php echo htmlspecialchars($product['name']); ?>"
+                        class="w-full h-full object-cover"
+                        id="main-product-image"
+                        onerror="this.src='/ampmkp/assets/images/general/placeholder.jpg'"
+                    >
+                </div>
+            </div>
+            
+            <!-- Product Info -->
+            <div class="space-y-6">
+                <?php if ($category): ?>
+                    <div class="text-sm text-blue-600 font-medium">
+                        <?php echo htmlspecialchars($category['name']); ?>
+                    </div>
+                <?php endif; ?>
+                
+                <h1 class="text-3xl font-bold text-gray-900">
+                    <?php echo htmlspecialchars($product['name']); ?>
+                </h1>
+                
+                <div class="text-3xl font-bold text-gray-900">
+                    <?php echo formatPrice($product['price']); ?>
+                </div>
+                
+                <div class="prose prose-gray max-w-none">
+                    <p class="text-gray-600 leading-relaxed">
+                        <?php echo htmlspecialchars($product['description']); ?>
+                    </p>
+                </div>
+                
+                <!-- Stock Status -->
+                <div class="flex items-center space-x-2">
+                    <?php if ($product['stock'] > 0): ?>
+                        <div class="flex items-center text-green-600">
+                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span class="font-medium">In Stock</span>
+                        </div>
+                        <?php if ($product['stock'] <= 5): ?>
+                            <span class="text-orange-600 text-sm">
+                                Only <?php echo $product['stock']; ?> left
+                            </span>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <div class="flex items-center text-red-600">
+                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span class="font-medium">Out of Stock</span>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                
+                <!-- Add to Cart -->
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-4">
+                        <label for="quantity" class="text-sm font-medium text-gray-700">Quantity:</label>
+                        <input 
+                            type="number" 
+                            id="quantity" 
+                            min="1" 
+                            max="<?php echo $product['stock']; ?>" 
+                            value="1" 
+                            class="w-20 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            <?php echo $product['stock'] <= 0 ? 'disabled' : ''; ?>
+                        >
+                    </div>
+                    
+                    <div class="flex space-x-4">
+                        <button 
+                            onclick="addToCart(<?php echo $product['id']; ?>)"
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-8 py-3 rounded-md font-medium transition-colors duration-200"
+                            <?php echo $product['stock'] <= 0 ? 'disabled' : ''; ?>
+                        >
+                            <?php echo $product['stock'] > 0 ? 'Add to Cart' : 'Out of Stock'; ?>
+                        </button>
+                        <button 
+                            onclick="buyNow(<?php echo $product['id']; ?>)"
+                            class="bg-gray-100 hover:bg-gray-200 disabled:bg-gray-300 disabled:cursor-not-allowed text-gray-800 px-8 py-3 rounded-md font-medium transition-colors duration-200"
+                            <?php echo $product['stock'] <= 0 ? 'disabled' : ''; ?>
+                        >
+                            Buy Now
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Product Features -->
+                <div class="border-t pt-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Product Features</h3>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li class="flex items-center">
+                            <svg class="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            High-quality materials
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            Meaningful Christian messaging
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            Perfect for gifts
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            Fast shipping available
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Related Products -->
+<?php if (!empty($relatedProducts)): ?>
+<section class="bg-gray-50 py-16">
+    <div class="container mx-auto px-4">
+        <h2 class="text-3xl font-bold text-gray-900 mb-8 text-center">Related Products</h2>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <?php foreach ($relatedProducts as $relatedProduct): ?>
+                <div class="bg-white rounded-lg border border-gray-100 hover:shadow-md transition-shadow duration-200 overflow-hidden">
+                    <div class="aspect-w-1 aspect-h-1 bg-gray-200">
+                        <img 
+                            src="/ampmkp/assets/images/<?php echo $relatedProduct['image']; ?>" 
+                            alt="<?php echo htmlspecialchars($relatedProduct['name']); ?>"
+                            class="w-full h-48 object-cover"
+                            onerror="this.src='/ampmkp/assets/images/general/placeholder.jpg'"
+                        >
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-900 mb-2 text-sm">
+                            <?php echo htmlspecialchars($relatedProduct['name']); ?>
+                        </h3>
+                        <div class="flex justify-between items-center">
+                            <span class="text-lg font-bold text-gray-900">
+                                <?php echo formatPrice($relatedProduct['price']); ?>
+                            </span>
+                            <a 
+                                href="/ampmkp/product.php?slug=<?php echo $relatedProduct['slug']; ?>" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors duration-200"
+                            >
+                                View
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
+
+<script>
+function addToCart(productId) {
+    const quantity = document.getElementById('quantity').value;
+    
+    // Use the global cart function from cart.js
+    if (window.addToCart) {
+        // Find the button that triggered this
+        const button = document.querySelector(`button[onclick*="addToCart(${productId})"]`);
+        window.addToCart(productId, parseInt(quantity), button);
+    }
+}
+
+function buyNow(productId) {
+    const quantity = document.getElementById('quantity').value;
+    
+    // Add to cart first, then redirect
+    if (window.addToCart) {
+        window.addToCart(productId, parseInt(quantity));
+        
+        // Redirect to cart after cart is updated
+        setTimeout(() => {
+            window.location.href = '/ampmkp/cart.php';
+        }, 1500);
+    }
+}
+</script>
+
+<?php include 'includes/footer.php'; ?>

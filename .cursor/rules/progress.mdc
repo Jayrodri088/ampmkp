@@ -1,0 +1,7 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+- always document progress in checkpoints, create a tasks progress.md file once you make user requested changes
+- ensure that theres a timestamp logging of all the changes, make the file progressive like so i can track the changes accross different times and dates

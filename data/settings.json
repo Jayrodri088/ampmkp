@@ -1,0 +1,97 @@
+{
+    "site_name": "Angel Marketplace",
+    "site_description": "Your go-to destination for meaningful products and experiences",
+    "site_email": "info@angelmarketplace.org",
+    "site_phone": "+44 791 815 4909",
+    "site_phone_alt": "+44 01708556604",
+    "site_address": "London, UK",
+    "currency_symbol": "\u00a3",
+    "currency_code": "GBP",
+    "currencies": [
+        {
+            "code": "GBP",
+            "symbol": "\u00a3",
+            "name": "British Pound",
+            "default": true
+        },
+        {
+            "code": "USD",
+            "symbol": "$",
+            "name": "US Dollar",
+            "default": false
+        },
+        {
+            "code": "EUR",
+            "symbol": "\u20ac",
+            "name": "Euro",
+            "default": false
+        },
+        {
+            "code": "ESP",
+            "symbol": "E",
+            "name": "Espees",
+            "default": false
+        },
+        {
+            "code": "NGN",
+            "symbol": "N",
+            "name": "Naira",
+            "default": false
+        }
+    ],
+    "available_sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+    ],
+    "items_per_page": 12,
+    "featured_products_count": 8,
+    "trending_products_count": 12,
+    "related_products_count": 4,
+    "social_media": {
+        "facebook": "#",
+        "twitter": "#",
+        "instagram": "#",
+        "youtube": "#",
+        "linkedin": "#"
+    },
+    "payment_methods": [
+        "stripe",
+        "paypal"
+    ],
+    "shipping": {
+        "free_shipping_threshold": 0,
+        "standard_shipping_cost": 5,
+        "costs": {
+            "GBP": {
+                "standard": 5,
+                "free_threshold": 0
+            },
+            "USD": {
+                "standard": 5,
+                "free_threshold": 0
+            },
+            "EUR": {
+                "standard": 5,
+                "free_threshold": 0
+            },
+            "ESP": {
+                "standard": 5,
+                "free_threshold": 0
+            },
+            "NGN": {
+                "standard": 3000,
+                "free_threshold": 0
+            }
+        }
+    },
+    "maintenance_mode": false,
+    "analytics": {
+        "google_analytics_id": "",
+        "facebook_pixel_id": ""
+    },
+    "homepage_categories_count": 6
+}

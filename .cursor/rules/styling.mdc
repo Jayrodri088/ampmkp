@@ -1,0 +1,6 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+- make sure the entire site uses consistent styling, colours, fonts, themes all through out every component

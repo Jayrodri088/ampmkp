@@ -1,0 +1,76 @@
+[
+    {
+        "id": 1,
+        "name": "Apparels",
+        "slug": "apparels",
+        "description": "",
+        "image": "categories\/apparels_1751367405.jpeg",
+        "active": true,
+        "parent_id": 0,
+        "featured": true
+    },
+    {
+        "id": 2,
+        "name": "Footwear",
+        "slug": "footwear",
+        "description": "",
+        "image": "categories\/footwear_1751288261.jpg",
+        "active": true,
+        "parent_id": 0
+    },
+    {
+        "id": 3,
+        "name": "Gifts & Souvenirs",
+        "slug": "gifts-souvenirs",
+        "description": "",
+        "image": "categories\/gifts-souvenirs_1751306523.jpg",
+        "active": true,
+        "parent_id": 0
+    },
+    {
+        "id": 4,
+        "name": "Household Items",
+        "slug": "household-items",
+        "description": "",
+        "image": "categories\/household-items_1751288728.jpg",
+        "active": true,
+        "parent_id": 0
+    },
+    {
+        "id": 5,
+        "name": "Other Accessories",
+        "slug": "other-accessories",
+        "description": "",
+        "image": "categories\/other-accessories_1751288792.jpg",
+        "active": true,
+        "parent_id": 0
+    },
+    {
+        "id": 6,
+        "name": "Angel Hampers",
+        "slug": "angel-hampers",
+        "description": "",
+        "image": "categories\/angel-hampers_1751288993.jpeg",
+        "active": true,
+        "parent_id": 0
+    },
+    {
+        "id": 7,
+        "name": "Kiddies",
+        "slug": "kiddies",
+        "description": "",
+        "image": "categories\/kiddies_1751363783.jpg",
+        "parent_id": 1,
+        "active": true
+    },
+    {
+        "id": 8,
+        "name": "Jackets",
+        "slug": "jackets",
+        "description": "",
+        "image": "categories\/jackets_1751365596.jpeg",
+        "parent_id": 1,
+        "active": true,
+        "featured": false
+    }
+]

@@ -1,0 +1,75 @@
+RewriteEngine On
+
+# Enable the rewrite engine
+Options +FollowSymLinks -MultiViews
+
+# Exclude API, cart-related paths, and admin directory from rewriting
+RewriteCond %{REQUEST_URI} !/api/ [NC]
+RewriteCond %{REQUEST_URI} !/admin/ [NC]
+RewriteCond %{REQUEST_URI} !/cart\.php [NC]
+RewriteCond %{REQUEST_URI} !/checkout\.php [NC]
+
+# Handle product pages
+RewriteRule ^product/([0-9]+)/?$ product.php?id=$1 [L,QSA]
+
+# Handle category pages
+RewriteRule ^category/([^/]+)/?$ category.php?slug=$1 [L,QSA]
+
+# Remove .php extension from URLs (only for non-API, non-admin and non-cart pages)
+RewriteCond %{REQUEST_URI} !/api/ [NC]
+RewriteCond %{REQUEST_URI} !/admin/ [NC]
+RewriteCond %{REQUEST_URI} !/cart\.php [NC]
+RewriteCond %{REQUEST_URI} !/checkout\.php [NC]
+RewriteCond %{THE_REQUEST} ^[A-Z]{3,}\s([^.]+)\.php [NC]
+RewriteRule ^ %1 [R=301,L]
+
+# Handle front controller (only for non-API, non-admin and non-cart pages)
+RewriteCond %{REQUEST_URI} !/api/ [NC]
+RewriteCond %{REQUEST_URI} !/admin/ [NC]
+RewriteCond %{REQUEST_URI} !/cart\.php [NC]
+RewriteCond %{REQUEST_URI} !/checkout\.php [NC]
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}\.php -f
+RewriteRule ^(.*)$ $1.php [L]
+
+# Redirect to remove trailing slashes
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)/$ /$1 [R=301,L]
+
+# Security - prevent access to sensitive files
+<FilesMatch "\.(json|env|log|sql|md|gitignore|gitattributes|lock|dist)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Security - prevent directory listing
+Options -Indexes
+
+# Set default charset
+AddDefaultCharset UTF-8
+
+# Enable compression for better performance
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css application/javascript application/x-javascript
+</IfModule>
+
+# Set cache control for static files
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType image/x-icon "access plus 1 year"
+    ExpiresDefault "access plus 2 days"
+</IfModule>
+
+<Files ".htaccess">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# Error pages
+ErrorDocument 404 https://veedcos.net/404.php

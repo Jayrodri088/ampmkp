@@ -1,0 +1,77 @@
+<?php
+$page_title = 'About Us';
+$page_description = 'Learn about Angel Marketplace - your trusted source for quality Christian merchandise, apparel, and spiritual resources.';
+
+require_once 'includes/functions.php';
+include 'includes/header.php';
+?>
+
+<!-- Breadcrumb -->
+<div class="bg-white border-b border-gray-100 py-4 mt-24">
+    <div class="container mx-auto px-4">
+        <nav class="text-sm flex items-center space-x-2">
+            <a href="/ampmkp/" class="text-blue-600 hover:text-blue-700 hover:underline">Home</a>
+            <span class="text-gray-400">/</span>
+            <span class="text-gray-700 font-medium">About Us</span>
+        </nav>
+    </div>
+</div>
+
+<!-- Hero Section -->
+<section class="bg-white py-16">
+    <div class="container mx-auto px-4">
+        <div class="max-w-4xl mx-auto text-center">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+                Your Journey Starts at Angel Marketplace
+            </h1>
+            <nav class="text-sm flex items-center justify-center space-x-2 mb-8">
+                <a href="/ampmkp/" class="text-blue-600 hover:text-blue-700 hover:underline">Home</a>
+                <span class="text-gray-400">/</span>
+                <span class="text-gray-700 font-medium">About Us</span>
+            </nav>
+            <div class="text-4xl font-bold text-blue-600 mb-2">1000+</div>
+            <div class="text-gray-600 mb-8">Items Sale</div>
+            
+
+        </div>
+    </div>
+</section>
+
+<!-- Mission Section -->
+<section class="bg-gray-50 py-20">
+    <div class="container mx-auto px-4">
+        <div class="max-w-5xl mx-auto">
+            <div class="bg-white rounded-xl shadow-sm p-10">
+                <h2 class="text-4xl font-bold text-gray-900 mb-8 text-center">
+                    A Unique Experience at Angel Marketplace
+                </h2>
+                <div class="space-y-6 text-gray-700 leading-relaxed text-lg max-w-4xl mx-auto">
+                    <p class="text-xl text-gray-800 font-medium text-center">
+                        Welcome to Angel Marketplace, your destination for unique and meaningful products!
+                    </p>
+                    <p>
+                        At Angel Marketplace, we believe in offering items that inspire, delight, and bring people together. Our collection includes stylish apparel, thoughtful gift items, one-of-a-kind souvenirs, and much more, designed to suit every occasion and personality.
+                    </p>
+                    <p>
+                        We take pride in blending modern style with timeless messages of hope, love, and positivity. Our products are crafted to resonate with a wide audience — from young trendsetters to families, professionals, and anyone who values quality and inspiration.
+                    </p>
+                    <p>
+                        Angel Marketplace isn't just a store; it's a space where meaningful connections and thoughtful expressions come to life. Thank you for letting us be part of your journey in creating cherished memories and sharing joy with the ones you love.
+                    </p>
+                    <p class="text-center mt-8">
+                        <a href="/ampmkp/shop.php" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium px-8 py-3 rounded-md transition-colors duration-200">
+                            Explore Our Collection
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+
+
+
+
+<?php include 'includes/footer.php'; ?>

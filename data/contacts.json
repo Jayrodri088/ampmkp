@@ -1,0 +1,20 @@
+[
+    {
+        "id": 1753293051,
+        "name": "mayowa",
+        "email": "Odunoyemayowa@gmail.com",
+        "phone": "09152818550",
+        "message": "This a test",
+        "submitted_at": "2025-07-23 19:50:51",
+        "status": "new"
+    },
+    {
+        "id": 1753295051,
+        "name": "mayo",
+        "email": "mayo@imfger.co",
+        "phone": "09162840393",
+        "message": "vkvjnwbvljebwljrv,nwrvlj,nervlwjrnvwj,vnwrvjlw rvwejnvl\r\nthis is a tesst",
+        "submitted_at": "2025-07-23 20:24:11",
+        "status": "new"
+    }
+]

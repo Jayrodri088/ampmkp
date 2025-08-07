@@ -1,0 +1,146 @@
+<?php
+$page_title = 'Home';
+$page_description = 'Angel Marketplace - Premium Christian merchandise, apparel, gifts and spiritual resources. Shop now for faith-based products.';
+
+require_once 'includes/functions.php';
+
+// Get featured products and categories
+$featuredProducts = getProducts(null, true, 8);
+$categories = getCategories();
+$trendingProducts = getProducts(null, null, 6);
+
+include 'includes/header.php';
+?>
+
+<!-- Hero Section -->
+<section class="bg-white py-16">
+    <div class="container mx-auto px-4">
+        <div class="text-center max-w-4xl mx-auto">
+            <h1 class="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+                Your Shopping Journey Begins Here 
+                <span class="text-blue-600">Welcome to Angel Marketplace</span>
+            </h1>
+            <p class="text-xl text-gray-600 mb-8 leading-relaxed">
+                Angel Marketplace isn't just a store—it's a vibrant space where meaningful connections and 
+                thoughtful expressions come to life. Discover a world beyond shopping. Find inspiration, 
+                create memories, and connect with what matters most.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="/ampmkp/shop.php" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-md font-medium transition-colors duration-200">
+                    Shop Now
+                </a>
+                <a href="/ampmkp/about.php" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-8 py-3 rounded-md font-medium transition-colors duration-200">
+                    Learn More
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Categories Section -->
+<section class="bg-gray-50 py-16">
+    <div class="container mx-auto px-4">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">Shop by Category</h2>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <?php foreach ($categories as $category): ?>
+                <div class="bg-white rounded-lg border border-gray-100 hover:shadow-md transition-shadow duration-200 overflow-hidden">
+                    <div class="aspect-w-16 aspect-h-9 bg-gray-200">
+                        <img 
+                            src="/ampmkp/assets/images/<?php echo $category['image']; ?>" 
+                            alt="<?php echo htmlspecialchars($category['name']); ?>"
+                            class="w-full h-48 object-cover"
+                            onerror="this.onerror=null;this.src='/ampmkp/assets/images/general/placeholder.jpg'"
+                        >
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">
+                            <?php echo htmlspecialchars($category['name']); ?>
+                        </h3>
+                        <p class="text-gray-600 mb-4">
+                            <?php echo htmlspecialchars($category['description']); ?>
+                        </p>
+                        <a 
+                            href="/ampmkp/category.php?slug=<?php echo $category['slug']; ?>" 
+                            class="text-blue-600 hover:text-blue-700 font-medium"
+                        >
+                            Shop <?php echo htmlspecialchars($category['name']); ?> →
+                        </a>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- Featured Products -->
+<section class="bg-white py-16">
+    <div class="container mx-auto px-4">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">What's Trending Now</h2>
+            <p class="text-gray-600 max-w-2xl mx-auto">
+                Discover the most trending products in Angel Marketplace.
+            </p>
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <?php foreach ($featuredProducts as $product): ?>
+                <div class="bg-white rounded-lg border border-gray-100 hover:shadow-md transition-shadow duration-200 overflow-hidden">
+                    <div class="aspect-w-1 aspect-h-1 bg-gray-200">
+                        <img 
+                            src="/ampmkp/assets/images/<?php echo $product['image']; ?>" 
+                            alt="<?php echo htmlspecialchars($product['name']); ?>"
+                            class="w-full h-64 object-cover"
+                            onerror="this.onerror=null;this.src='/ampmkp/assets/images/general/placeholder.jpg'"
+                        >
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-900 mb-2 text-sm">
+                            <?php echo htmlspecialchars($product['name']); ?>
+                        </h3>
+                        <p class="text-gray-600 text-sm mb-3 line-clamp-2">
+                            <?php echo htmlspecialchars($product['description']); ?>
+                        </p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-lg font-bold text-gray-900">
+                                <?php echo formatPrice($product['price']); ?>
+                            </span>
+                            <a 
+                                href="/ampmkp/product.php?slug=<?php echo $product['slug']; ?>" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+                            >
+                                View Product
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+        
+        <div class="text-center mt-12">
+            <a href="/ampmkp/shop.php" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-8 py-3 rounded-md font-medium transition-colors duration-200">
+                View All Products
+            </a>
+        </div>
+    </div>
+</section>
+
+
+<!-- Call to Action -->
+<section class="bg-blue-600 py-16">
+    <div class="container mx-auto px-4 text-center">
+        <h2 class="text-3xl md:text-4xl font-bold text-white mb-6">Ready to Find Your Perfect Items?</h2>
+        <p class="text-blue-100 text-xl max-w-2xl mx-auto mb-8">
+            Explore our curated collection of quality products designed to inspire and uplift.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="/ampmkp/shop.php" class="bg-white hover:bg-gray-100 text-blue-600 px-8 py-4 rounded-md font-medium text-lg transition-colors duration-200 shadow-lg hover:shadow-xl">
+                Shop Now
+            </a>
+        </div>
+    </div>
+</section>
+
+<?php include 'includes/footer.php'; ?>

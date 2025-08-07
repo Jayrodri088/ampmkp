@@ -1,0 +1,81 @@
+[
+    {
+        "id": "AMP2025327059",
+        "customer_name": "John Doe",
+        "customer_email": "test@example.com",
+        "customer_phone": "+1234567890",
+        "shipping_address": {
+            "line1": "123 Test Street",
+            "line2": "",
+            "city": "Test City",
+            "postcode": "12345",
+            "country": "US"
+        },
+        "billing_address": {
+            "line1": "123 Test Street",
+            "line2": "",
+            "city": "Test City",
+            "postcode": "12345",
+            "country": "US"
+        },
+        "items": [
+            {
+                "product_id": 1,
+                "product_name": "Rhapsody Bomber Jacket - Blue",
+                "quantity": 1,
+                "price": 90,
+                "subtotal": 90
+            }
+        ],
+        "subtotal": 90,
+        "shipping_cost": 5,
+        "tax": 0,
+        "total": 95,
+        "status": "completed",
+        "payment_method": "card",
+        "payment_status": "completed",
+        "date": "2025-07-01 01:44:19",
+        "notes": "This is a test order.",
+        "stripe_payment_intent": "pi_3RfrMzQ52OldjavW00ZlgFBh",
+        "updated_at": "2025-07-04 16:04:28"
+    },
+    {
+        "id": "AMP2025476918",
+        "customer_name": "maxwell lax",
+        "customer_email": "odunoyemayowa@gmail.com",
+        "customer_phone": "",
+        "shipping_address": {
+            "line1": "max",
+            "line2": "",
+            "city": "max",
+            "postcode": "100213",
+            "country": "NG"
+        },
+        "billing_address": {
+            "line1": "max",
+            "line2": "",
+            "city": "max",
+            "postcode": "100213",
+            "country": "NG"
+        },
+        "items": [
+            {
+                "product_id": 1,
+                "product_name": "Rhapsody Bomber Jacket",
+                "quantity": 1,
+                "price": 90,
+                "subtotal": 90
+            }
+        ],
+        "subtotal": 90,
+        "shipping_cost": 5,
+        "tax": 0,
+        "total": 95,
+        "status": "processing",
+        "payment_method": "card",
+        "payment_status": "completed",
+        "date": "2025-08-06 12:41:58",
+        "notes": "",
+        "stripe_payment_intent": "pi_3Rt4nAQ52OldjavW06Vyg8yh"
+    }
+]

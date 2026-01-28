@@ -77,7 +77,23 @@ include '../includes/header.php';
 
             <!-- Form Container -->
             <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
-                <form id="vendorForm" class="p-8 md:p-12">
+                <form id="vendorForm" class="p-8 md:p-12" method="POST" action="<?php echo getBaseUrl('api/vendor_apply.php'); ?>" enctype="multipart/form-data">
+                    <?php
+                    if (session_status() === PHP_SESSION_NONE) { session_start(); }
+                    if (!isset($_SESSION['public_csrf_token'])) { $_SESSION['public_csrf_token'] = bin2hex(random_bytes(32)); }
+                    ?>
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['public_csrf_token']); ?>">
+
+                    <?php if (!empty($_SESSION['vendor_form_errors'])): ?>
+                        <div class="mb-6 bg-red-50 border border-red-200 text-red-800 rounded-xl p-4">
+                            <div class="font-semibold mb-2">Please fix the following:</div>
+                            <ul class="list-disc pl-5 space-y-1 text-sm">
+                                <?php foreach ($_SESSION['vendor_form_errors'] as $err): ?>
+                                    <li><?php echo htmlspecialchars($err); ?></li>
+                                <?php endforeach; unset($_SESSION['vendor_form_errors']); ?>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
                     
                     <!-- Step 1: Business Information -->
                     <div class="form-step active" data-step="1">
@@ -557,7 +573,7 @@ include '../includes/header.php';
                                     <input type="checkbox" id="termsAccepted" name="termsAccepted" required
                                            class="mt-1 h-4 w-4 text-folly border-gray-300 rounded focus:ring-folly">
                                     <label for="termsAccepted" class="ml-3 text-sm text-gray-900">
-                                        I agree to the <a href="#" class="text-folly hover:text-folly-600 font-semibold">Terms of Service</a> and <a href="#" class="text-folly hover:text-folly-600 font-semibold">Vendor Agreement</a> *
+                                        I agree to the <a href="<?php echo getBaseUrl('vendors/terms.php'); ?>" class="text-folly hover:text-folly-600 font-semibold">Terms of Service</a> and <a href="<?php echo getBaseUrl('vendors/agreement.php'); ?>" class="text-folly hover:text-folly-600 font-semibold">Vendor Agreement</a> *
                                     </label>
                                 </div>
 
@@ -565,7 +581,7 @@ include '../includes/header.php';
                                     <input type="checkbox" id="privacyAccepted" name="privacyAccepted" required
                                            class="mt-1 h-4 w-4 text-folly border-gray-300 rounded focus:ring-folly">
                                     <label for="privacyAccepted" class="ml-3 text-sm text-gray-900">
-                                        I agree to the <a href="#" class="text-folly hover:text-folly-600 font-semibold">Privacy Policy</a> *
+                                        I agree to the <a href="<?php echo getBaseUrl('vendors/privacy.php'); ?>" class="text-folly hover:text-folly-600 font-semibold">Privacy Policy</a> *
                                     </label>
                                 </div>
 
@@ -618,6 +634,9 @@ include '../includes/header.php';
                                 <button type="button" onclick="resetForm()" class="bg-white hover:bg-gray-50 text-gray-800 px-8 py-3 rounded-xl font-semibold border border-gray-300 hover:border-gray-400 transition-all duration-300">
                                     Submit Another Application
                                 </button>
+                                <a href="<?php echo getBaseUrl('vendors/terms.php'); ?>" class="bg-white hover:bg-gray-50 text-gray-800 px-8 py-3 rounded-xl font-semibold border border-gray-300 hover:border-gray-400 transition-all duration-300">
+                                    View Terms / Privacy / Agreement
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -816,9 +835,51 @@ include '../includes/header.php';
 let currentStep = 1;
 const totalSteps = 4;
 
+// ---------- Validation Utilities ----------
+function getFormGroup(element) {
+    return element.closest('.form-group') || element.parentElement;
+}
+
+function ensureErrorContainer(formGroup) {
+    let container = formGroup.querySelector('.error-message');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'error-message text-folly text-sm mt-1';
+        formGroup.appendChild(container);
+    }
+    return container;
+}
+
+function setError(element, message) {
+    const formGroup = getFormGroup(element);
+    if (!formGroup) return;
+    formGroup.classList.add('error');
+    const container = ensureErrorContainer(formGroup);
+    container.textContent = message || 'This field is required';
+    container.classList.remove('hidden');
+    element.setAttribute('aria-invalid', 'true');
+}
+
+function clearError(element) {
+    const formGroup = getFormGroup(element);
+    if (!formGroup) return;
+    formGroup.classList.remove('error');
+    const container = formGroup.querySelector('.error-message');
+    if (container) container.classList.add('hidden');
+    element.removeAttribute('aria-invalid');
+}
+
+function scrollToFirstError() {
+    const firstError = document.querySelector('.form-group.error');
+    if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 function nextStep() {
+    if (!validateCurrentStep()) {
+        scrollToFirstError();
+        return;
+    }
     if (currentStep === 3) {
-        // Submit form on step 3
         submitForm();
     } else if (currentStep < totalSteps) {
         currentStep++;
@@ -900,14 +961,189 @@ function updateNavigation(step) {
 }
 
 function validateCurrentStep() {
-    // Validation disabled for testing
-    return true;
+    let valid = true;
+
+    // Step 1: Business info
+    if (currentStep === 1) {
+        const businessName = document.getElementById('businessName');
+        const businessType = document.getElementById('businessType');
+        const businessDescription = document.getElementById('businessDescription');
+        const contactName = document.getElementById('contactName');
+        const contactEmail = document.getElementById('contactEmail');
+        const contactPhone = document.getElementById('contactPhone');
+        const businessWebsite = document.getElementById('businessWebsite');
+
+        // Name
+        if (!businessName.value.trim() || businessName.value.trim().length < 2) {
+            setError(businessName, 'Please enter a valid business name (min 2 characters).');
+            valid = false;
+        } else {
+            clearError(businessName);
+        }
+
+        // Type
+        if (!businessType.value) {
+            setError(businessType, 'Please select a business type.');
+            valid = false;
+        } else {
+            clearError(businessType);
+        }
+
+        // Description
+        if (!businessDescription.value.trim() || businessDescription.value.trim().length < 20) {
+            setError(businessDescription, 'Please provide a description (min 20 characters).');
+            valid = false;
+        } else {
+            clearError(businessDescription);
+        }
+
+        // Contact name
+        if (!contactName.value.trim() || contactName.value.trim().length < 2) {
+            setError(contactName, 'Please enter the contact person name.');
+            valid = false;
+        } else {
+            clearError(contactName);
+        }
+
+        // Email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
+        if (!emailRegex.test(contactEmail.value.trim())) {
+            setError(contactEmail, 'Please enter a valid email address.');
+            valid = false;
+        } else {
+            clearError(contactEmail);
+        }
+
+        // Phone
+        const phoneDigits = contactPhone.value.replace(/[^0-9]/g, '');
+        if (phoneDigits.length < 7) {
+            setError(contactPhone, 'Please enter a valid phone number.');
+            valid = false;
+        } else {
+            clearError(contactPhone);
+        }
+
+        // Website (optional)
+        if (businessWebsite.value.trim()) {
+            try {
+                const u = new URL(businessWebsite.value.trim());
+                if (!['http:', 'https:'].includes(u.protocol)) throw new Error('Invalid');
+                clearError(businessWebsite);
+            } catch {
+                setError(businessWebsite, 'Please enter a valid URL (http or https).');
+                valid = false;
+            }
+        } else {
+            clearError(businessWebsite);
+        }
+    }
+
+    // Step 2: Products
+    if (currentStep === 2) {
+        const productItems = document.querySelectorAll('.product-item');
+        if (productItems.length === 0) return false;
+
+        productItems.forEach((item) => {
+            const nameInput = item.querySelector('input[name="productNames[]"]');
+            const categorySelect = item.querySelector('select[name="productCategories[]"]');
+            const customCategory = item.querySelector('input[name="customCategories[]"]');
+            const priceInput = item.querySelector('input[name="productPrices[]"]');
+            const stockInput = item.querySelector('input[name="productStock[]"]');
+            const descriptionInput = item.querySelector('textarea[name="productDescriptions[]"]');
+            const fileInput = item.querySelector('.image-upload-area input[type="file"]');
+
+            // Name
+            if (!nameInput.value.trim() || nameInput.value.trim().length < 2) {
+                setError(nameInput, 'Enter a valid product name.');
+                valid = false;
+            } else {
+                clearError(nameInput);
+            }
+
+            // Category
+            if (!categorySelect.value) {
+                setError(categorySelect, 'Select a category.');
+                valid = false;
+            } else if (categorySelect.value === 'other') {
+                if (!customCategory || !customCategory.value.trim()) {
+                    setError(categorySelect, 'Provide a custom category name.');
+                    valid = false;
+                } else {
+                    clearError(categorySelect);
+                }
+            } else {
+                clearError(categorySelect);
+            }
+
+            // Price
+            const price = parseFloat(priceInput.value);
+            if (isNaN(price) || price < 0) {
+                setError(priceInput, 'Enter a valid price (>= 0).');
+                valid = false;
+            } else {
+                clearError(priceInput);
+            }
+
+            // Stock
+            const stock = parseInt(stockInput.value, 10);
+            if (isNaN(stock) || stock < 0) {
+                setError(stockInput, 'Enter a valid stock (>= 0).');
+                valid = false;
+            } else {
+                clearError(stockInput);
+            }
+
+            // Description
+            if (!descriptionInput.value.trim() || descriptionInput.value.trim().length < 10) {
+                setError(descriptionInput, 'Add a brief description (min 10 characters).');
+                valid = false;
+            } else {
+                clearError(descriptionInput);
+            }
+
+            // Images
+            const files = (fileInput && fileInput.files) ? Array.from(fileInput.files) : [];
+            if (files.length === 0) {
+                setError(fileInput, 'Please upload at least one product image.');
+                valid = false;
+            } else {
+                const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                const maxSize = 5 * 1024 * 1024;
+                const invalid = files.find(f => !allowed.includes(f.type) || f.size > maxSize);
+                if (invalid) {
+                    const reason = !allowed.includes(invalid.type) ? 'Unsupported file type' : 'Image too large (max 5MB)';
+                    setError(fileInput, reason + '.');
+                    valid = false;
+                } else {
+                    clearError(fileInput);
+                }
+            }
+        });
+    }
+
+    // Step 3: Terms
+    if (currentStep === 3) {
+        const terms = document.getElementById('termsAccepted');
+        const privacy = document.getElementById('privacyAccepted');
+        if (!terms.checked) {
+            setError(terms, 'You must accept the Terms of Service.');
+            valid = false;
+        } else {
+            clearError(terms);
+        }
+        if (!privacy.checked) {
+            setError(privacy, 'You must accept the Privacy Policy.');
+            valid = false;
+        } else {
+            clearError(privacy);
+        }
+    }
+
+    return valid;
 }
 
 function submitForm() {
-    // Show loading state
     const nextBtn = document.getElementById('nextBtn');
-    const originalText = nextBtn.innerHTML;
     nextBtn.innerHTML = `
         <svg class="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -917,26 +1153,8 @@ function submitForm() {
     `;
     nextBtn.disabled = true;
 
-    // Simulate form submission
-    setTimeout(() => {
-        // Collect form data
-        const formData = new FormData(document.getElementById('vendorForm'));
-        
-        // Here you would normally send the data to your server
-        console.log('Form submitted:', Object.fromEntries(formData));
-        
-        // Move to completion step
-        currentStep = 4;
-        showStep(currentStep);
-        
-        // Show success message
-        if (window.Toast) {
-            Toast.fire({
-                icon: 'success',
-                title: 'Application submitted successfully!'
-            });
-        }
-    }, 2000);
+    // Submit the actual form to backend
+    document.getElementById('vendorForm').submit();
 }
 
 function resetForm() {
@@ -1165,30 +1383,39 @@ function handleImageUpload(input) {
     const uploadArea = input.closest('.image-upload-area');
     const placeholder = uploadArea.querySelector('.upload-placeholder');
     const previewContainer = uploadArea.querySelector('.image-preview-container');
+    const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
     
     if (input.files && input.files.length > 0) {
         placeholder.classList.add('hidden');
         previewContainer.classList.remove('hidden');
         previewContainer.innerHTML = '';
         
-        Array.from(input.files).forEach((file, index) => {
-            if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const imagePreview = document.createElement('div');
-                    imagePreview.className = 'relative group';
-                    imagePreview.innerHTML = `
-                        <img src="${e.target.result}" alt="Product ${index + 1}" class="w-full h-24 object-cover rounded-lg border border-gray-200">
-                        <button type="button" onclick="removeImage(this, ${index})" class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </button>
-                    `;
-                    previewContainer.appendChild(imagePreview);
-                };
-                reader.readAsDataURL(file);
-            }
+        const files = Array.from(input.files);
+        const validFiles = files.filter(f => allowed.includes(f.type) && f.size <= maxSize);
+
+        if (validFiles.length !== files.length) {
+            setError(input, 'Invalid image(s): only JPG, PNG, GIF, WebP up to 5MB each.');
+        } else {
+            clearError(input);
+        }
+
+        validFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imagePreview = document.createElement('div');
+                imagePreview.className = 'relative group';
+                imagePreview.innerHTML = `
+                    <img src="${e.target.result}" alt="Product ${index + 1}" class="w-full h-24 object-cover rounded-lg border border-gray-200">
+                    <button type="button" onclick="removeImage(this, ${index})" class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                `;
+                previewContainer.appendChild(imagePreview);
+            };
+            reader.readAsDataURL(file);
         });
     }
 }
@@ -1277,6 +1504,16 @@ document.addEventListener('DOMContentLoaded', function() {
     updateSummary();
     updatePhonePlaceholder(); // Initialize phone placeholder
     
+    // If redirected with success, show completion step
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('success')) {
+        currentStep = 4;
+        showStep(currentStep);
+    }
+    if (params.has('error')) {
+        // Optionally surface errors saved in session via server-side include in PHP
+    }
+    
     // Add event listeners for summary updates
     document.addEventListener('change', function(e) {
         if (e.target.matches('select[name="productCategories[]"]') || 
@@ -1290,6 +1527,24 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('input', function(e) {
         if (e.target.matches('input[name="customCategories[]"]')) {
             updateSummary();
+        }
+    });
+
+    // Live clear errors on input/change
+    document.addEventListener('input', function(e) {
+        const el = e.target;
+        if (el.closest('.form-group')) {
+            clearError(el);
+        }
+    });
+    document.addEventListener('change', function(e) {
+        const el = e.target;
+        if (el.type === 'file') {
+            // Revalidate images on change
+            handleImageUpload(el);
+        }
+        if (el.closest('.form-group')) {
+            clearError(el);
         }
     });
 });

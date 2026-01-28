@@ -55,311 +55,263 @@ include 'includes/header.php';
 ?>
 
 <!-- Breadcrumb -->
-<div class="bg-white border-b border-gray-100 py-3 md:py-4 mt-16 md:mt-20">
+<div class="bg-white border-b border-gray-100 py-4">
     <div class="container mx-auto px-4">
-        <nav class="text-xs md:text-sm flex items-center space-x-2">
-            <a href="<?php echo getBaseUrl(); ?>" class="text-folly hover:text-folly-600 hover:underline">Home</a>
-            <span class="text-gray-400">/</span>
+        <nav class="text-sm flex items-center space-x-2">
+            <a href="<?php echo getBaseUrl(); ?>" class="text-gray-500 hover:text-folly transition-colors">Home</a>
+            <span class="text-gray-300">/</span>
             <?php if ($selectedCategory): ?>
-                <a href="<?php echo getBaseUrl('shop.php'); ?>" class="text-folly hover:text-folly-600 hover:underline">Shop</a>
-                <span class="text-gray-400">/</span>
+                <a href="<?php echo getBaseUrl('shop.php'); ?>" class="text-gray-500 hover:text-folly transition-colors">Shop</a>
+                <span class="text-gray-300">/</span>
                 <?php 
                 $breadcrumb = getCategoryBreadcrumb($selectedCategory['id']);
                 foreach ($breadcrumb as $index => $crumb):
                     if ($index === count($breadcrumb) - 1): // Last item (current category)
                 ?>
-                        <span class="text-gray-700 font-medium"><?php echo htmlspecialchars($crumb['name']); ?></span>
+                        <span class="text-charcoal-900 font-medium"><?php echo htmlspecialchars($crumb['name']); ?></span>
                     <?php else: // Parent categories ?>
-                        <a href="<?php echo getBaseUrl('category.php?slug=' . htmlspecialchars($crumb['slug'])); ?>" class="text-folly hover:text-folly-600 hover:underline"><?php echo htmlspecialchars($crumb['name']); ?></a>
-                        <span class="text-gray-400">/</span>
+                        <a href="<?php echo getBaseUrl('category.php?slug=' . htmlspecialchars($crumb['slug'])); ?>" class="text-gray-500 hover:text-folly transition-colors"><?php echo htmlspecialchars($crumb['name']); ?></a>
+                        <span class="text-gray-300">/</span>
                     <?php endif; ?>
                 <?php endforeach; ?>
             <?php else: ?>
-                <span class="text-gray-700 font-medium">Shop</span>
+                <span class="text-charcoal-900 font-medium">Shop</span>
             <?php endif; ?>
         </nav>
     </div>
 </div>
 
 <!-- Shop Header -->
-<section class="bg-gradient-to-br from-charcoal-50 via-white to-tangerine-50 py-8 md:py-16">
-    <div class="container mx-auto px-4">
-        <div class="text-center mb-6 md:mb-12">
-            <h1 class="text-2xl md:text-4xl lg:text-6xl font-bold text-gray-900 mb-4 md:mb-6">
+<section class="relative bg-gray-50 py-16 md:py-24 overflow-hidden">
+    <!-- Decorative Background Elements -->
+    <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+        <div class="absolute -top-24 -right-24 w-96 h-96 bg-folly/5 rounded-full blur-3xl"></div>
+        <div class="absolute top-1/2 -left-24 w-72 h-72 bg-tangerine/5 rounded-full blur-3xl"></div>
+    </div>
+
+    <div class="container mx-auto px-4 relative z-10">
+        <div class="text-center max-w-4xl mx-auto">
+            <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-charcoal-900 mb-6 tracking-tight">
                 <?php echo $selectedCategory ? htmlspecialchars($selectedCategory['name']) : 'Shop All Products'; ?>
             </h1>
-            <div class="w-16 md:w-24 h-1 bg-gradient-to-r from-folly to-folly-600 mx-auto rounded-full mb-4 md:mb-6"></div>
-            <p class="text-gray-600 max-w-3xl mx-auto text-base md:text-lg leading-relaxed px-4">
+            <div class="w-24 h-1.5 bg-gradient-to-r from-folly to-tangerine mx-auto rounded-full mb-8"></div>
+            <p class="text-lg text-charcoal-600 leading-relaxed">
                 <?php echo $selectedCategory ? htmlspecialchars($selectedCategory['description']) : 'Discover our complete collection of quality products designed to inspire and delight. Find exactly what you\'re looking for with our organized product collections.'; ?>
             </p>
             
-            <!-- Stats -->
-            <div class="flex flex-wrap justify-center items-center gap-4 md:gap-8 mt-6 md:mt-8 text-xs md:text-sm text-gray-600 px-4">
-                <div class="flex items-center gap-2">
-                    <svg class="w-5 h-5 text-folly" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
-                    </svg>
-                    <span><?php echo $totalProducts; ?> Products</span>
+            <!-- Stats Badges -->
+            <div class="flex flex-wrap justify-center gap-4 mt-8">
+                <div class="inline-flex items-center px-4 py-2 bg-white rounded-full shadow-sm border border-gray-100 text-sm font-medium text-charcoal-600">
+                    <span class="w-2 h-2 bg-folly rounded-full mr-2"></span>
+                    <?php echo $totalProducts; ?> Products Available
                 </div>
-                <div class="flex items-center gap-2">
-                    <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                    </svg>
-                    <span>Quality Guaranteed</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <svg class="w-5 h-5 text-tangerine" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"></path>
-                        <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1V8a1 1 0 00-1-1h-3z"></path>
-                    </svg>
-                    <span>Fast Shipping</span>
+                <div class="inline-flex items-center px-4 py-2 bg-white rounded-full shadow-sm border border-gray-100 text-sm font-medium text-charcoal-600">
+                    <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    Quality Guaranteed
                 </div>
             </div>
         </div>
+    </div>
+</section>
+
+<!-- Main Content -->
+<section class="py-12 bg-white">
+    <div class="container mx-auto px-4">
         
-        <!-- Search and Filters -->
-        <div class="bg-white/80 backdrop-blur-sm p-4 md:p-8 rounded-2xl shadow-lg border border-gray-200 mb-6 md:mb-8">
-            <form method="GET" action="<?php echo getBaseUrl('shop.php'); ?>" class="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6">
+        <!-- Filters Bar -->
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-12 -mt-20 relative z-20">
+            <form method="GET" action="<?php echo getBaseUrl('shop.php'); ?>" class="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
                 <!-- Search -->
-                <div>
-                    <label class="block text-xs md:text-sm font-semibold text-gray-700 mb-2 md:mb-3">Search Products</label>
+                <div class="md:col-span-5">
+                    <label class="block text-xs font-bold text-charcoal-500 uppercase tracking-wider mb-2">Search</label>
                     <div class="relative">
                         <input 
                             type="text" 
                             name="search" 
                             value="<?php echo htmlspecialchars($searchQuery); ?>"
                             placeholder="Search products..." 
-                            class="w-full px-3 md:px-4 py-2 md:py-3 pl-8 md:pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-folly focus:border-folly transition-all duration-200 text-sm md:text-base"
+                            class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-folly focus:border-folly transition-all"
                         >
-                        <svg class="absolute left-2 md:left-3 top-2.5 md:top-3.5 w-3 h-3 md:w-4 md:h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
+                        <svg class="absolute left-3 top-3.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </div>
                 </div>
                 
-                <!-- Category Filter -->
-                <div>
-                    <label class="block text-xs md:text-sm font-semibold text-gray-700 mb-2 md:mb-3">Category</label>
-                    <select name="category" class="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-folly focus:border-folly transition-all duration-200 text-sm md:text-base">
-                        <option value="">All Categories</option>
-                        <?php 
-                        $hierarchy = getCategoryHierarchy();
-                        echo renderFrontendCategoryOptions($hierarchy, $categorySlug, 0);
-                        ?>
-                    </select>
+                <!-- Category -->
+                <div class="md:col-span-3">
+                    <label class="block text-xs font-bold text-charcoal-500 uppercase tracking-wider mb-2">Category</label>
+                    <div class="relative">
+                        <select name="category" class="w-full pl-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-folly focus:border-folly transition-all appearance-none">
+                            <option value="">All Categories</option>
+                            <?php 
+                            $hierarchy = getCategoryHierarchy();
+                            echo renderFrontendCategoryOptions($hierarchy, $categorySlug, 0);
+                            ?>
+                        </select>
+                        <div class="absolute right-3 top-3.5 pointer-events-none text-gray-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Sort -->
-                <div>
-                    <label class="block text-xs md:text-sm font-semibold text-gray-700 mb-2 md:mb-3">Sort By</label>
-                    <select name="sort" class="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-folly focus:border-folly transition-all duration-200 text-sm md:text-base">
-                        <option value="name" <?php echo $sortBy === 'name' ? 'selected' : ''; ?>>Name A-Z</option>
-                        <option value="price_low" <?php echo $sortBy === 'price_low' ? 'selected' : ''; ?>>Price: Low to High</option>
-                        <option value="price_high" <?php echo $sortBy === 'price_high' ? 'selected' : ''; ?>>Price: High to Low</option>
-                    </select>
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-charcoal-500 uppercase tracking-wider mb-2">Sort By</label>
+                    <div class="relative">
+                        <select name="sort" class="w-full pl-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-folly focus:border-folly transition-all appearance-none">
+                            <option value="name" <?php echo $sortBy === 'name' ? 'selected' : ''; ?>>Name (A-Z)</option>
+                            <option value="price_low" <?php echo $sortBy === 'price_low' ? 'selected' : ''; ?>>Price (Low-High)</option>
+                            <option value="price_high" <?php echo $sortBy === 'price_high' ? 'selected' : ''; ?>>Price (High-Low)</option>
+                        </select>
+                        <div class="absolute right-3 top-3.5 pointer-events-none text-gray-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Submit -->
-                <div class="flex items-end">
-                    <button 
-                        type="submit" 
-                        class="w-full bg-gradient-to-r from-folly to-folly-600 hover:from-folly-600 hover:to-folly-700 text-white px-4 md:px-6 py-2 md:py-3 rounded-xl font-semibold text-sm md:text-base transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 touch-manipulation"
-                    >
-                        <svg class="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                        </svg>
-                        Apply Filters
+                <div class="md:col-span-2">
+                    <button type="submit" class="w-full bg-charcoal-900 hover:bg-folly text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2">
+                        <span>Filter</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
                     </button>
                 </div>
-                
-                <!-- Hidden fields to preserve current page -->
+
                 <input type="hidden" name="page" value="1">
             </form>
             
-            <!-- Clear Filters -->
+            <!-- Active Filters -->
             <?php if ($searchQuery || $categorySlug || $sortBy !== 'name'): ?>
-                <div class="mt-4 md:mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <p class="text-xs md:text-sm text-gray-600">
-                        Active filters applied
-                        <?php if ($searchQuery): ?>
-                            • Search: "<?php echo htmlspecialchars($searchQuery); ?>"
-                        <?php endif; ?>
-                        <?php if ($selectedCategory): ?>
-                            • Category: <?php echo htmlspecialchars($selectedCategory['name']); ?>
-                        <?php endif; ?>
-                    </p>
-                                            <a href="<?php echo getBaseUrl('shop.php'); ?>" class="text-xs md:text-sm text-folly hover:text-folly-600 font-medium bg-folly-50 hover:bg-folly-100 px-3 md:px-4 py-2 rounded-lg transition-colors duration-200 touch-manipulation">
-                        Clear all filters
-                    </a>
+                <div class="mt-6 pt-6 border-t border-gray-100 flex flex-wrap items-center gap-3">
+                    <span class="text-sm text-gray-500 font-medium">Active Filters:</span>
+                    <?php if ($searchQuery): ?>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-folly-50 text-folly border border-folly-100">
+                            Search: <?php echo htmlspecialchars($searchQuery); ?>
+                        </span>
+                    <?php endif; ?>
+                    <?php if ($selectedCategory): ?>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-folly-50 text-folly border border-folly-100">
+                            Category: <?php echo htmlspecialchars($selectedCategory['name']); ?>
+                        </span>
+                    <?php endif; ?>
+                    <a href="<?php echo getBaseUrl('shop.php'); ?>" class="text-sm text-gray-400 hover:text-folly underline decoration-dotted transition-colors ml-auto">Clear All</a>
                 </div>
             <?php endif; ?>
         </div>
-        
-        <!-- Results Info -->
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 md:mb-8 gap-3 md:gap-4">
-            <div>
-                <p class="text-gray-600 text-sm md:text-lg">
-                    <?php if ($totalProducts > 0): ?>
-                        Showing <span class="font-semibold text-gray-900"><?php echo ($pagination['offset'] + 1); ?>-<?php echo min($pagination['offset'] + $itemsPerPage, $totalProducts); ?></span> 
-                        of <span class="font-semibold text-gray-900"><?php echo $totalProducts; ?></span> products
-                    <?php else: ?>
-                        Showing <span class="font-semibold text-gray-900">0</span> products
-                    <?php endif; ?>
-                </p>
-            </div>
-            <div class="flex items-center gap-3 md:gap-4">
-                                    <a href="<?php echo getBaseUrl('categories.php'); ?>" class="text-folly hover:text-folly-600 font-medium text-xs md:text-sm bg-folly-50 hover:bg-folly-100 px-3 md:px-4 py-2 rounded-lg transition-colors duration-200 touch-manipulation">
-                    Browse Categories
-                </a>
-            </div>
-        </div>
-    </div>
-</section>
 
-<!-- Products Grid -->
-<section class="bg-white pt-6 md:pt-8 pb-12 md:pb-16">
-    <div class="container mx-auto px-4">
+        <!-- Results Grid -->
         <?php if (empty($products)): ?>
-            <div class="text-center py-12 md:py-16">
-                <div class="text-gray-400 mb-4">
-                    <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2 2v-5m16 0h-6m-10 0h6"></path>
-                    </svg>
+            <div class="text-center py-24">
+                <div class="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 </div>
-                <h3 class="text-xl font-semibold text-gray-700 mb-2">No products found</h3>
-                <p class="text-gray-500 mb-6">Try adjusting your search criteria or browse all products.</p>
-                                    <a href="<?php echo getBaseUrl('shop.php'); ?>" class="bg-folly hover:bg-folly-600 text-white px-4 md:px-6 py-2 md:py-3 rounded-md font-medium text-sm md:text-base transition-colors duration-200 touch-manipulation">
+                <h3 class="text-2xl font-bold text-charcoal-900 mb-2">No products found</h3>
+                <p class="text-gray-500 mb-8 max-w-md mx-auto">We couldn't find any products matching your criteria. Try adjusting your filters or search terms.</p>
+                <a href="<?php echo getBaseUrl('shop.php'); ?>" class="inline-flex items-center justify-center px-8 py-3 text-base font-bold text-white transition-all duration-200 bg-folly border border-transparent rounded-xl hover:bg-folly-600 shadow-lg hover:shadow-xl">
                     View All Products
                 </a>
             </div>
         <?php else: ?>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8">
-                <?php foreach ($products as $product): ?>
-                    <div class="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100">
-                        <!-- Background gradient overlay -->
-                        <div class="absolute inset-0 bg-gradient-to-br from-folly/5 to-tangerine/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        
-                        <!-- Image container -->
-                        <div class="relative overflow-hidden rounded-t-2xl">
-                            <div class="aspect-w-1 aspect-h-1 bg-gradient-to-br from-gray-100 to-gray-200">
-                                <img 
-                                    loading="lazy"
-                                    src="<?php echo getAssetUrl('images/' . $product['image']); ?>" 
-                                    alt="<?php echo htmlspecialchars($product['name']); ?>"
-                                    class="w-full h-48 md:h-64 object-cover transition-transform duration-500 group-hover:scale-110"
-                                    onerror="this.onerror=null;this.src='<?php echo getAssetUrl('images/general/placeholder.jpg'); ?>';"
-                                >
-                            </div>
-                            <!-- Image overlay -->
-                            <div class="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                            
-                            <!-- Stock badge -->
-                            <?php if ($product['stock'] <= 5): ?>
-                                <div class="absolute top-4 right-4">
-                                    <span class="bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-bold shadow-lg">
-                                        Only <?php echo $product['stock']; ?> left
-                                    </span>
-                                </div>
+            <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8">
+                <?php foreach ($products as $index => $product): 
+                    $isLcp = $index < 4; // Eager load first 4 products (first row on desktop)
+                ?>
+                    <div class="group bg-white rounded-2xl border border-gray-100 hover:border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full">
+                        <div class="relative aspect-[4/5] overflow-hidden rounded-t-2xl bg-gray-100">
+                            <!-- Loading Skeleton -->
+                            <div class="absolute inset-0 bg-gray-200 animate-pulse"></div>
+
+                            <!-- Badges -->
+                            <?php if (isset($product['is_new']) && $product['is_new']): ?>
+                            <span class="absolute top-2 left-2 md:top-3 md:left-3 bg-green-500 text-white text-[10px] md:text-xs font-bold px-2 py-0.5 md:px-2.5 md:py-1 rounded-full z-20">NEW</span>
+                            <?php endif; ?>
+                            <?php if (isset($product['discount_percent']) && $product['discount_percent'] > 0): ?>
+                            <span class="absolute top-2 right-2 md:top-3 md:right-3 bg-folly text-white text-[10px] md:text-xs font-bold px-2 py-0.5 md:px-2.5 md:py-1 rounded-full z-20">-<?php echo $product['discount_percent']; ?>%</span>
                             <?php endif; ?>
                             
-                            <!-- Quick view button -->
-                            <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                <a 
-                                    href="<?php echo getBaseUrl('product.php?slug=' . $product['slug']); ?>" 
-                                    class="bg-white/90 backdrop-blur-sm hover:bg-white text-gray-800 px-4 py-2 rounded-full text-sm font-semibold shadow-lg transform scale-95 group-hover:scale-100 transition-all duration-300"
-                                >
-                                    Quick View
+                            <img src="<?php echo getAssetUrl('images/' . $product['image']); ?>" 
+                                 alt="<?php echo htmlspecialchars($product['name']); ?>" 
+                                 <?php if (!$isLcp): ?>
+                                 loading="lazy"
+                                 class="absolute inset-0 w-full h-full object-cover transition-all duration-300 group-hover:scale-110 opacity-0 z-10"
+                                 onload="this.classList.remove('opacity-0')"
+                                 onerror="this.onerror=null;this.src='<?php echo getAssetUrl('images/general/placeholder.jpg'); ?>';this.classList.remove('opacity-0')"
+                                 <?php else: ?>
+                                 class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-110 z-10"
+                                 onerror="this.onerror=null;this.src='<?php echo getAssetUrl('images/general/placeholder.jpg'); ?>'"
+                                 <?php endif; ?>>
+                            
+                            <!-- Quick Actions (Hidden on mobile) -->
+                            <div class="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 flex gap-2 hidden md:flex z-20">
+                                <button onclick="addToCart(<?php echo $product['id']; ?>)" class="flex-1 bg-white text-charcoal-900 font-semibold py-3 rounded-xl hover:bg-folly hover:text-white transition-colors shadow-lg text-sm flex items-center justify-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m-.4-5L2 1m5 12v2a2 2 0 002 2h10a2 2 0 002-2v-2m-6 4h.01M9 19h.01"></path></svg>
+                                    Add
+                                </button>
+                                <a href="<?php echo getBaseUrl('product.php?slug=' . $product['slug']); ?>" class="w-12 bg-white text-charcoal-900 rounded-xl hover:bg-charcoal-900 hover:text-white transition-colors shadow-lg flex items-center justify-center" title="View Details">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                 </a>
                             </div>
                         </div>
                         
-                        <!-- Content -->
-                        <div class="relative p-4 md:p-6">
-                            <h3 class="font-bold text-gray-900 mb-2 md:mb-3 text-base md:text-lg group-hover:text-folly transition-colors duration-300 line-clamp-2">
-                                <?php echo htmlspecialchars($product['name']); ?>
+                        <div class="p-3 md:p-5 flex flex-col flex-grow">
+                            <div class="mb-1 md:mb-2 text-[10px] md:text-xs text-charcoal-500 uppercase tracking-wider font-medium truncate">
+                                <?php echo htmlspecialchars($product['category_name'] ?? 'Product'); ?>
+                            </div>
+                            <h3 class="text-sm md:text-lg font-bold text-charcoal-900 mb-1 md:mb-2 line-clamp-2 group-hover:text-folly transition-colors h-10 md:h-auto">
+                                <a href="<?php echo getBaseUrl('product.php?slug=' . $product['slug']); ?>">
+                                    <?php echo htmlspecialchars($product['name']); ?>
+                                </a>
                             </h3>
-                            <p class="text-gray-600 text-xs md:text-sm mb-4 line-clamp-2 leading-relaxed">
-                                <?php echo htmlspecialchars($product['description']); ?>
-                            </p>
                             
-                            <!-- Rating stars (real data) -->
-                            <div class="flex items-center mb-4">
+                            <!-- Rating -->
+                            <div class="flex items-center mb-2 md:mb-3">
                                 <?php 
                                 $ratingStats = getProductRatingStats($product['id']);
-                                echo renderStars($ratingStats['average']);
+                                echo renderStars($ratingStats['average'], 5, 'w-3 h-3 md:w-4 md:h-4');
                                 ?>
-                                <span class="ml-2 text-xs text-gray-500">
-                                    <?php if ($ratingStats['count'] > 0): ?>
-                                        (<?php echo $ratingStats['average']; ?> - <?php echo $ratingStats['count']; ?> review<?php echo $ratingStats['count'] != 1 ? 's' : ''; ?>)
-                                    <?php else: ?>
-                                        (No reviews yet)
-                                    <?php endif; ?>
-                                </span>
+                                <span class="text-[10px] md:text-xs text-gray-400 ml-1 md:ml-2">(<?php echo $ratingStats['count']; ?>)</span>
                             </div>
                             
-                            <div class="flex justify-between items-center mb-4">
-                                <span class="text-lg md:text-2xl font-bold text-gray-900">
-                                    <?php echo formatProductPrice($product, $selectedCurrency); ?>
-                                </span>
+                            <div class="mt-auto flex flex-col md:flex-row md:items-center justify-between gap-2">
+                                <div class="flex flex-col">
+                                    <span class="text-base md:text-xl font-bold text-charcoal-900"><?php echo formatProductPrice($product, $selectedCurrency); ?></span>
+                                    <?php if (isset($product['old_price']) && $product['old_price'] > $product['price']): ?>
+                                    <span class="text-[10px] md:text-sm text-gray-400 line-through"><?php echo formatPriceWithCurrency($product['old_price'], $selectedCurrency); ?></span>
+                                    <?php endif; ?>
+                                </div>
                                 <?php if ($product['stock'] <= 5): ?>
-                                    <span class="text-xs text-orange-600 font-bold bg-orange-50 px-2 py-1 rounded-full">
+                                    <span class="text-[10px] md:text-xs text-orange-600 font-bold bg-orange-50 px-2 py-1 rounded-full w-fit">
                                         Only <?php echo $product['stock']; ?> left
                                     </span>
                                 <?php endif; ?>
-                            </div>
-                            
-                            <!-- Action Buttons -->
-                            <div class="flex flex-col gap-2">
-                                <a 
-                                    href="<?php echo getBaseUrl('product.php?slug=' . $product['slug']); ?>" 
-                                    class="bg-gradient-to-r from-folly to-folly-600 hover:from-folly-600 hover:to-folly-700 text-white px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl text-center touch-manipulation"
-                                >
-                                    View Details
-                                </a>
-                                <button 
-                                    onclick="addToCart(<?php echo $product['id']; ?>)"
-                                    class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2 touch-manipulation"
-                                    <?php echo $product['stock'] <= 0 ? 'disabled' : ''; ?>
-                                >
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m-.4-5L2 1m5 12v2a2 2 0 002 2h10a2 2 0 002-2v-2m-6 4h.01M9 19h.01"></path>
-                                    </svg>
-                                    Add to Cart
+                                <!-- Mobile Add Button -->
+                                <button onclick="addToCart(<?php echo $product['id']; ?>)" class="md:hidden w-full bg-charcoal-900 text-white text-xs font-bold py-2 rounded-lg hover:bg-folly transition-colors">
+                                    Add
                                 </button>
                             </div>
                         </div>
                     </div>
                 <?php endforeach; ?>
             </div>
-            
+
             <!-- Pagination -->
             <?php if ($pagination['total_pages'] > 1): ?>
-                <div class="mt-8 md:mt-16 flex justify-center">
-                    <nav class="flex space-x-1 md:space-x-2">
+                <div class="mt-16 flex justify-center">
+                    <nav class="flex items-center gap-2">
                         <?php if ($pagination['has_prev']): ?>
-                            <a 
-                                href="?<?php echo http_build_query(array_merge($_GET, ['page' => $pagination['prev_page']])); ?>" 
-                                class="px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm font-semibold text-gray-600 bg-white border border-gray-300 rounded-xl hover:bg-folly-50 hover:text-folly hover:border-folly-300 transition-all duration-200 shadow-sm touch-manipulation"
-                            >
-                                Previous
+                            <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $pagination['prev_page']])); ?>" class="w-10 h-10 flex items-center justify-center rounded-xl border border-gray-200 text-charcoal-600 hover:bg-folly hover:text-white hover:border-folly transition-all">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                             </a>
                         <?php endif; ?>
                         
                         <?php for ($i = max(1, $pagination['current_page'] - 2); $i <= min($pagination['total_pages'], $pagination['current_page'] + 2); $i++): ?>
-                            <a 
-                                href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>" 
-                                class="px-3 md:px-4 py-2 md:py-3 text-xs md:text-sm font-semibold <?php echo $i === $pagination['current_page'] ? 'text-white bg-gradient-to-r from-folly to-folly-600 border border-folly shadow-lg' : 'text-gray-600 bg-white border border-gray-300 hover:bg-folly-50 hover:text-folly hover:border-folly-300'; ?> rounded-xl transition-all duration-200 touch-manipulation"
-                            >
+                            <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>" class="w-10 h-10 flex items-center justify-center rounded-xl font-bold transition-all <?php echo $i === $pagination['current_page'] ? 'bg-folly text-white shadow-lg' : 'border border-gray-200 text-charcoal-600 hover:bg-gray-50'; ?>">
                                 <?php echo $i; ?>
                             </a>
                         <?php endfor; ?>
                         
                         <?php if ($pagination['has_next']): ?>
-                            <a 
-                                href="?<?php echo http_build_query(array_merge($_GET, ['page' => $pagination['next_page']])); ?>" 
-                                class="px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm font-semibold text-gray-600 bg-white border border-gray-300 rounded-xl hover:bg-folly-50 hover:text-folly hover:border-folly-300 transition-all duration-200 shadow-sm touch-manipulation"
-                            >
-                                Next
+                            <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $pagination['next_page']])); ?>" class="w-10 h-10 flex items-center justify-center rounded-xl border border-gray-200 text-charcoal-600 hover:bg-folly hover:text-white hover:border-folly transition-all">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                             </a>
                         <?php endif; ?>
                     </nav>
@@ -368,7 +320,5 @@ include 'includes/header.php';
         <?php endif; ?>
     </div>
 </section>
-
-<!-- Cart functionality is now handled by cart.js -->
 
 <?php include 'includes/footer.php'; ?>

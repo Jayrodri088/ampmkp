@@ -1,6 +1,7 @@
 <?php
 require_once '../includes/stripe-config.php';
 require_once '../includes/functions.php';
+require_once '../includes/mail_config.php';
 
 header('Content-Type: application/json');
 
@@ -54,15 +55,13 @@ try {
 
         // Get settings
         $settings = getSettings();
-        $freeShippingThreshold = $settings['shipping']['free_shipping_threshold'] ?? 0;
-        $standardShippingCost = $settings['shipping']['standard_shipping_cost'] ?? 0;
-        
-        // Calculate shipping cost
-        if ($freeShippingThreshold > 0 && $subtotal >= $freeShippingThreshold) {
-            $shippingCost = 0; // Free shipping
-        } else {
-            $shippingCost = $standardShippingCost; // Standard shipping cost
-        }
+        $shippingSettings = getShippingSettings();
+        // Use session-selected method if present (fallback to default)
+        if (session_status() == PHP_SESSION_NONE) { session_start(); }
+        $selectedCurrency = getSelectedCurrency();
+        $selectedMethod = $_SESSION['shipping_method'] ?? getDefaultShippingMethod($shippingSettings);
+        $selectedMethod = validateShippingMethod($selectedMethod, $shippingSettings);
+        $shippingCost = computeShippingCost($subtotal, $selectedCurrency, $selectedMethod, $shippingSettings);
         
         $total = $subtotal + $shippingCost;
 
@@ -202,6 +201,31 @@ try {
                 unlink($tempPaymentFile);
             }
             
+            // Attempt to fetch receipt/invoice links and send emails (non-blocking)
+            try {
+                $receiptUrl = '';
+                $invoiceUrl = '';
+
+                // Retrieve PaymentIntent with latest_charge expanded
+                $pi = \Stripe\PaymentIntent::retrieve([
+                    'id' => $paymentIntentId,
+                    'expand' => ['latest_charge']
+                ]);
+                if (!empty($pi->latest_charge) && !empty($pi->latest_charge->receipt_url)) {
+                    $receiptUrl = $pi->latest_charge->receipt_url;
+                }
+                if (!empty($pi->latest_charge) && !empty($pi->latest_charge->invoice)) {
+                    $invoice = \Stripe\Invoice::retrieve($pi->latest_charge->invoice);
+                    if (!empty($invoice->hosted_invoice_url)) { $invoiceUrl = $invoice->hosted_invoice_url; }
+                    elseif (!empty($invoice->invoice_pdf)) { $invoiceUrl = $invoice->invoice_pdf; }
+                }
+
+                @sendOrderConfirmationToCustomer($orderData, $receiptUrl, $invoiceUrl);
+                @sendOrderNotificationToAdmin($orderData, $receiptUrl, $invoiceUrl);
+            } catch (Exception $mailErr) {
+                if (function_exists('logError')) { logError('Stripe PI email send failed: ' . $mailErr->getMessage()); }
+            }
+
             echo json_encode([
                 'success' => true,
                 'order_id' => $orderId,

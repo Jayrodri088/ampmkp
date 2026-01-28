@@ -362,3 +362,266 @@
         color: #f7fafc;
     }
 }
+
+/* ============================================
+   MOBILE FORM OPTIMIZATIONS
+   ============================================ */
+
+/* Prevent iOS zoom on input focus - use 16px minimum */
+@media (max-width: 768px) {
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="number"],
+    input[type="password"],
+    input[type="search"],
+    input[type="url"],
+    textarea,
+    select {
+        font-size: 16px !important;
+    }
+    
+    /* Better touch targets for mobile */
+    input,
+    textarea,
+    select,
+    button {
+        min-height: 48px;
+    }
+    
+    /* Improve select dropdown appearance on mobile */
+    select {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 1.25rem;
+        padding-right: 2.5rem;
+    }
+    
+    /* Form labels - better spacing on mobile */
+    label {
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    /* Form groups spacing */
+    .form-group,
+    .chat-form-group {
+        margin-bottom: 1rem;
+    }
+}
+
+/* ============================================
+   CHECKOUT PAGE MOBILE OPTIMIZATIONS
+   ============================================ */
+
+@media (max-width: 640px) {
+    /* Checkout section padding */
+    .checkout-step {
+        padding: 1.25rem !important;
+        border-radius: 1rem !important;
+    }
+    
+    /* Step numbers smaller on mobile */
+    .step-number {
+        width: 1.75rem !important;
+        height: 1.75rem !important;
+        font-size: 0.75rem !important;
+    }
+    
+    /* Checkout step titles */
+    .checkout-step h2 {
+        font-size: 1.1rem !important;
+    }
+    
+    /* Phone number field layout */
+    .checkout-step .flex.gap-3 {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .checkout-step .flex.gap-3 select {
+        width: 100% !important;
+    }
+    
+    /* Country code selector - full width on mobile */
+    #countryCode {
+        width: 100% !important;
+    }
+    
+    /* Shipping method options */
+    .shipping-method-option .p-4 {
+        padding: 0.875rem !important;
+    }
+    
+    .shipping-method-option .w-10 {
+        width: 2.25rem !important;
+        height: 2.25rem !important;
+    }
+    
+    .shipping-method-option h3 {
+        font-size: 0.9rem !important;
+    }
+    
+    .shipping-method-option p {
+        font-size: 0.75rem !important;
+    }
+    
+    /* Payment method options */
+    .payment-form .p-6 {
+        padding: 1rem !important;
+    }
+    
+    /* Order summary on mobile */
+    .lg\\:col-span-1 .sticky {
+        position: relative !important;
+        top: auto !important;
+    }
+    
+    /* Cart items in order summary */
+    .max-h-96 {
+        max-height: 200px !important;
+    }
+    
+    /* Total display */
+    #total-display {
+        font-size: 1.75rem !important;
+    }
+    
+    /* Submit button */
+    #submit-btn,
+    .chat-form-submit,
+    #contact-submit-btn {
+        padding: 1rem !important;
+        font-size: 1rem !important;
+    }
+    
+    /* Grid adjustments for address fields */
+    .grid.grid-cols-1.md\\:grid-cols-3 {
+        gap: 0.75rem !important;
+    }
+}
+
+/* ============================================
+   CONTACT PAGE MOBILE OPTIMIZATIONS
+   ============================================ */
+
+@media (max-width: 640px) {
+    /* Contact form container */
+    .bg-white.rounded-3xl.shadow-xl {
+        padding: 1.25rem !important;
+        border-radius: 1rem !important;
+    }
+    
+    /* Contact info cards */
+    .flex.items-start.p-6 {
+        padding: 1rem !important;
+    }
+    
+    /* Contact info icon */
+    .w-12.h-12 {
+        width: 2.5rem !important;
+        height: 2.5rem !important;
+    }
+    
+    /* Hero section buttons */
+    .flex.flex-wrap.justify-center.gap-4 {
+        flex-direction: column;
+        width: 100%;
+        padding: 0 1rem;
+    }
+    
+    .flex.flex-wrap.justify-center.gap-4 a {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    /* FAQ grid */
+    .grid.md\\:grid-cols-2.gap-8 {
+        gap: 1rem !important;
+    }
+    
+    .bg-gray-50.p-8.rounded-2xl {
+        padding: 1.25rem !important;
+    }
+    
+    .bg-gray-50.p-8.rounded-2xl h3 {
+        font-size: 1rem !important;
+    }
+}
+
+/* ============================================
+   GENERAL MOBILE TOUCH IMPROVEMENTS
+   ============================================ */
+
+@media (max-width: 768px) {
+    /* Better tap highlighting */
+    button,
+    a,
+    input[type="submit"],
+    input[type="button"],
+    .cursor-pointer {
+        -webkit-tap-highlight-color: rgba(247, 37, 133, 0.1);
+    }
+    
+    /* Prevent text selection on buttons */
+    button,
+    .btn-primary,
+    .btn-secondary {
+        -webkit-user-select: none;
+        user-select: none;
+    }
+    
+    /* Smooth scrolling for better UX */
+    html {
+        scroll-behavior: smooth;
+    }
+    
+    /* Fix for iOS input shadows */
+    input,
+    textarea {
+        -webkit-appearance: none;
+        appearance: none;
+    }
+    
+    /* Better focus states for mobile */
+    input:focus,
+    textarea:focus,
+    select:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(247, 37, 133, 0.2);
+    }
+}
+
+/* ============================================
+   SMALL MOBILE SCREENS (< 375px)
+   ============================================ */
+
+@media (max-width: 375px) {
+    /* Even smaller padding for very small screens */
+    .container {
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+    }
+    
+    .checkout-step,
+    .bg-white.rounded-3xl {
+        padding: 1rem !important;
+    }
+    
+    /* Smaller headings */
+    h1 {
+        font-size: 1.75rem !important;
+    }
+    
+    h2 {
+        font-size: 1.25rem !important;
+    }
+    
+    /* Compact form fields */
+    input,
+    textarea,
+    select {
+        padding: 0.625rem 0.75rem !important;
+    }
+}

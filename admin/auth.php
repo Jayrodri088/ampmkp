@@ -4,31 +4,41 @@
 ini_set('session.cookie_httponly', 1);
 ini_set('session.use_only_cookies', 1);
 
-// Set session save path to system temp directory (default XAMPP path)
-$session_path = sys_get_temp_dir();
-if (is_writable($session_path)) {
-    session_save_path($session_path);
-}
+// Use server's default session save path (avoid per-file overrides that break session sharing)
 
-// Only require secure cookies if we're using HTTPS
-$is_https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') 
-            || (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)
-            || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
-
-ini_set('session.cookie_secure', $is_https ? 1 : 0);
+require_once __DIR__ . '/includes/admin_functions.php';
+// Only require secure cookies if we're using HTTPS (robust detection)
+ini_set('session.cookie_secure', isRequestHttps() ? 1 : 0);
 
 session_start();
+
+// Enforce HTTPS for login page to ensure session cookies persist (skip on localhost)
+if (!isRequestHttps() && !isLocalhost()) {
+    $redirect = getAdminAbsoluteUrl('auth.php', true);
+    header('Location: ' . $redirect, true, 302);
+    echo '<script>window.location.href = ' . json_encode($redirect) . ';</script>';
+    exit;
+}
 
 
 
 $login_error = '';
 $login_success = false;
 
+// CSRF token setup for login
+if (!isset($_SESSION['admin_csrf_token'])) {
+    $_SESSION['admin_csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // Handle login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_password'])) {
+    $postedToken = $_POST['csrf_token'] ?? '';
+    if (empty($postedToken) || !hash_equals($_SESSION['admin_csrf_token'], $postedToken)) {
+        $login_error = 'Invalid request.';
+    } else {
     // Hashed password for 'amp@2025' - change this to your desired password hash
     // To generate a new hash, use: password_hash('your_password', PASSWORD_DEFAULT)
-    $stored_password_hash = '$2y$12$Tv9s1kNlEIuRxGMOUZctlezrIEy9PTQdcjK6ZaTsa/RBC7SoSDXyS'; // This is 'amp@2025'
+    $stored_password_hash = '$2y$12$Tv9s1kNlEIuRxGMOUZctlezrIEy9PTQdcjK6ZaTsa/RBC7SoSDXyS'; //
     
     $submitted_password = $_POST['admin_password'];
     
@@ -44,6 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_password'])) {
         echo "<p>Session save path writable: " . (is_writable(session_save_path()) ? 'YES' : 'NO') . "</p>";
         echo "</div>";
     }
+}
     
     if (password_verify($submitted_password, $stored_password_hash)) {
         // Regenerate session ID for security
@@ -55,7 +66,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_password'])) {
         $login_success = true;
         
         // Redirect to dashboard after successful login
-        header('Location: index.php?login=success');
+        header('Location: ' . getAdminAbsoluteUrl('index.php?login=success'), true, 302);
+        echo '<script>window.location.href = ' . json_encode(getAdminUrl('index.php?login=success')) . ';</script>';
         exit;
     } else {
         $login_error = 'Invalid password. Please check your password and try again.';
@@ -66,13 +78,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_password'])) {
 if (isset($_GET['logout'])) {
     session_destroy();
     session_start();
-    header('Location: auth.php?message=logged_out');
+    header('Location: ' . getAdminAbsoluteUrl('auth.php?message=logged_out'), true, 302);
+    echo '<script>window.location.href = ' . json_encode(getAdminUrl('auth.php?message=logged_out')) . ';</script>';
     exit;
 }
 
 // Check if already logged in (and redirect to dashboard)
 if (isset($_SESSION['admin_logged_in'])) {
-    header('Location: index.php');
+    header('Location: ' . getAdminAbsoluteUrl('index.php'), true, 302);
+    echo '<script>window.location.href = ' . json_encode(getAdminUrl('index.php')) . ';</script>';
     exit;
 }
 ?>
@@ -194,7 +208,8 @@ if (isset($_SESSION['admin_logged_in'])) {
                     </div>
                     <?php endif; ?>
                     
-                    <form method="POST" action="auth.php" class="space-y-5 lg:space-y-6">
+                    <form method="POST" action="<?= htmlspecialchars(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH)) ?>" class="space-y-5 lg:space-y-6">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['admin_csrf_token']) ?>">
                         <div>
                             <label for="admin_password" class="block text-xs lg:text-sm font-medium text-charcoal-700 mb-2">
                                 <i class="bi bi-key mr-2 text-folly"></i>Admin Password

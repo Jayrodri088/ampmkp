@@ -8,12 +8,17 @@ session_start();
 
 // Check authentication
 if (!isset($_SESSION['admin_logged_in'])) {
-    header('Location: auth.php');
+    header('Location: /admin/auth.php');
     exit;
 }
 
 // Include main functions
 require_once '../includes/functions.php';
+
+// CSRF token setup
+if (!isset($_SESSION['admin_csrf_token'])) {
+    $_SESSION['admin_csrf_token'] = bin2hex(random_bytes(32));
+}
 
 // Helper function to render category options for products dropdown
 function renderCategoryOptionsForProducts($categories, $selectedId = 0, $level = 0) {
@@ -148,6 +153,13 @@ if (isset($_GET['message']) && isset($_GET['type'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // CSRF validation
+    $postedToken = $_POST['csrf_token'] ?? '';
+    if (empty($postedToken) || !hash_equals($_SESSION['admin_csrf_token'], $postedToken)) {
+        http_response_code(403);
+        $message = 'Invalid CSRF token.';
+        $message_type = 'error';
+    } else {
     if (isset($_POST['action'])) {
         switch ($_POST['action']) {
             case 'add':
@@ -191,19 +203,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $additional_images = array();
                 if (isset($_FILES['additional_images']) && is_array($_FILES['additional_images']['tmp_name'])) {
                     $upload_dir = '../assets/images/products/';
-                    
                     foreach ($_FILES['additional_images']['tmp_name'] as $key => $tmp_name) {
                         if ($_FILES['additional_images']['error'][$key] === UPLOAD_ERR_OK && !empty($tmp_name)) {
                             $file_info = pathinfo($_FILES['additional_images']['name'][$key]);
                             $extension = strtolower($file_info['extension']);
-                            
                             // Validate file type
                             $allowed_types = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
                             if (in_array($extension, $allowed_types)) {
                                 // Generate unique filename
                                 $filename = generateSlug($_POST['name']) . '_' . ($key + 1) . '_' . time() . '.' . $extension;
                                 $upload_path = $upload_dir . $filename;
-                                
                                 if (move_uploaded_file($tmp_name, $upload_path)) {
                                     $additional_images[] = 'products/' . $filename;
                                 }
@@ -551,6 +560,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: products.php?message=' . urlencode($message) . '&type=' . $message_type);
         exit;
     }
+    // End CSRF else block
+}
 }
 
 // Handle GET actions (like individual delete)
@@ -805,49 +816,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) 
             
             <!-- Navigation -->
             <nav class="p-2 lg:p-4 space-y-1">
-                <a href="index.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-speedometer2 mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Dashboard</span>
-                </a>
-                <a href="products.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-white bg-folly hover:bg-folly-600 transition-colors touch-manipulation">
-                    <i class="bi bi-box-seam mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Products</span>
-                </a>
-                <a href="categories.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-tags mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Categories</span>
-                </a>
-                <a href="ads.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-megaphone mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Advertisements</span>
-                </a>
-                <a href="orders.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-receipt mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Orders</span>
-                </a>
-                <a href="contacts.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-envelope mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Contacts</span>
-                </a>
-                <a href="settings.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-gear mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Settings</span>
-                </a>
-                <a href="file-manager.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-folder mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">File Manager</span>
-                </a>
-                
-                <div class="border-t border-charcoal-500 my-2 lg:my-4"></div>
-                
-                <a href="../" target="_blank" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-house mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">View Site</span>
-                </a>
-                <a href="auth.php?logout=1" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-box-arrow-right mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Logout</span>
-                </a>
+                <?php $activePage = 'products'; include __DIR__ . '/partials/nav_links_desktop.php'; ?>
             </nav>
         </div>
 
@@ -873,50 +842,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) 
             </div>
             
             <!-- Navigation -->
-            <nav class="p-2 space-y-1 overflow-y-auto" style="height: calc(100vh - 100px);">
-                <a href="index.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-speedometer2 mr-3 w-5 text-center"></i>
-                    Dashboard
-                </a>
-                <a href="products.php" class="flex items-center px-4 py-3 text-white bg-folly hover:bg-folly-600 transition-colors touch-manipulation">
-                    <i class="bi bi-box-seam mr-3 w-5 text-center"></i>
-                    Products
-                </a>
-                <a href="categories.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-tags mr-3 w-5 text-center"></i>
-                    Categories
-                </a>
-                <a href="ads.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-megaphone mr-3 w-5 text-center"></i>
-                    Advertisements
-                </a>
-                <a href="orders.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-receipt mr-3 w-5 text-center"></i>
-                    Orders
-                </a>
-                <a href="contacts.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-envelope mr-3 w-5 text-center"></i>
-                    Contacts
-                </a>
-                <a href="settings.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-gear mr-3 w-5 text-center"></i>
-                    Settings
-                </a>
-                <a href="file-manager.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-folder mr-3 w-5 text-center"></i>
-                    File Manager
-                </a>
-                
-                <div class="border-t border-charcoal-500 my-4"></div>
-                
-                <a href="../" target="_blank" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-house mr-3 w-5 text-center"></i>
-                    View Site
-                </a>
-                <a href="auth.php?logout=1" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-box-arrow-right mr-3 w-5 text-center"></i>
-                    Logout
-                </a>
+            <nav class="p-2 sm:p-4 space-y-1 overflow-y-auto max-h-[calc(100vh-140px)]">
+                <?php $activePage = 'products'; include __DIR__ . '/partials/nav_links_mobile.php'; ?>
             </nav>
         </div>
 
@@ -1325,7 +1252,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) 
                         <span class="text-charcoal-400 text-xs lg:text-sm">Fill in the details below to create your product</span>
                     </div>
                 </div>
-                <form method="POST" id="productForm" enctype="multipart/form-data">
+<form method="POST" id="productForm" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['admin_csrf_token']) ?>">
                     <input type="hidden" name="action" value="<?= $edit_product ? 'edit' : 'add' ?>">
                     <?php if ($edit_product): ?>
                     <input type="hidden" name="id" value="<?= $edit_product['id'] ?>">
@@ -1499,21 +1427,59 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) 
                             
                             <div id="sizesSection" class="<?= !($edit_product && $edit_product['has_sizes']) ? 'hidden' : '' ?>">
                                 <label class="block text-sm font-medium text-charcoal mb-2">Available Sizes</label>
-                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                    <?php 
-                                    $common_sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'One Size'];
-                                    $product_sizes = $edit_product['available_sizes'] ?? [];
-                                    foreach ($common_sizes as $size): 
-                                    ?>
-                                    <label class="flex items-center">
-                                        <input type="checkbox" 
-                                               name="available_sizes[]" 
-                                               value="<?= $size ?>"
-                                               class="mr-2"
-                                               <?= in_array($size, $product_sizes) ? 'checked' : '' ?>>
-                                        <span class="text-sm text-charcoal"><?= $size ?></span>
-                                    </label>
-                                    <?php endforeach; ?>
+                                
+                                <!-- Common Sizes -->
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-charcoal-600 mb-2">Common Sizes</label>
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        <?php 
+                                        $common_sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'One Size'];
+                                        $product_sizes = $edit_product['available_sizes'] ?? [];
+                                        foreach ($common_sizes as $size): 
+                                        ?>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" 
+                                                   name="available_sizes[]" 
+                                                   value="<?= $size ?>"
+                                                   class="mr-2"
+                                                   <?= in_array($size, $product_sizes) ? 'checked' : '' ?>>
+                                            <span class="text-sm text-charcoal"><?= $size ?></span>
+                                        </label>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                                
+                                <!-- Custom Sizes -->
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-charcoal-600 mb-2">Custom Sizes</label>
+                                    <div class="space-y-2">
+                                        <input type="text" 
+                                               id="customSizeInput" 
+                                               placeholder="Enter custom size (e.g., 32, 34, 36 or Small/Medium, Large/Extra Large)"
+                                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-folly focus:border-transparent">
+                                        <button type="button" 
+                                                id="addCustomSize" 
+                                                class="px-4 py-2 bg-folly text-white rounded-md hover:bg-folly-dark transition-colors">
+                                            Add Custom Size
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Display custom sizes -->
+                                    <div id="customSizesList" class="mt-3">
+                                        <?php 
+                                        // Display existing custom sizes that aren't in common sizes
+                                        $custom_sizes = array_diff($product_sizes, $common_sizes);
+                                        foreach ($custom_sizes as $custom_size): 
+                                        ?>
+                                        <div class="inline-flex items-center bg-gray-100 rounded-full px-3 py-1 text-sm mr-2 mb-2">
+                                            <span><?= htmlspecialchars($custom_size) ?></span>
+                                            <input type="hidden" name="available_sizes[]" value="<?= htmlspecialchars($custom_size) ?>">
+                                            <button type="button" class="ml-2 text-red-500 hover:text-red-700" onclick="removeCustomSize(this)">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2133,6 +2099,71 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) 
         window.markImageForDeletion = markImageForDeletion;
         window.viewProduct = viewProduct;
         window.closeViewProductModal = closeViewProductModal;
+        
+        // Custom size management functions
+        function addCustomSize() {
+            const input = document.getElementById('customSizeInput');
+            const sizesList = document.getElementById('customSizesList');
+            const sizeValue = input.value.trim();
+            
+            if (sizeValue === '') {
+                alert('Please enter a size value');
+                return;
+            }
+            
+            // Check if size already exists
+            const existingSizes = Array.from(sizesList.querySelectorAll('input[type="hidden"]')).map(input => input.value);
+            const commonSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'One Size'];
+            const allExistingSizes = [...existingSizes, ...commonSizes.filter(size => 
+                document.querySelector(`input[name="available_sizes[]"][value="${size}"]:checked`)
+            )];
+            
+            if (allExistingSizes.includes(sizeValue)) {
+                alert('This size already exists');
+                return;
+            }
+            
+            // Create new size element
+            const sizeElement = document.createElement('div');
+            sizeElement.className = 'inline-flex items-center bg-gray-100 rounded-full px-3 py-1 text-sm mr-2 mb-2';
+            sizeElement.innerHTML = `
+                <span>${sizeValue}</span>
+                <input type="hidden" name="available_sizes[]" value="${sizeValue}">
+                <button type="button" class="ml-2 text-red-500 hover:text-red-700" onclick="removeCustomSize(this)">
+                    <i class="bi bi-x"></i>
+                </button>
+            `;
+            
+            sizesList.appendChild(sizeElement);
+            input.value = '';
+        }
+        
+        function removeCustomSize(button) {
+            button.closest('div').remove();
+        }
+        
+        // Add event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const addButton = document.getElementById('addCustomSize');
+            const input = document.getElementById('customSizeInput');
+            
+            if (addButton) {
+                addButton.addEventListener('click', addCustomSize);
+            }
+            
+            if (input) {
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addCustomSize();
+                    }
+                });
+            }
+        });
+        
+        // Make custom size functions globally available
+        window.addCustomSize = addCustomSize;
+        window.removeCustomSize = removeCustomSize;
     </script>
 </body>
 </html>

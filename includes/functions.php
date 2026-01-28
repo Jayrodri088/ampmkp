@@ -3,12 +3,33 @@
 // JSON Database Helper Functions
 
 function readJsonFile($filename) {
+    // Request-level cache (and updateable within the same request via writeJsonFile()).
+    // This dramatically reduces homepage TTFB by avoiding repeated disk reads/JSON decoding.
+    if (!isset($GLOBALS['__AMP_JSON_CACHE']) || !is_array($GLOBALS['__AMP_JSON_CACHE'])) {
+        $GLOBALS['__AMP_JSON_CACHE'] = [];
+    }
+
     $filepath = __DIR__ . '/../data/' . $filename;
     if (!file_exists($filepath)) {
+        // Cache missing files too (so we don't stat repeatedly).
+        $GLOBALS['__AMP_JSON_CACHE'][$filename] = ['mtime' => null, 'data' => []];
         return [];
     }
-    $content = file_get_contents($filepath);
-    return json_decode($content, true) ?: [];
+
+    $mtime = @filemtime($filepath) ?: null;
+    $cached = $GLOBALS['__AMP_JSON_CACHE'][$filename] ?? null;
+    if (is_array($cached) && array_key_exists('mtime', $cached) && $cached['mtime'] === $mtime) {
+        return $cached['data'] ?? [];
+    }
+
+    $content = @file_get_contents($filepath);
+    $data = json_decode($content ?: '', true);
+    if (!is_array($data)) {
+        $data = [];
+    }
+
+    $GLOBALS['__AMP_JSON_CACHE'][$filename] = ['mtime' => $mtime, 'data' => $data];
+    return $data;
 }
 
 function writeJsonFile($filename, $data) {
@@ -27,6 +48,16 @@ function writeJsonFile($filename, $data) {
         flock($fp, LOCK_UN);
     }
     fclose($fp);
+    // Keep in-request reads consistent after writes.
+    if (!isset($GLOBALS['__AMP_JSON_CACHE']) || !is_array($GLOBALS['__AMP_JSON_CACHE'])) {
+        $GLOBALS['__AMP_JSON_CACHE'] = [];
+    }
+    if ($ok) {
+        $mtime = @filemtime($filepath) ?: null;
+        $GLOBALS['__AMP_JSON_CACHE'][$filename] = ['mtime' => $mtime, 'data' => is_array($data) ? $data : []];
+    } else {
+        unset($GLOBALS['__AMP_JSON_CACHE'][$filename]);
+    }
     return $ok;
 }
 
@@ -39,10 +70,21 @@ function getSettings() {
 }
 
 function getCategories() {
+    static $cache = ['mtime' => null, 'data' => null];
+
     $categories = readJsonFile('categories.json');
-    return array_filter($categories, function($cat) {
-        return $cat['active'];
-    });
+    $mtime = $GLOBALS['__AMP_JSON_CACHE']['categories.json']['mtime'] ?? null;
+
+    if (is_array($cache['data']) && $cache['mtime'] === $mtime) {
+        return $cache['data'];
+    }
+
+    $active = array_values(array_filter($categories, function($cat) {
+        return !empty($cat['active']);
+    }));
+
+    $cache = ['mtime' => $mtime, 'data' => $active];
+    return $active;
 }
 
 function getProducts($categoryId = null, $featured = null, $limit = null) {
@@ -77,17 +119,21 @@ function getProducts($categoryId = null, $featured = null, $limit = null) {
 
 function getFeaturedProductsByRating($limit = null) {
     $products = readJsonFile('products.json');
-    
+
     // Filter for active and featured products
     $products = array_filter($products, function($product) {
-        return $product['active'] && $product['featured'];
+        return !empty($product['active']) && !empty($product['featured']);
     });
-    
+
+    // Compute rating stats once, then just map-lookup per product (avoids N+1 reads/filters of ratings.json)
+    $allStats = getAllProductRatingStats();
+
     // Add rating stats to each product for sorting
-    $productsWithRatings = array_map(function($product) {
-        $ratingStats = getProductRatingStats($product['id']);
-        $product['rating_count'] = $ratingStats['count'];
-        $product['rating_average'] = $ratingStats['average'];
+    $productsWithRatings = array_map(function($product) use ($allStats) {
+        $productId = (int)($product['id'] ?? 0);
+        $ratingStats = $allStats[$productId] ?? ['average' => 0, 'count' => 0];
+        $product['rating_count'] = (int)($ratingStats['count'] ?? 0);
+        $product['rating_average'] = (float)($ratingStats['average'] ?? 0);
         return $product;
     }, $products);
     
@@ -274,6 +320,114 @@ function formatPriceWithCurrency($price, $currencyCode) {
     return $currencySymbol . number_format($price, 2);
 }
 
+// Shipping helpers
+function getShippingSettings(): array {
+    $settings = getSettings();
+    $shipping = $settings['shipping'] ?? [];
+    // Defaults
+    if (!isset($shipping['free_shipping_threshold'])) {
+        $shipping['free_shipping_threshold'] = 0;
+    }
+    if (!isset($shipping['costs']) || !is_array($shipping['costs'])) {
+        $shipping['costs'] = [];
+    }
+    if (!isset($shipping['standard_shipping_cost'])) {
+        // Back-compat single cost
+        $shipping['standard_shipping_cost'] = 5.99;
+    }
+    if (!isset($shipping['enable_pickup'])) {
+        $shipping['enable_pickup'] = true; // enabled by default
+    }
+    if (!isset($shipping['enable_delivery'])) {
+        $shipping['enable_delivery'] = true; // delivery enabled by default
+    }
+    if (!isset($shipping['allow_method_selection'])) {
+        $shipping['allow_method_selection'] = true;
+    }
+    if (!isset($shipping['default_method'])) {
+        $shipping['default_method'] = 'delivery';
+    }
+    if (!isset($shipping['pickup_label'])) {
+        $shipping['pickup_label'] = 'Pickup';
+    }
+    if (!isset($shipping['pickup_instructions'])) {
+        $shipping['pickup_instructions'] = '';
+    }
+    if (!isset($shipping['show_shipping_pre_checkout'])) {
+        $shipping['show_shipping_pre_checkout'] = false; // hide by default on product/listing pages
+    }
+    return $shipping;
+}
+
+function isPickupEnabled(array $shipping = null): bool {
+    if ($shipping === null) {
+        $shipping = getShippingSettings();
+    }
+    return (bool)($shipping['enable_pickup'] ?? false);
+}
+
+function getDefaultShippingMethod(array $shipping = null): string {
+    if ($shipping === null) {
+        $shipping = getShippingSettings();
+    }
+    $method = strtolower($shipping['default_method'] ?? 'delivery');
+    $deliveryOn = (bool)($shipping['enable_delivery'] ?? true);
+    $pickupOn = (bool)($shipping['enable_pickup'] ?? false);
+    if ($method === 'pickup' && !$pickupOn) {
+        return $deliveryOn ? 'delivery' : 'pickup';
+    }
+    if ($method === 'delivery' && !$deliveryOn) {
+        return $pickupOn ? 'pickup' : 'delivery';
+    }
+    if (!$deliveryOn && !$pickupOn) {
+        return 'delivery';
+    }
+    return in_array($method, ['delivery', 'pickup'], true) ? $method : ($deliveryOn ? 'delivery' : 'pickup');
+}
+
+function validateShippingMethod(?string $method, array $shipping = null): string {
+    $method = strtolower(trim((string)$method));
+    if ($shipping === null) {
+        $shipping = getShippingSettings();
+    }
+    $deliveryOn = (bool)($shipping['enable_delivery'] ?? true);
+    $pickupOn = (bool)($shipping['enable_pickup'] ?? false);
+    if ($method === 'pickup') {
+        return $pickupOn ? 'pickup' : ($deliveryOn ? 'delivery' : 'pickup');
+    }
+    if ($method === 'delivery') {
+        return $deliveryOn ? 'delivery' : ($pickupOn ? 'pickup' : 'delivery');
+    }
+    return getDefaultShippingMethod($shipping);
+}
+
+function computeShippingCost(float $subtotal, ?string $currencyCode, string $method = 'delivery', array $shipping = null): float {
+    if ($shipping === null) {
+        $shipping = getShippingSettings();
+    }
+    $method = validateShippingMethod($method, $shipping);
+    if ($method === 'pickup') {
+        return 0.0;
+    }
+    // Delivery: use per-currency config when available
+    $settings = getSettings();
+    if ($currencyCode === null) {
+        $currencyCode = $settings['currency_code'] ?? 'GBP';
+    }
+    $currencySettings = $shipping['costs'][$currencyCode] ?? [];
+    $freeShippingThreshold = $currencySettings['free_threshold'] ?? ($shipping['free_shipping_threshold'] ?? 0);
+    $standardShippingCost = $currencySettings['standard'] ?? ($shipping['standard_shipping_cost'] ?? 0);
+    if ($freeShippingThreshold > 0 && $subtotal >= $freeShippingThreshold) {
+        return 0.0;
+    }
+    return (float)$standardShippingCost;
+}
+
+function isAddressRequiredForMethod(string $method, array $shipping = null): bool {
+    $method = validateShippingMethod($method, $shipping ?? getShippingSettings());
+    return $method === 'delivery';
+}
+
 function sanitizeInput($input) {
     if (is_array($input)) {
         return array_map('sanitizeInput', $input);
@@ -314,6 +468,83 @@ function getCategoryProductCounts() {
     }
     
     return $counts;
+}
+
+/**
+ * Get total product counts for ALL active categories, including all subcategories.
+ * Returns an array keyed by category_id => total_count.
+ *
+ * This is designed to avoid calling getTotalProductCountForCategory() repeatedly in loops.
+ */
+function getTotalProductCountsForAllCategories(): array {
+    static $cache = ['mtimes' => null, 'data' => null];
+
+    // Touch the sources so __AMP_JSON_CACHE mtimes are populated.
+    getCategories();
+    readJsonFile('products.json');
+
+    $mtimes = [
+        'categories' => $GLOBALS['__AMP_JSON_CACHE']['categories.json']['mtime'] ?? null,
+        'products' => $GLOBALS['__AMP_JSON_CACHE']['products.json']['mtime'] ?? null,
+    ];
+
+    if (is_array($cache['data']) && $cache['mtimes'] === $mtimes) {
+        return $cache['data'];
+    }
+
+    $categories = getCategories(); // active categories only
+    if (empty($categories)) {
+        $cache = ['mtimes' => $mtimes, 'data' => []];
+        return [];
+    }
+
+    $childrenByParent = [];
+    $parentById = [];
+    foreach ($categories as $cat) {
+        $id = (int)($cat['id'] ?? 0);
+        $parentId = (int)($cat['parent_id'] ?? 0);
+        $parentById[$id] = $parentId;
+        if (!isset($childrenByParent[$parentId])) {
+            $childrenByParent[$parentId] = [];
+        }
+        $childrenByParent[$parentId][] = $id;
+    }
+
+    // Direct product counts per category
+    $directCounts = [];
+    $products = readJsonFile('products.json');
+    foreach ($products as $p) {
+        if (empty($p['active'])) {
+            continue;
+        }
+        $cid = (int)($p['category_id'] ?? 0);
+        $directCounts[$cid] = ($directCounts[$cid] ?? 0) + 1;
+    }
+
+    // Post-order traversal to compute totals bottom-up
+    $totalCounts = [];
+    $visited = [];
+
+    $compute = function($categoryId) use (&$compute, &$totalCounts, &$childrenByParent, &$directCounts, &$visited): int {
+        if (isset($visited[$categoryId])) {
+            return (int)($totalCounts[$categoryId] ?? 0);
+        }
+        $visited[$categoryId] = true;
+        $total = (int)($directCounts[$categoryId] ?? 0);
+        foreach (($childrenByParent[$categoryId] ?? []) as $childId) {
+            $total += $compute($childId);
+        }
+        $totalCounts[$categoryId] = $total;
+        return $total;
+    };
+
+    // Compute totals for every category id we know about
+    foreach (array_keys($parentById) as $id) {
+        $compute($id);
+    }
+
+    $cache = ['mtimes' => $mtimes, 'data' => $totalCounts];
+    return $totalCounts;
 }
 
 // Cart Functions
@@ -1032,30 +1263,61 @@ function getProductRatings($productId) {
 }
 
 function getProductRatingStats($productId) {
-    $ratings = getProductRatings($productId);
-    
-    if (empty($ratings)) {
-        return [
-            'average' => 0,
-            'count' => 0,
-            'distribution' => [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0]
+    $productId = (int)$productId;
+    $all = getAllProductRatingStats();
+    return $all[$productId] ?? [
+        'average' => 0,
+        'count' => 0,
+        'distribution' => [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0]
+    ];
+}
+
+/**
+ * Aggregate rating stats for ALL products in one pass over ratings.json.
+ * Returns: [product_id => ['average'=>float,'count'=>int,'distribution'=>array]]
+ */
+function getAllProductRatingStats(): array {
+    static $cache = ['mtime' => null, 'data' => null];
+
+    // Touch ratings source so __AMP_JSON_CACHE mtime is populated.
+    getRatings();
+    $mtime = $GLOBALS['__AMP_JSON_CACHE']['ratings.json']['mtime'] ?? null;
+
+    if (is_array($cache['data']) && $cache['mtime'] === $mtime) {
+        return $cache['data'];
+    }
+
+    $ratings = getRatings();
+    $totals = [];
+    $counts = [];
+    $distributions = [];
+
+    foreach ($ratings as $r) {
+        $pid = (int)($r['product_id'] ?? 0);
+        $stars = (int)($r['rating'] ?? 0);
+        if ($pid <= 0 || $stars < 1 || $stars > 5) {
+            continue;
+        }
+        $totals[$pid] = ($totals[$pid] ?? 0) + $stars;
+        $counts[$pid] = ($counts[$pid] ?? 0) + 1;
+        if (!isset($distributions[$pid])) {
+            $distributions[$pid] = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
+        }
+        $distributions[$pid][$stars] = ($distributions[$pid][$stars] ?? 0) + 1;
+    }
+
+    $out = [];
+    foreach ($counts as $pid => $count) {
+        $avg = $count > 0 ? round(($totals[$pid] ?? 0) / $count, 1) : 0;
+        $out[$pid] = [
+            'average' => $avg,
+            'count' => (int)$count,
+            'distribution' => $distributions[$pid] ?? [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0],
         ];
     }
-    
-    $total = 0;
-    $count = count($ratings);
-    $distribution = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
-    
-    foreach ($ratings as $rating) {
-        $total += $rating['rating'];
-        $distribution[$rating['rating']]++;
-    }
-    
-    return [
-        'average' => round($total / $count, 1),
-        'count' => $count,
-        'distribution' => $distribution
-    ];
+
+    $cache = ['mtime' => $mtime, 'data' => $out];
+    return $out;
 }
 
 function addRating($productId, $rating, $review, $reviewerName, $reviewerEmail) {
@@ -1372,6 +1634,20 @@ function getCategoryBreadcrumb($categoryId) {
  */
 function getTotalProductCountForCategory($categoryId) {
     return getCategoryProductCountWithSubs($categoryId);
+}
+
+/**
+ * Get latest products added to the store
+ */
+function getLatestProducts($limit = 6) {
+    $products = getProducts(); // Get all products
+    
+    // Sort by ID descending (assuming higher ID = newer)
+    usort($products, function($a, $b) {
+        return $b['id'] <=> $a['id'];
+    });
+    
+    return array_slice($products, 0, $limit);
 }
 
 /**

@@ -36,16 +36,11 @@ try {
 
     // Get settings
     $settings = getSettings();
-    $currencySettings = $settings['shipping']['costs'][$selectedCurrency] ?? [];
-    $freeShippingThreshold = $currencySettings['free_threshold'] ?? ($settings['shipping']['free_shipping_threshold'] ?? 0);
-    $standardShippingCost = $currencySettings['standard'] ?? ($settings['shipping']['standard_shipping_cost'] ?? 0);
-    
-    // Calculate shipping cost
-    if ($freeShippingThreshold > 0 && $subtotal >= $freeShippingThreshold) {
-        $shippingCost = 0; // Free shipping
-    } else {
-        $shippingCost = $standardShippingCost; // Standard shipping cost
-    }
+    $shippingSettings = getShippingSettings();
+    if (session_status() == PHP_SESSION_NONE) { session_start(); }
+    $selectedMethod = $_SESSION['shipping_method'] ?? getDefaultShippingMethod($shippingSettings);
+    $selectedMethod = validateShippingMethod($selectedMethod, $shippingSettings);
+    $shippingCost = computeShippingCost($subtotal, $selectedCurrency, $selectedMethod, $shippingSettings);
     
     $total = $subtotal + $shippingCost;
 

@@ -71,11 +71,13 @@ function initializeApp() {
 
 // Scroll to Top Button
 function initializeScrollToTop() {
-    // Create scroll to top button
+    // Create scroll to top button - positioned above chat widget
     const scrollButton = document.createElement('button');
     scrollButton.innerHTML = '↑';
-    scrollButton.className = 'fixed bottom-6 right-6 text-white w-12 h-12 rounded-full shadow-lg transition-all duration-200 opacity-0 pointer-events-none z-50';
+    scrollButton.className = 'fixed text-white w-11 h-11 sm:w-12 sm:h-12 rounded-full shadow-lg transition-all duration-200 opacity-0 pointer-events-none z-40';
     scrollButton.style.backgroundColor = '#FF0055'; // folly color
+    scrollButton.style.bottom = '2rem';
+    scrollButton.style.left = '2rem';
     scrollButton.style.setProperty('--hover-bg', '#CC0044'); // folly-600 color
     scrollButton.addEventListener('mouseover', () => {
         scrollButton.style.backgroundColor = '#CC0044';
@@ -85,6 +87,7 @@ function initializeScrollToTop() {
     });
     scrollButton.setAttribute('aria-label', 'Scroll to top');
     scrollButton.setAttribute('type', 'button');
+    scrollButton.id = 'scroll-to-top-btn';
     document.body.appendChild(scrollButton);
     
     // Show/hide button based on scroll position

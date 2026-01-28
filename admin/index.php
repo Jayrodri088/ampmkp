@@ -3,31 +3,34 @@
 ini_set('session.cookie_httponly', 1);
 ini_set('session.use_only_cookies', 1);
 
-// Set session save path to system temp directory (default XAMPP path)
-$session_path = sys_get_temp_dir();
-if (is_writable($session_path)) {
-    session_save_path($session_path);
-}
+// Use server's default session save path (avoid per-file overrides that break session sharing)
 
-// Only require secure cookies if we're using HTTPS
-$is_https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') 
-            || (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)
-            || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
-
-ini_set('session.cookie_secure', $is_https ? 1 : 0);
+require_once __DIR__ . '/includes/admin_functions.php';
+// Only require secure cookies if we're using HTTPS (robust detection)
+ini_set('session.cookie_secure', isRequestHttps() ? 1 : 0);
 
 session_start();
 
+// Enforce HTTPS in admin (skip on localhost) to ensure Secure cookies persist
+if (!isRequestHttps() && !isLocalhost()) {
+    $redirect = getAdminAbsoluteUrl('index.php', true);
+    header('Location: ' . $redirect, true, 302);
+    echo '<script>window.location.href = ' . json_encode($redirect) . ';</script>';
+    exit;
+}
+
 // Check if user is authenticated - redirect to separate login page if not
 if (!isset($_SESSION['admin_logged_in'])) {
-    header('Location: auth.php');
+    header('Location: ' . getAdminAbsoluteUrl('auth.php'), true, 302);
+    echo '<script>window.location.href = ' . json_encode(getAdminUrl('auth.php')) . ';</script>';
     exit;
 }
 
 // Check for session timeout (24 hours)
 if (isset($_SESSION['login_time']) && (time() - $_SESSION['login_time'] > 86400)) {
     session_destroy();
-    header('Location: index.php');
+    header('Location: ' . getAdminAbsoluteUrl('auth.php?timeout=1'), true, 302);
+    echo '<script>window.location.href = ' . json_encode(getAdminUrl('auth.php?timeout=1')) . ';</script>';
     exit;
 }
 
@@ -133,49 +136,7 @@ $low_stock_products = array_filter($products, fn($p) => $p['stock'] <= 10);
             
             <!-- Navigation -->
             <nav class="p-4 space-y-1">
-                <a href="index.php" class="flex items-center px-4 py-3 text-white bg-folly hover:bg-folly-600 transition-colors">
-                    <i class="bi bi-speedometer2 mr-3 w-5 text-center"></i>
-                    Dashboard
-                </a>
-                <a href="products.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors">
-                    <i class="bi bi-box-seam mr-3 w-5 text-center"></i>
-                    Products
-                </a>
-                <a href="categories.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors">
-                    <i class="bi bi-tags mr-3 w-5 text-center"></i>
-                    Categories
-                </a>
-                <a href="ads.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors">
-                    <i class="bi bi-megaphone mr-3 w-5 text-center"></i>
-                    Advertisements
-                </a>
-                <a href="orders.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors">
-                    <i class="bi bi-receipt mr-3 w-5 text-center"></i>
-                    Orders
-                </a>
-                <a href="contacts.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors">
-                    <i class="bi bi-envelope mr-3 w-5 text-center"></i>
-                    Contacts
-                </a>
-                <a href="settings.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors">
-                    <i class="bi bi-gear mr-3 w-5 text-center"></i>
-                    Settings
-                </a>
-                <a href="file-manager.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors">
-                    <i class="bi bi-folder mr-3 w-5 text-center"></i>
-                    File Manager
-                </a>
-                
-                <div class="border-t border-charcoal-500 my-4"></div>
-                
-                <a href="../" target="_blank" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors">
-                    <i class="bi bi-house mr-3 w-5 text-center"></i>
-                    View Site
-                </a>
-                <a href="auth.php?logout=1" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors">
-                    <i class="bi bi-box-arrow-right mr-3 w-5 text-center"></i>
-                    Logout
-                </a>
+                <?php $activePage = 'dashboard'; include __DIR__ . '/partials/nav_links_desktop.php'; ?>
             </nav>
         </div>
 
@@ -202,49 +163,7 @@ $low_stock_products = array_filter($products, fn($p) => $p['stock'] <= 10);
             
             <!-- Navigation -->
             <nav class="p-2 sm:p-4 space-y-1 overflow-y-auto max-h-[calc(100vh-140px)]">
-                <a href="index.php" class="flex items-center px-3 sm:px-4 py-3 sm:py-3 text-white bg-folly hover:bg-folly-600 transition-colors text-sm sm:text-base">
-                    <i class="bi bi-speedometer2 mr-2 sm:mr-3 w-4 sm:w-5 text-center"></i>
-                    Dashboard
-                </a>
-                <a href="products.php" class="flex items-center px-3 sm:px-4 py-3 sm:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors text-sm sm:text-base">
-                    <i class="bi bi-box-seam mr-2 sm:mr-3 w-4 sm:w-5 text-center"></i>
-                    Products
-                </a>
-                <a href="categories.php" class="flex items-center px-3 sm:px-4 py-3 sm:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors text-sm sm:text-base">
-                    <i class="bi bi-tags mr-2 sm:mr-3 w-4 sm:w-5 text-center"></i>
-                    Categories
-                </a>
-                <a href="ads.php" class="flex items-center px-3 sm:px-4 py-3 sm:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors text-sm sm:text-base">
-                    <i class="bi bi-megaphone mr-2 sm:mr-3 w-4 sm:w-5 text-center"></i>
-                    Advertisements
-                </a>
-                <a href="orders.php" class="flex items-center px-3 sm:px-4 py-3 sm:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors text-sm sm:text-base">
-                    <i class="bi bi-receipt mr-2 sm:mr-3 w-4 sm:w-5 text-center"></i>
-                    Orders
-                </a>
-                <a href="contacts.php" class="flex items-center px-3 sm:px-4 py-3 sm:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors text-sm sm:text-base">
-                    <i class="bi bi-envelope mr-2 sm:mr-3 w-4 sm:w-5 text-center"></i>
-                    Contacts
-                </a>
-                <a href="settings.php" class="flex items-center px-3 sm:px-4 py-3 sm:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors text-sm sm:text-base">
-                    <i class="bi bi-gear mr-2 sm:mr-3 w-4 sm:w-5 text-center"></i>
-                    Settings
-                </a>
-                <a href="file-manager.php" class="flex items-center px-3 sm:px-4 py-3 sm:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors text-sm sm:text-base">
-                    <i class="bi bi-folder mr-2 sm:mr-3 w-4 sm:w-5 text-center"></i>
-                    File Manager
-                </a>
-                
-                <div class="border-t border-charcoal-500 my-3 sm:my-4"></div>
-                
-                <a href="../" target="_blank" class="flex items-center px-3 sm:px-4 py-3 sm:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors text-sm sm:text-base">
-                    <i class="bi bi-house mr-2 sm:mr-3 w-4 sm:w-5 text-center"></i>
-                    View Site
-                </a>
-                <a href="auth.php?logout=1" class="flex items-center px-3 sm:px-4 py-3 sm:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors text-sm sm:text-base">
-                    <i class="bi bi-box-arrow-right mr-2 sm:mr-3 w-4 sm:w-5 text-center"></i>
-                    Logout
-                </a>
+                <?php $activePage = 'dashboard'; include __DIR__ . '/partials/nav_links_mobile.php'; ?>
             </nav>
         </div>
 
@@ -352,7 +271,7 @@ $low_stock_products = array_filter($products, fn($p) => $p['stock'] <= 10);
                         <div class="bg-white border border-gray-200 rounded-lg">
                             <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 flex justify-between items-center">
                                 <h2 class="text-base sm:text-lg font-semibold text-charcoal">Recent Orders</h2>
-                                <a href="orders.php" class="px-3 sm:px-4 py-1 sm:py-2 bg-folly text-white hover:bg-folly-600 transition-colors text-xs sm:text-sm font-medium rounded touch-manipulation">
+                                <a href="<?= rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\') . '/' ?>orders.php" class="px-3 sm:px-4 py-1 sm:py-2 bg-folly text-white hover:bg-folly-600 transition-colors text-xs sm:text-sm font-medium rounded touch-manipulation">
                                     View All
                                 </a>
                             </div>
@@ -443,7 +362,7 @@ $low_stock_products = array_filter($products, fn($p) => $p['stock'] <= 10);
                                     </div>
                                     <?php if (count($low_stock_products) > 5): ?>
                                     <div class="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200">
-                                        <a href="products.php?filter=low_stock" class="block w-full text-center px-3 sm:px-4 py-2 bg-red-50 text-red-700 hover:bg-red-100 transition-colors text-xs sm:text-sm font-medium rounded touch-manipulation">
+                                        <a href="<?= rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\') . '/' ?>products.php?filter=low_stock" class="block w-full text-center px-3 sm:px-4 py-2 bg-red-50 text-red-700 hover:bg-red-100 transition-colors text-xs sm:text-sm font-medium rounded touch-manipulation">
                                             View All (<?= count($low_stock_products) ?>)
                                         </a>
                                     </div>

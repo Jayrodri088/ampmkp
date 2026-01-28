@@ -15,6 +15,11 @@ if (!isset($_SESSION['admin_logged_in'])) {
 // Include main functions
 require_once '../includes/functions.php';
 
+// CSRF token setup
+if (!isset($_SESSION['admin_csrf_token'])) {
+    $_SESSION['admin_csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // Helper function to check if a category is descendant of another
 function isDescendantOf($categoryId, $potentialAncestorId, $categories) {
     foreach ($categories as $cat) {
@@ -69,6 +74,12 @@ if (isset($_GET['message']) && isset($_GET['type'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $postedToken = $_POST['csrf_token'] ?? '';
+    if (empty($postedToken) || !hash_equals($_SESSION['admin_csrf_token'], $postedToken)) {
+        http_response_code(403);
+        $message = 'Invalid CSRF token.';
+        $message_type = 'error';
+    } else {
     if (isset($_POST['action'])) {
         switch ($_POST['action']) {
             case 'add':
@@ -319,6 +330,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+}
 
 // Handle GET actions
 if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
@@ -481,49 +493,7 @@ foreach ($categories as $category) {
             
             <!-- Navigation -->
             <nav class="p-2 lg:p-4 space-y-1">
-                <a href="index.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-speedometer2 mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Dashboard</span>
-                </a>
-                <a href="products.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-box-seam mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Products</span>
-                </a>
-                <a href="categories.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-white bg-folly hover:bg-folly-600 transition-colors touch-manipulation">
-                    <i class="bi bi-tags mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Categories</span>
-                </a>
-                <a href="ads.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-megaphone mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Advertisements</span>
-                </a>
-                <a href="orders.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-receipt mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Orders</span>
-                </a>
-                <a href="contacts.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-envelope mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Contacts</span>
-                </a>
-                <a href="settings.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-gear mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Settings</span>
-                </a>
-                <a href="file-manager.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-folder mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">File Manager</span>
-                </a>
-                
-                <div class="border-t border-charcoal-500 my-2 lg:my-4"></div>
-                
-                <a href="../" target="_blank" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-house mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">View Site</span>
-                </a>
-                <a href="auth.php?logout=1" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-box-arrow-right mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Logout</span>
-                </a>
+                <?php $activePage = 'categories'; include __DIR__ . '/partials/nav_links_desktop.php'; ?>
             </nav>
         </div>
 
@@ -549,50 +519,8 @@ foreach ($categories as $category) {
             </div>
             
             <!-- Navigation -->
-            <nav class="p-2 space-y-1 overflow-y-auto" style="height: calc(100vh - 100px);">
-                <a href="index.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-speedometer2 mr-3 w-5 text-center"></i>
-                    Dashboard
-                </a>
-                <a href="products.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-box-seam mr-3 w-5 text-center"></i>
-                    Products
-                </a>
-                <a href="categories.php" class="flex items-center px-4 py-3 text-white bg-folly hover:bg-folly-600 transition-colors touch-manipulation">
-                    <i class="bi bi-tags mr-3 w-5 text-center"></i>
-                    Categories
-                </a>
-                <a href="ads.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-megaphone mr-3 w-5 text-center"></i>
-                    Advertisements
-                </a>
-                <a href="orders.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-receipt mr-3 w-5 text-center"></i>
-                    Orders
-                </a>
-                <a href="contacts.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-envelope mr-3 w-5 text-center"></i>
-                    Contacts
-                </a>
-                <a href="settings.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-gear mr-3 w-5 text-center"></i>
-                    Settings
-                </a>
-                <a href="file-manager.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-folder mr-3 w-5 text-center"></i>
-                    File Manager
-                </a>
-                
-                <div class="border-t border-charcoal-500 my-4"></div>
-                
-                <a href="../" target="_blank" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-house mr-3 w-5 text-center"></i>
-                    View Site
-                </a>
-                <a href="auth.php?logout=1" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-box-arrow-right mr-3 w-5 text-center"></i>
-                    Logout
-                </a>
+            <nav class="p-2 sm:p-4 space-y-1 overflow-y-auto max-h-[calc(100vh-140px)]">
+                <?php $activePage = 'categories'; include __DIR__ . '/partials/nav_links_mobile.php'; ?>
             </nav>
         </div>
 
@@ -948,6 +876,7 @@ foreach ($categories as $category) {
             </div>
             
             <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['admin_csrf_token']) ?>">
                 <input type="hidden" name="action" value="<?= $edit_category ? 'edit' : 'add' ?>">
                 <?php if ($edit_category): ?>
                 <input type="hidden" name="id" value="<?= $edit_category['id'] ?>">

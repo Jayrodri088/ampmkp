@@ -3,31 +3,64 @@ session_start();
 
 // Simple authentication check
 if (!isset($_SESSION['admin_logged_in'])) {
-    header('Location: auth.php');
+    header('Location: /admin/auth.php');
     exit;
 }
 
 require_once '../includes/functions.php';
+require_once '../includes/mail_config.php';
+
+// CSRF token setup
+if (!isset($_SESSION['admin_csrf_token'])) {
+    $_SESSION['admin_csrf_token'] = bin2hex(random_bytes(32));
+}
 
 // Load orders data
 $orders = readJsonFile('orders.json');
+
+// Load products to enrich order item details (name, image, slug)
+$products = json_decode(file_get_contents('../data/products.json'), true) ?? [];
+$productById = [];
+foreach ($products as $p) {
+	if (isset($p['id'])) {
+		$productById[$p['id']] = $p;
+	}
+}
 
 // Handle order actions
 $message = '';
 $message_type = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $postedToken = $_POST['csrf_token'] ?? '';
+    if (empty($postedToken) || !hash_equals($_SESSION['admin_csrf_token'], $postedToken)) {
+        http_response_code(403);
+        $message = 'Invalid CSRF token.';
+        $message_type = 'danger';
+    } else {
     if (isset($_POST['action'])) {
         switch ($_POST['action']) {
             case 'update_status':
                 $orderId = $_POST['order_id'] ?? '';
                 $newStatus = $_POST['status'] ?? '';
+                $newPaymentStatus = $_POST['payment_status'] ?? '';
                 
                 if ($orderId && $newStatus) {
+                    $updatedOrder = null;
+                    $prevPaymentStatus = null;
+                    $prevStatus = null;
+                    $statusChanged = false;
                     foreach ($orders as &$order) {
                         if ($order['id'] === $orderId) {
+                            $prevPaymentStatus = $order['payment_status'] ?? '';
+                            $prevStatus = $order['status'] ?? '';
                             $order['status'] = $newStatus;
+                            $statusChanged = ($newStatus !== '' && $newStatus !== $prevStatus);
+                            if ($newPaymentStatus !== '' && $newPaymentStatus !== $prevPaymentStatus) {
+                                $order['payment_status'] = $newPaymentStatus;
+                            }
                             $order['updated_at'] = date('Y-m-d H:i:s');
+                            $updatedOrder = $order;
                             break;
                         }
                     }
@@ -35,6 +68,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (writeJsonFile('orders.json', $orders)) {
                         $message = 'Order status updated successfully';
                         $message_type = 'success';
+                        // Send email notification based on ORDER status changes
+                        if ($statusChanged) {
+                            $emailSent = false;
+                            try {
+                                if (function_exists('sendOrderStatusUpdateToCustomer')) {
+                                    $emailSent = sendOrderStatusUpdateToCustomer($updatedOrder, $newStatus);
+                                }
+                            } catch (Throwable $e) {
+                                error_log('Order status email error (update_status): ' . $e->getMessage());
+                            }
+                            $message .= $emailSent ? ' Email notification sent.' : ' Email notification could not be sent.';
+                        }
                     } else {
                         $message = 'Failed to update order status';
                         $message_type = 'danger';
@@ -58,6 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (writeJsonFile('orders.json', $orders)) {
                         $message = 'Payment status updated successfully';
                         $message_type = 'success';
+                        // Emails are triggered by ORDER status changes only to avoid duplicates
                     } else {
                         $message = 'Failed to update payment status';
                         $message_type = 'danger';
@@ -83,6 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
         }
     }
+}
 }
 
 // Filtering and sorting
@@ -144,7 +191,9 @@ $stats = [
     'processing' => count(array_filter($orders, fn($o) => ($o['status'] ?? 'pending') === 'processing')),
     'completed' => count(array_filter($orders, fn($o) => ($o['status'] ?? 'pending') === 'completed')),
     'cancelled' => count(array_filter($orders, fn($o) => ($o['status'] ?? 'pending') === 'cancelled')),
-    'total_revenue' => array_sum(array_map(fn($o) => $o['total'] ?? 0, array_filter($orders, fn($o) => ($o['payment_status'] ?? 'pending') === 'completed')))
+    'total_revenue' => array_sum(array_map(fn($o) => $o['total'] ?? 0, array_filter($orders, fn($o) => ($o['payment_status'] ?? 'pending') === 'completed'))),
+    'pending_payment' => count(array_filter($orders, fn($o) => ($o['payment_status'] ?? 'pending') === 'pending')),
+    'payment_confirmed_by_customer' => count(array_filter($orders, fn($o) => !empty($o['payment_confirmed_by_customer']) && ($o['payment_status'] ?? 'pending') === 'pending'))
 ];
 ?>
 
@@ -158,6 +207,29 @@ $stats = [
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
+        // Expose minimal product map for enriching modal item details
+        const productsById = <?php
+            $productMap = [];
+            foreach ($productById as $pid => $p) {
+                $img = $p['image'] ?? (isset($p['images'][0]) ? $p['images'][0] : null);
+                $productMap[$pid] = [
+                    'name' => $p['name'] ?? '',
+                    'slug' => $p['slug'] ?? '',
+                    'image' => $img ? ('products/' . ltrim(str_replace('products/', '', $img), '/')) : ''
+                ];
+            }
+            echo json_encode($productMap, JSON_UNESCAPED_SLASHES);
+        ?>;
+
+        // Basic HTML escape
+        function escHtml(str) {
+            return String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
         tailwind.config = {
             theme: {
                 extend: {
@@ -272,50 +344,8 @@ $stats = [
             </div>
             
             <!-- Navigation -->
-            <nav class="p-2 lg:p-4 space-y-1">
-                <a href="index.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-speedometer2 mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Dashboard</span>
-                </a>
-                <a href="products.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-box-seam mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Products</span>
-                </a>
-                <a href="categories.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-tags mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Categories</span>
-                </a>
-                <a href="ads.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-megaphone mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Advertisements</span>
-                </a>
-                <a href="orders.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-white bg-folly hover:bg-folly-600 transition-colors touch-manipulation">
-                    <i class="bi bi-receipt mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Orders</span>
-                </a>
-                <a href="contacts.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-envelope mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Contacts</span>
-                </a>
-                <a href="settings.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-gear mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Settings</span>
-                </a>
-                <a href="file-manager.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-folder mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">File Manager</span>
-                </a>
-                
-                <div class="border-t border-charcoal-500 my-2 lg:my-4"></div>
-                
-                <a href="../" target="_blank" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-house mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">View Site</span>
-                </a>
-                <a href="auth.php?logout=1" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-box-arrow-right mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Logout</span>
-                </a>
+            <nav class="p-4 space-y-1">
+                <?php $activePage = 'orders'; include __DIR__ . '/partials/nav_links_desktop.php'; ?>
             </nav>
         </div>
 
@@ -341,50 +371,8 @@ $stats = [
             </div>
             
             <!-- Navigation -->
-            <nav class="p-2 space-y-1 overflow-y-auto" style="height: calc(100vh - 100px);">
-                <a href="index.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-speedometer2 mr-3 w-5 text-center"></i>
-                    Dashboard
-                </a>
-                <a href="products.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-box-seam mr-3 w-5 text-center"></i>
-                    Products
-                </a>
-                <a href="categories.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-tags mr-3 w-5 text-center"></i>
-                    Categories
-                </a>
-                <a href="ads.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-megaphone mr-3 w-5 text-center"></i>
-                    Advertisements
-                </a>
-                <a href="orders.php" class="flex items-center px-4 py-3 text-white bg-folly hover:bg-folly-600 transition-colors touch-manipulation">
-                    <i class="bi bi-receipt mr-3 w-5 text-center"></i>
-                    Orders
-                </a>
-                <a href="contacts.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-envelope mr-3 w-5 text-center"></i>
-                    Contacts
-                </a>
-                <a href="settings.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-gear mr-3 w-5 text-center"></i>
-                    Settings
-                </a>
-                <a href="file-manager.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-folder mr-3 w-5 text-center"></i>
-                    File Manager
-                </a>
-                
-                <div class="border-t border-charcoal-500 my-4"></div>
-                
-                <a href="../" target="_blank" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-house mr-3 w-5 text-center"></i>
-                    View Site
-                </a>
-                <a href="auth.php?logout=1" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-box-arrow-right mr-3 w-5 text-center"></i>
-                    Logout
-                </a>
+            <nav class="p-2 sm:p-4 space-y-1 overflow-y-auto max-h-[calc(100vh-140px)]">
+                <?php $activePage = 'orders'; include __DIR__ . '/partials/nav_links_mobile.php'; ?>
             </nav>
         </div>
 
@@ -510,6 +498,50 @@ $stats = [
                     </div>
                 </div>
 
+                <!-- Pending Payment Notifications -->
+                <?php if ($stats['pending_payment'] > 0): ?>
+                <div class="bg-gradient-to-r from-yellow-50 to-orange-50 border-l-4 border-yellow-500 p-4 lg:p-6 mb-4 lg:mb-6 rounded-lg shadow-sm">
+                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                        <div class="flex items-start flex-1 mb-4 lg:mb-0">
+                            <div class="flex-shrink-0">
+                                <div class="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center">
+                                    <i class="bi bi-exclamation-triangle text-white text-lg"></i>
+                                </div>
+                            </div>
+                            <div class="ml-4 flex-1">
+                                <h3 class="text-base lg:text-lg font-bold text-yellow-900 mb-1">
+                                    <?= $stats['pending_payment'] ?> Order<?= $stats['pending_payment'] > 1 ? 's' : '' ?> Awaiting Payment Verification
+                                </h3>
+                                <p class="text-sm text-yellow-800">
+                                    <?php if ($stats['payment_confirmed_by_customer'] > 0): ?>
+                                        <span class="font-semibold"><?= $stats['payment_confirmed_by_customer'] ?></span> customer<?= $stats['payment_confirmed_by_customer'] > 1 ? 's have' : ' has' ?> confirmed payment. 
+                                    <?php endif; ?>
+                                    Please verify and update payment status to process these orders.
+                                </p>
+                                <div class="mt-2 flex flex-wrap gap-2">
+                                    <?php if ($stats['payment_confirmed_by_customer'] > 0): ?>
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                                        <i class="bi bi-check-circle mr-1"></i>
+                                        <?= $stats['payment_confirmed_by_customer'] ?> Confirmed by Customer
+                                    </span>
+                                    <?php endif; ?>
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+                                        <i class="bi bi-clock mr-1"></i>
+                                        <?= $stats['pending_payment'] ?> Pending Payment
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <a href="?payment=pending" class="inline-flex items-center px-4 py-2 bg-yellow-600 text-white text-sm font-semibold rounded-lg hover:bg-yellow-700 transition-colors touch-manipulation">
+                                <i class="bi bi-arrow-right-circle mr-2"></i>
+                                View Pending Payments
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
                 <!-- Filters and Search -->
                 <div class="bg-white border border-gray-200 mb-4 lg:mb-6 rounded-lg">
                     <div class="px-4 lg:px-6 py-3 lg:py-4 border-b border-gray-200">
@@ -602,8 +634,17 @@ $stats = [
                                         </td>
                                         <td class="px-6 py-4">
                                             <div>
-                                                <div class="text-sm font-medium text-charcoal"><?= htmlspecialchars($order['customer_name'] ?? 'N/A') ?></div>
-                                                <div class="text-sm text-charcoal-400"><?= htmlspecialchars($order['customer_email'] ?? 'N/A') ?></div>
+                                                <?php
+                                                // Handle both old and new data structures
+                                                $customerName = $order['customer_name'] ??
+                                                               (isset($order['customer']) ?
+                                                                   trim(($order['customer']['first_name'] ?? '') . ' ' . ($order['customer']['last_name'] ?? '')) :
+                                                                   'N/A');
+                                                $customerEmail = $order['customer_email'] ??
+                                                                ($order['customer']['email'] ?? 'N/A');
+                                                ?>
+                                                <div class="text-sm font-medium text-charcoal"><?= htmlspecialchars($customerName) ?></div>
+                                                <div class="text-sm text-charcoal-400"><?= htmlspecialchars($customerEmail) ?></div>
                                             </div>
                                         </td>
                                         <td class="px-6 py-4">
@@ -612,7 +653,35 @@ $stats = [
                                                     <?= count($order['items']) ?> item(s)
                                                     <div class="text-xs text-charcoal-400 mt-1 max-h-16 overflow-y-auto">
                                                         <?php foreach ($order['items'] as $item): ?>
-                                                            <div><?= htmlspecialchars($item['name'] ?? 'Item') ?> (<?= $item['quantity'] ?? 1 ?>x)</div>
+                                                            <?php
+                                                                // Handle both old and new data structures
+                                                                $pid = $item['product_id'] ?? ($item['product']['id'] ?? null);
+                                                                $p = $pid && isset($productById[$pid]) ? $productById[$pid] : null;
+                                                                $displayName = $item['product_name'] ??
+                                                                             $item['name'] ??
+                                                                             ($item['product']['name'] ?? '') ??
+                                                                             ($p['name'] ?? 'Item');
+
+                                                                // Get image from various sources
+                                                                $img = null;
+                                                                if (isset($item['product']['image'])) {
+                                                                    $img = $item['product']['image'];
+                                                                } elseif ($p && isset($p['image'])) {
+                                                                    $img = $p['image'];
+                                                                } elseif ($p && isset($p['images'][0])) {
+                                                                    $img = $p['images'][0];
+                                                                }
+                                                                $imgUrl = $img ? ('../assets/images/' . ltrim($img, '/')) : '../assets/images/products/placeholder.jpg';
+
+                                                                $quantity = $item['quantity'] ?? 1;
+                                                            ?>
+                                                            <div class="flex items-center gap-2 py-1">
+                                                                <img src="<?= htmlspecialchars($imgUrl) ?>" alt="" class="w-6 h-6 object-cover rounded">
+                                                                <div class="flex-1 truncate">
+                                                                    <span class="text-charcoal-700"><?= htmlspecialchars($displayName) ?></span>
+                                                                    <span class="text-charcoal-400">(<?= $quantity ?>x)</span>
+                                                                </div>
+                                                            </div>
                                                         <?php endforeach; ?>
                                                     </div>
                                                 </div>
@@ -643,6 +712,7 @@ $stats = [
                                         <td class="px-6 py-4">
                                             <?php
                                             $paymentStatus = $order['payment_status'] ?? 'pending';
+                                            $paymentConfirmed = !empty($order['payment_confirmed_by_customer']);
                                             $paymentColors = [
                                                 'pending' => 'bg-yellow-100 text-yellow-800',
                                                 'completed' => 'bg-green-100 text-green-800',
@@ -651,36 +721,46 @@ $stats = [
                                             ];
                                             $paymentColor = $paymentColors[$paymentStatus] ?? 'bg-gray-100 text-gray-800';
                                             ?>
-                                            <span class="px-2 py-1 text-xs font-medium <?= $paymentColor ?> rounded-full">
-                                                <?= ucfirst($paymentStatus) ?>
-                                            </span>
+                                            <div class="flex flex-col gap-1">
+                                                <span class="px-2 py-1 text-xs font-medium <?= $paymentColor ?> rounded-full inline-block">
+                                                    <?= ucfirst($paymentStatus) ?>
+                                                </span>
+                                                <?php if ($paymentConfirmed && $paymentStatus === 'pending'): ?>
+                                                <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full inline-flex items-center">
+                                                    <i class="bi bi-check-circle mr-1"></i>
+                                                    Confirmed
+                                                </span>
+                                                <?php endif; ?>
+                                            </div>
                                         </td>
                                         <td class="px-6 py-4">
                                             <?php
-                                            $paymentMethod = $order['payment_method'] ?? 'unknown';
+                                            // Handle both old and new data structures
+                                            $paymentMethod = $order['payment_method'] ??
+                                                           ($order['customer']['payment_method'] ?? 'unknown');
                                             $methodDisplay = '';
                                             $methodIcon = '';
-                                            
+
                                             switch ($paymentMethod) {
                                                 case 'card':
                                                     $methodDisplay = 'Stripe';
-                                                    $methodIcon = '💳';
+                                                    $methodIcon = '';
                                                     break;
                                                 case 'bank_transfer':
                                                     $methodDisplay = 'Bank Transfer';
-                                                    $methodIcon = '🏦';
+                                                    $methodIcon = '';
                                                     break;
                                                 case 'paypal':
                                                     $methodDisplay = 'PayPal';
-                                                    $methodIcon = '💙';
+                                                    $methodIcon = '';
                                                     break;
                                                 case 'espees':
                                                     $methodDisplay = 'Espees';
-                                                    $methodIcon = '💰';
+                                                    $methodIcon = '';
                                                     break;
                                                 default:
                                                     $methodDisplay = 'Unknown';
-                                                    $methodIcon = '❓';
+                                                    $methodIcon = '';
                                             }
                                             ?>
                                             <div class="flex items-center">
@@ -705,13 +785,20 @@ $stats = [
                                         </td>
                                         <td class="px-6 py-4">
                                             <div class="flex space-x-2">
-                                                <button type="button" onclick="viewOrder('<?= htmlspecialchars(json_encode($order)) ?>')" class="px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors text-sm rounded touch-manipulation">
+                                                <button type="button"
+                                                        data-order='<?= json_encode($order, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>'
+                                                        onclick="viewOrder(this.dataset.order)"
+                                                        class="px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors text-sm rounded touch-manipulation">
                                                     <i class="bi bi-eye"></i>
                                                 </button>
-                                                <button type="button" onclick="editOrder('<?= htmlspecialchars(json_encode($order)) ?>')" class="px-3 py-1 bg-green-100 text-green-700 hover:bg-green-200 transition-colors text-sm rounded touch-manipulation">
+                                                <button type="button"
+                                                        data-order='<?= json_encode($order, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>'
+                                                        onclick="editOrder(this.dataset.order)"
+                                                        class="px-3 py-1 bg-green-100 text-green-700 hover:bg-green-200 transition-colors text-sm rounded touch-manipulation">
                                                     <i class="bi bi-pencil"></i>
                                                 </button>
                                                 <form method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this order?')">
+                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['admin_csrf_token']) ?>">
                                                     <input type="hidden" name="action" value="delete_order">
                                                     <input type="hidden" name="order_id" value="<?= htmlspecialchars($order['id']) ?>">
                                                     <button type="submit" class="px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 transition-colors text-sm rounded touch-manipulation">
@@ -741,6 +828,7 @@ $stats = [
                                     $statusColor = $statusColors[$status] ?? 'bg-gray-100 text-gray-800';
                                     
                                     $paymentStatus = $order['payment_status'] ?? 'pending';
+                                    $paymentConfirmed = !empty($order['payment_confirmed_by_customer']);
                                     $paymentColors = [
                                         'pending' => 'bg-yellow-100 text-yellow-800',
                                         'completed' => 'bg-green-100 text-green-800',
@@ -795,21 +883,38 @@ $stats = [
                                                 <div class="text-base lg:text-lg font-bold text-charcoal">
                                                     £<?= number_format($order['total'] ?? 0, 2) ?>
                                                 </div>
-                                                <span class="px-2 py-1 text-xs font-medium <?= $paymentColor ?> rounded-full">
-                                                    <?= ucfirst($paymentStatus) ?>
-                                                </span>
+                                                <div class="flex flex-col gap-1 items-end">
+                                                    <span class="px-2 py-1 text-xs font-medium <?= $paymentColor ?> rounded-full">
+                                                        <?= ucfirst($paymentStatus) ?>
+                                                    </span>
+                                                    <?php if ($paymentConfirmed && $paymentStatus === 'pending'): ?>
+                                                    <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full inline-flex items-center">
+                                                        <i class="bi bi-check-circle mr-1"></i>
+                                                        Confirmed
+                                                    </span>
+                                                    <?php endif; ?>
+                                                </div>
                                             </div>
                                         </div>
 
                                         <!-- Customer Info -->
                                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                                             <div>
+                                                <?php
+                                                // Handle both old and new data structures
+                                                $customerName = $order['customer_name'] ??
+                                                               (isset($order['customer']) ?
+                                                                   trim(($order['customer']['first_name'] ?? '') . ' ' . ($order['customer']['last_name'] ?? '')) :
+                                                                   'N/A');
+                                                $customerEmail = $order['customer_email'] ??
+                                                                ($order['customer']['email'] ?? 'N/A');
+                                                ?>
                                                 <div class="text-xs lg:text-sm font-medium text-charcoal-600 mb-1">Customer</div>
                                                 <div class="text-sm lg:text-base font-medium text-charcoal">
-                                                    <?= htmlspecialchars($order['customer_name'] ?? 'N/A') ?>
+                                                    <?= htmlspecialchars($customerName) ?>
                                                 </div>
                                                 <div class="text-xs lg:text-sm text-charcoal-400 truncate">
-                                                    <?= htmlspecialchars($order['customer_email'] ?? 'N/A') ?>
+                                                    <?= htmlspecialchars($customerEmail) ?>
                                                 </div>
                                             </div>
                                             <div>
@@ -837,9 +942,34 @@ $stats = [
                                                 </div>
                                                 <div class="scrollable-items text-xs lg:text-sm text-charcoal-400 mt-1 space-y-1 max-h-20 overflow-y-auto">
                                                     <?php foreach ($order['items'] as $item): ?>
-                                                        <div class="flex justify-between">
-                                                            <span><?= htmlspecialchars($item['name'] ?? 'Item') ?></span>
-                                                            <span><?= $item['quantity'] ?? 1 ?>x</span>
+                                                        <?php
+                                                            // Handle both old and new data structures
+                                                            $pid = $item['product_id'] ?? ($item['product']['id'] ?? null);
+                                                            $p = $pid && isset($productById[$pid]) ? $productById[$pid] : null;
+                                                            $displayName = $item['product_name'] ??
+                                                                         $item['name'] ??
+                                                                         ($item['product']['name'] ?? null) ??
+                                                                         ($p['name'] ?? 'Item');
+
+                                                            // Get image from various sources
+                                                            $img = null;
+                                                            if (isset($item['product']['image'])) {
+                                                                $img = $item['product']['image'];
+                                                            } elseif ($p && isset($p['image'])) {
+                                                                $img = $p['image'];
+                                                            } elseif ($p && isset($p['images'][0])) {
+                                                                $img = $p['images'][0];
+                                                            }
+                                                            $imgUrl = $img ? ('../assets/images/' . ltrim($img, '/')) : '../assets/images/products/placeholder.jpg';
+
+                                                            $quantity = $item['quantity'] ?? 1;
+                                                        ?>
+                                                        <div class="flex items-center justify-between gap-2">
+                                                            <div class="flex items-center gap-2 min-w-0">
+                                                                <img src="<?= htmlspecialchars($imgUrl) ?>" alt="" class="w-6 h-6 object-cover rounded">
+                                                                <span class="truncate text-charcoal-700"><?= htmlspecialchars($displayName) ?></span>
+                                                            </div>
+                                                            <span class="flex-shrink-0 text-charcoal-500"><?= $quantity ?>x</span>
                                                         </div>
                                                     <?php endforeach; ?>
                                                 </div>
@@ -851,18 +981,21 @@ $stats = [
                                         <!-- Actions -->
                                         <div class="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
                                             <button type="button" 
-                                                    onclick="viewOrder('<?= htmlspecialchars(json_encode($order)) ?>')" 
+                                                    data-order='<?= json_encode($order, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>'
+                                                    onclick="viewOrder(this.dataset.order)" 
                                                     class="flex-1 sm:flex-initial px-3 sm:px-4 py-2 bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors text-xs lg:text-sm font-medium rounded touch-manipulation">
                                                 <i class="bi bi-eye mr-1"></i>
                                                 <span class="hidden sm:inline">View</span>
                                             </button>
                                             <button type="button" 
-                                                    onclick="editOrder('<?= htmlspecialchars(json_encode($order)) ?>')" 
+                                                    data-order='<?= json_encode($order, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>'
+                                                    onclick="editOrder(this.dataset.order)" 
                                                     class="flex-1 sm:flex-initial px-3 sm:px-4 py-2 bg-green-100 text-green-700 hover:bg-green-200 transition-colors text-xs lg:text-sm font-medium rounded touch-manipulation">
                                                 <i class="bi bi-pencil mr-1"></i>
                                                 <span class="hidden sm:inline">Edit</span>
                                             </button>
                                             <form method="POST" class="flex-1 sm:flex-initial" onsubmit="return confirm('Are you sure you want to delete this order?')">
+                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['admin_csrf_token']) ?>">
                                                 <input type="hidden" name="action" value="delete_order">
                                                 <input type="hidden" name="order_id" value="<?= htmlspecialchars($order['id']) ?>">
                                                 <button type="submit" 
@@ -963,6 +1096,7 @@ $stats = [
                 </div>
             </div>
             <form id="editForm" method="POST">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['admin_csrf_token']) ?>">
                 <div class="p-3 sm:p-4 lg:p-6 space-y-4 lg:space-y-6">
                     <input type="hidden" name="action" value="update_status">
                     <input type="hidden" name="order_id" id="edit_order_id">
@@ -1004,23 +1138,77 @@ $stats = [
 
     <script>
         // Modal functions
+        function formatAddress(addr) {
+            if (!addr || typeof addr !== 'object') return '';
+            const parts = [];
+            if (addr.line1) parts.push(addr.line1);
+            if (addr.line2) parts.push(addr.line2);
+            if (addr.city && addr.postcode) {
+                parts.push(`${addr.city}, ${addr.postcode}`);
+            } else if (addr.city) {
+                parts.push(addr.city);
+            } else if (addr.postcode) {
+                parts.push(addr.postcode);
+            }
+            if (addr.country) parts.push(addr.country);
+
+            return parts
+                .filter(part => part && String(part).trim() !== '')
+                .map(escHtml)
+                .join('<br>');
+        }
+
+        function renderAddressSection(title, addr, icon) {
+            const formatted = formatAddress(addr);
+            if (!formatted) return '';
+            return `
+                <div class="mt-4 lg:mt-6">
+                    <h4 class="text-sm lg:text-base font-semibold text-charcoal mb-3 lg:mb-4">${icon} ${escHtml(title)}</h4>
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 lg:p-4">
+                        <div class="text-sm lg:text-base leading-relaxed">${formatted}</div>
+                    </div>
+                </div>
+            `;
+        }
+
         function viewOrder(orderJson) {
             const order = JSON.parse(orderJson);
             const content = document.getElementById('viewModalContent');
             
             let itemsHtml = '';
             if (order.items && Array.isArray(order.items)) {
-                itemsHtml = order.items.map(item => `
-                    <div class="flex flex-col sm:flex-row sm:justify-between py-2 lg:py-3 border-b border-gray-100 last:border-b-0">
-                        <div class="flex-1 min-w-0">
-                            <div class="text-sm lg:text-base font-medium text-charcoal truncate">${item.name || 'Item'}</div>
-                            <div class="text-xs lg:text-sm text-gray-500 mt-1">Quantity: ${item.quantity || 1}</div>
+                itemsHtml = order.items.map(item => {
+                    // Handle both old and new data structures
+                    const pid = item.product_id || (item.product && item.product.id);
+                    const p = pid && productsById[String(pid)] ? productsById[String(pid)] : null;
+                    const displayName = item.product_name || item.name || (item.product && item.product.name) || (p ? p.name : 'Item');
+
+                    // Get image from various sources
+                    let img = '../assets/images/products/placeholder.jpg';
+                    if (item.product && item.product.image) {
+                        img = `../assets/images/${item.product.image.replace(/^\//,'')}`;
+                    } else if (p && p.image) {
+                        img = `../assets/images/${p.image.replace(/^\//,'')}`;
+                    }
+
+                    const qty = item.quantity || 1;
+                    const price = item.price || item.unit_price || (item.product && item.product.price) || 0;
+                    const lineTotal = (price * qty).toFixed(2);
+                    return `
+                        <div class="flex items-center justify-between py-2 lg:py-3 border-b border-gray-100 last:border-b-0">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <img src="${img}" alt="" class="w-10 h-10 rounded object-cover flex-shrink-0">
+                                <div class="min-w-0">
+                                    <div class="text-sm lg:text-base font-medium text-charcoal truncate">${escHtml(displayName)}</div>
+                                    <div class="text-xs lg:text-sm text-gray-500 mt-0.5">Quantity: ${qty}</div>
+                                </div>
+                            </div>
+                            <div class="text-sm lg:text-base font-medium text-charcoal ml-3 flex-shrink-0">
+                                £${lineTotal}
+                            </div>
                         </div>
-                        <div class="text-sm lg:text-base font-medium text-charcoal mt-1 sm:mt-0 sm:ml-4 flex-shrink-0">
-                            £${((item.price || 0) * (item.quantity || 1)).toFixed(2)}
-                        </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
                 itemsHtml = `<div class="p-3 lg:p-4">${itemsHtml}</div>`;
             }
             
@@ -1034,10 +1222,10 @@ $stats = [
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
                                 <div class="space-y-2">
                                     <div class="text-sm lg:text-base"><strong>Payment Method:</strong> Stripe (Credit Card)</div>
-                                    <div class="text-sm lg:text-base"><strong>Payment Intent ID:</strong> 
+                                    <div class="text-sm lg:text-base"><strong>Payment Intent ID:</strong>
                                         <code class="bg-gray-100 px-2 py-1 rounded text-xs lg:text-sm break-all">${order.stripe_payment_intent}</code>
                                     </div>
-                                    <div class="text-sm lg:text-base"><strong>Payment Status:</strong> 
+                                    <div class="text-sm lg:text-base"><strong>Payment Status:</strong>
                                         <span class="px-2 py-1 text-xs rounded-full ${order.payment_status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${order.payment_status || 'pending'}</span>
                                     </div>
                                 </div>
@@ -1048,15 +1236,15 @@ $stats = [
                                 </div>
                             </div>
                             <div class="mt-3 lg:mt-4 flex flex-col sm:flex-row gap-2 sm:gap-3">
-                                <button onclick="viewStripePayment('${order.stripe_payment_intent}')" 
+                                <button onclick="viewStripePayment('${order.stripe_payment_intent}')"
                                         class="flex-1 sm:flex-initial px-3 lg:px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-xs lg:text-sm font-medium touch-manipulation">
-                                    <i class="bi bi-receipt mr-1"></i> 
+                                    <i class="bi bi-receipt mr-1"></i>
                                     <span class="hidden sm:inline">View Stripe Receipt</span>
                                     <span class="sm:hidden">Stripe Receipt</span>
                                 </button>
-                                <button onclick="copyPaymentId('${order.stripe_payment_intent}')" 
+                                <button onclick="copyPaymentId('${order.stripe_payment_intent}')"
                                         class="flex-1 sm:flex-initial px-3 lg:px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors text-xs lg:text-sm font-medium touch-manipulation">
-                                    <i class="bi bi-clipboard mr-1"></i> 
+                                    <i class="bi bi-clipboard mr-1"></i>
                                     <span class="hidden sm:inline">Copy Payment ID</span>
                                     <span class="sm:hidden">Copy ID</span>
                                 </button>
@@ -1064,14 +1252,53 @@ $stats = [
                         </div>
                     </div>
                 `;
-            } else if (order.payment_method) {
+            } else if (order.payment_method || (order.customer && order.customer.payment_method)) {
+                const payMethod = order.payment_method || (order.customer && order.customer.payment_method);
+                const paymentMethodName = payMethod === 'bank_transfer' ? 'Bank Transfer' :
+                                        payMethod === 'paypal' ? 'PayPal' :
+                                        payMethod === 'espees' ? 'Espees' :
+                                        payMethod === 'card' ? 'Card' : 'Unknown';
+
                 paymentDetailsHtml = `
                     <div class="mt-4 lg:mt-6">
-                        <h4 class="text-sm lg:text-base font-semibold text-charcoal mb-3 lg:mb-4">💰 Payment Details</h4>
+                        <h4 class="text-sm lg:text-base font-semibold text-charcoal mb-3 lg:mb-4">💳 Payment Details</h4>
                         <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 lg:p-4">
-                            <div class="text-sm lg:text-base"><strong>Payment Method:</strong> ${order.payment_method === 'bank_transfer' ? 'Bank Transfer' : order.payment_method === 'paypal' ? 'PayPal' : order.payment_method === 'espees' ? 'Espees' : 'Unknown'}</div>
-                            <div class="text-sm lg:text-base mt-2"><strong>Payment Status:</strong> 
-                                <span class="px-2 py-1 text-xs rounded-full ${order.payment_status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${order.payment_status || 'pending'}</span>
+                            <div class="space-y-3">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div class="text-sm lg:text-base"><strong>Payment Method:</strong> ${paymentMethodName}</div>
+                                    <div class="text-sm lg:text-base"><strong>Payment Status:</strong>
+                                        <span class="px-2 py-1 text-xs rounded-full ${order.payment_status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${order.payment_status || 'pending'}</span>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div class="text-sm lg:text-base"><strong>Subtotal:</strong> £${(order.subtotal || 0).toFixed(2)}</div>
+                                    <div class="text-sm lg:text-base"><strong>Shipping:</strong> £${(order.shipping_cost || 0).toFixed(2)}</div>
+                                </div>
+                                <div class="text-sm lg:text-base pt-2 border-t border-gray-300"><strong>Total Amount:</strong> <span class="font-bold text-base lg:text-lg text-folly">£${(order.total || 0).toFixed(2)}</span></div>
+                                ${order.payment_confirmed_by_customer ? `
+                                    <div class="bg-green-50 border border-green-200 rounded p-3 mt-3">
+                                        <div class="flex items-center mb-2">
+                                            <i class="bi bi-check-circle-fill text-green-600 mr-2"></i>
+                                            <strong class="text-green-900">Customer Confirmed Payment</strong>
+                                        </div>
+                                        <div class="text-xs text-green-800">Confirmed at: ${order.payment_confirmed_at || 'N/A'}</div>
+                                    </div>
+                                ` : ''}
+                                ${order.payment_details ? `
+                                    <div class="bg-blue-50 border border-blue-200 rounded p-3 mt-3">
+                                        <h5 class="font-semibold text-sm text-blue-900 mb-2">Customer Submitted Payment Details:</h5>
+                                        <div class="space-y-2 text-xs">
+                                            ${order.payment_details.transaction_id ? `<div><strong>Transaction ID:</strong> <code class="bg-white px-2 py-1 rounded">${escHtml(order.payment_details.transaction_id)}</code></div>` : ''}
+                                            ${order.payment_details.payment_email ? `<div><strong>Payment Email:</strong> ${escHtml(order.payment_details.payment_email)}</div>` : ''}
+                                            ${order.payment_details.bank_name ? `<div><strong>Bank Name:</strong> ${escHtml(order.payment_details.bank_name)}</div>` : ''}
+                                            ${order.payment_details.account_holder ? `<div><strong>Account Holder:</strong> ${escHtml(order.payment_details.account_holder)}</div>` : ''}
+                                            ${order.payment_details.transfer_date ? `<div><strong>Transfer Date:</strong> ${escHtml(order.payment_details.transfer_date)}</div>` : ''}
+                                            ${order.payment_details.amount_sent ? `<div><strong>Amount Sent:</strong> ${escHtml(order.payment_details.amount_sent)}</div>` : ''}
+                                            ${order.payment_details.payment_notes ? `<div><strong>Notes:</strong> ${escHtml(order.payment_details.payment_notes)}</div>` : ''}
+                                            ${order.payment_details.submitted_at ? `<div class="text-gray-600 mt-2"><strong>Submitted:</strong> ${order.payment_details.submitted_at}</div>` : ''}
+                                        </div>
+                                    </div>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
@@ -1079,26 +1306,10 @@ $stats = [
             }
 
             // Build shipping address section
-            let shippingHtml = '';
-            if (order.shipping_address) {
-                const addr = order.shipping_address;
-                const addressParts = [
-                    addr.line1,
-                    addr.line2,
-                    addr.city,
-                    addr.postcode,
-                    addr.country
-                ].filter(part => part && part.trim());
-                
-                shippingHtml = `
-                    <div class="mt-4 lg:mt-6">
-                        <h4 class="text-sm lg:text-base font-semibold text-charcoal mb-3 lg:mb-4">📦 Shipping Address</h4>
-                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 lg:p-4">
-                            <div class="text-sm lg:text-base whitespace-pre-line">${addressParts.join('\n')}</div>
-                        </div>
-                    </div>
-                `;
-            }
+            const shippingAddr = order.shipping_address || order.shippingAddress || (order.customer && order.customer.shipping_address);
+            const billingAddr = order.billing_address || order.billingAddress || (order.customer && order.customer.billing_address);
+            const shippingHtml = renderAddressSection('Shipping Address', shippingAddr, '📦');
+            const billingHtml = renderAddressSection('Billing Address', billingAddr, '🏷️');
 
             content.innerHTML = `
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
@@ -1122,15 +1333,16 @@ $stats = [
                     <div>
                         <h4 class="text-sm lg:text-base font-semibold text-charcoal mb-3 lg:mb-4">👤 Customer Information</h4>
                         <div class="space-y-2 lg:space-y-3">
-                            <div class="text-sm lg:text-base"><strong>Name:</strong> ${order.customer_name || 'N/A'}</div>
-                            <div class="text-sm lg:text-base"><strong>Email:</strong> <span class="break-all">${order.customer_email || 'N/A'}</span></div>
-                            <div class="text-sm lg:text-base"><strong>Phone:</strong> ${order.customer_phone || 'N/A'}</div>
+                            <div class="text-sm lg:text-base"><strong>Name:</strong> ${order.customer_name || (order.customer ? ((order.customer.first_name || '') + ' ' + (order.customer.last_name || '')).trim() : 'N/A')}</div>
+                            <div class="text-sm lg:text-base"><strong>Email:</strong> <span class="break-all">${order.customer_email || (order.customer && order.customer.email) || 'N/A'}</span></div>
+                            <div class="text-sm lg:text-base"><strong>Phone:</strong> ${order.customer_phone || (order.customer && order.customer.phone) || 'N/A'}</div>
                         </div>
                     </div>
                 </div>
                 
                 ${paymentDetailsHtml}
                 ${shippingHtml}
+                ${billingHtml}
                 
                 <div class="mt-4 lg:mt-6">
                     <h4 class="text-sm lg:text-base font-semibold text-charcoal mb-3 lg:mb-4">🛍️ Order Items</h4>

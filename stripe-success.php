@@ -4,6 +4,7 @@ $page_description = 'Thank you for your payment! Your order has been successfull
 
 require_once 'includes/stripe-config.php';
 require_once 'includes/functions.php';
+require_once 'includes/mail_config.php';
 
 // Get session ID from URL
 $sessionId = $_GET['session_id'] ?? '';
@@ -99,6 +100,43 @@ try {
         // Store order for display
         $order = $orderData;
         $success = true;
+
+        // Attempt to collect Stripe receipt/invoice URLs and send emails
+        try {
+            $receiptUrl = '';
+            $invoiceUrl = '';
+
+            // Prefer session invoice if available
+            if (!empty($session->invoice)) {
+                $invoice = \Stripe\Invoice::retrieve($session->invoice);
+                if (!empty($invoice->hosted_invoice_url)) { $invoiceUrl = $invoice->hosted_invoice_url; }
+                elseif (!empty($invoice->invoice_pdf)) { $invoiceUrl = $invoice->invoice_pdf; }
+            }
+
+            // Fetch latest charge for receipt URL
+            if (!empty($session->payment_intent)) {
+                $pi = \Stripe\PaymentIntent::retrieve([
+                    'id' => $session->payment_intent,
+                    'expand' => ['latest_charge']
+                ]);
+                if (!empty($pi->latest_charge) && !empty($pi->latest_charge->receipt_url)) {
+                    $receiptUrl = $pi->latest_charge->receipt_url;
+                }
+                // If invoice not found above, try via charge->invoice
+                if (empty($invoiceUrl) && !empty($pi->latest_charge) && !empty($pi->latest_charge->invoice)) {
+                    $invoice = \Stripe\Invoice::retrieve($pi->latest_charge->invoice);
+                    if (!empty($invoice->hosted_invoice_url)) { $invoiceUrl = $invoice->hosted_invoice_url; }
+                    elseif (!empty($invoice->invoice_pdf)) { $invoiceUrl = $invoice->invoice_pdf; }
+                }
+            }
+
+            // Send emails (customer + admin)
+            @sendOrderConfirmationToCustomer($orderData, $receiptUrl, $invoiceUrl);
+            @sendOrderNotificationToAdmin($orderData, $receiptUrl, $invoiceUrl);
+        } catch (Exception $mailErr) {
+            // Log but don't block redirect
+            if (function_exists('logError')) { logError('Order email send failed: ' . $mailErr->getMessage()); }
+        }
     } else {
         throw new Exception('Failed to save order');
     }
@@ -118,28 +156,33 @@ include 'includes/header.php';
 ?>
 
 <!-- Error Page if something went wrong -->
-<section class="bg-white py-16">
+<section class="bg-gray-50 py-16 md:py-24">
     <div class="container mx-auto px-4">
-        <div class="max-w-4xl mx-auto text-center">
+        <div class="max-w-2xl mx-auto text-center">
             <!-- Error Icon -->
-            <div class="text-red-500 mb-8">
-                <svg class="w-24 h-24 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            <div class="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-8 animate-pulse">
+                <svg class="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 18.5c-.77.833.192 2.5 1.732 2.5z"></path>
                 </svg>
             </div>
             
             <!-- Error Message -->
-            <h1 class="text-4xl font-bold text-gray-900 mb-4">Payment Processing Error</h1>
-            <p class="text-xl text-gray-600 mb-8">
-                <?php echo htmlspecialchars($error ?? 'There was an issue processing your payment.'); ?>
-            </p>
+            <h1 class="text-3xl md:text-4xl font-bold text-charcoal-900 mb-4 font-display">Payment Processing Error</h1>
+            <div class="bg-white rounded-2xl shadow-soft border border-red-100 p-8 mb-10">
+                <p class="text-lg text-gray-600 mb-2">We encountered an issue while processing your payment.</p>
+                <p class="text-red-500 font-medium bg-red-50 py-2 px-4 rounded-lg inline-block">
+                    <?php echo htmlspecialchars($error ?? 'Unknown error occurred.'); ?>
+                </p>
+            </div>
             
             <!-- Action Buttons -->
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="<?php echo getBaseUrl('cart.php'); ?>" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-md font-medium transition-colors duration-200">
+                <a href="<?php echo getBaseUrl('cart.php'); ?>" class="px-8 py-4 bg-folly text-white rounded-xl font-bold hover:bg-folly-600 transition-all shadow-lg hover:shadow-folly/30 flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l-2.5 5m12.5 0H9"></path></svg>
                     Return to Cart
                 </a>
-                <a href="<?php echo getBaseUrl('contact.php'); ?>" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-8 py-3 rounded-md font-medium transition-colors duration-200">
+                <a href="<?php echo getBaseUrl('contact.php'); ?>" class="px-8 py-4 bg-white text-charcoal-900 border border-gray-200 rounded-xl font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
                     Contact Support
                 </a>
             </div>
@@ -147,4 +190,4 @@ include 'includes/header.php';
     </div>
 </section>
 
-<?php include 'includes/footer.php'; ?> 
+<?php include 'includes/footer.php'; ?>

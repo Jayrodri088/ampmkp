@@ -72,4 +72,4 @@ AddDefaultCharset UTF-8
 </Files>
 
 # Error pages
-ErrorDocument 404 https://veedcos.net/404.php
+ErrorDocument 404 /404.php

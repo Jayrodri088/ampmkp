@@ -3,12 +3,17 @@ session_start();
 
 // Check authentication
 if (!isset($_SESSION['admin_logged_in'])) {
-    header('Location: auth.php');
+    header('Location: /admin/auth.php');
     exit;
 }
 
 // Include main functions
 require_once '../includes/functions.php';
+
+// CSRF token setup
+if (!isset($_SESSION['admin_csrf_token'])) {
+    $_SESSION['admin_csrf_token'] = bin2hex(random_bytes(32));
+}
 
 // Load current settings
 $settings = getSettings();
@@ -24,6 +29,12 @@ if (isset($_GET['message']) && isset($_GET['type'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $postedToken = $_POST['csrf_token'] ?? '';
+    if (empty($postedToken) || !hash_equals($_SESSION['admin_csrf_token'], $postedToken)) {
+        http_response_code(403);
+        $message = 'Invalid CSRF token.';
+        $message_type = 'danger';
+    } else {
     try {
         // Get current settings to preserve structure
         $newSettings = $settings;
@@ -45,6 +56,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Update shipping settings
         $newSettings['shipping']['free_shipping_threshold'] = (float)$_POST['free_shipping_threshold'];
+        $newSettings['shipping']['enable_pickup'] = isset($_POST['enable_pickup']);
+        $newSettings['shipping']['enable_delivery'] = isset($_POST['enable_delivery']);
+        $newSettings['shipping']['allow_method_selection'] = isset($_POST['allow_method_selection']);
+        $newSettings['shipping']['default_method'] = in_array(($_POST['default_method'] ?? 'delivery'), ['delivery','pickup'], true) ? $_POST['default_method'] : 'delivery';
+        $newSettings['shipping']['pickup_label'] = sanitizeInput($_POST['pickup_label'] ?? 'Pickup');
+        $newSettings['shipping']['pickup_instructions'] = sanitizeInput($_POST['pickup_instructions'] ?? '');
+        $newSettings['shipping']['show_shipping_pre_checkout'] = isset($_POST['show_shipping_pre_checkout']);
         
         // Process per-currency shipping costs
         if (isset($_POST['shipping_costs']) && is_array($_POST['shipping_costs'])) {
@@ -139,6 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (Exception $e) {
         $message = 'Error updating settings: ' . $e->getMessage();
         $message_type = 'danger';
+    }
     }
     
     // Redirect to prevent form resubmission
@@ -242,50 +261,8 @@ if (!isset($settings['available_sizes'])) {
             </div>
             
             <!-- Navigation -->
-            <nav class="p-2 lg:p-4 space-y-1">
-                <a href="index.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-speedometer2 mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Dashboard</span>
-                </a>
-                <a href="products.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-box-seam mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Products</span>
-                </a>
-                <a href="categories.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-tags mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Categories</span>
-                </a>
-                <a href="ads.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-megaphone mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Advertisements</span>
-                </a>
-                <a href="orders.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-receipt mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Orders</span>
-                </a>
-                <a href="contacts.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-envelope mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Contacts</span>
-                </a>
-                <a href="settings.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-white bg-folly hover:bg-folly-600 transition-colors touch-manipulation">
-                    <i class="bi bi-gear mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Settings</span>
-                </a>
-                <a href="file-manager.php" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-folder mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">File Manager</span>
-                </a>
-                
-                <div class="border-t border-charcoal-500 my-2 lg:my-4"></div>
-                
-                <a href="../" target="_blank" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-house mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">View Site</span>
-                </a>
-                <a href="auth.php?logout=1" class="flex items-center px-3 lg:px-4 py-2 lg:py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-box-arrow-right mr-2 lg:mr-3 w-4 lg:w-5 text-center"></i>
-                    <span class="text-sm lg:text-base">Logout</span>
-                </a>
+            <nav class="p-4 space-y-1">
+                <?php $activePage = 'settings'; include __DIR__ . '/partials/nav_links_desktop.php'; ?>
             </nav>
         </div>
 
@@ -311,50 +288,8 @@ if (!isset($settings['available_sizes'])) {
             </div>
             
             <!-- Navigation -->
-            <nav class="p-2 space-y-1 overflow-y-auto" style="height: calc(100vh - 100px);">
-                <a href="index.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-speedometer2 mr-3 w-5 text-center"></i>
-                    Dashboard
-                </a>
-                <a href="products.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-box-seam mr-3 w-5 text-center"></i>
-                    Products
-                </a>
-                <a href="categories.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-tags mr-3 w-5 text-center"></i>
-                    Categories
-                </a>
-                <a href="ads.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-megaphone mr-3 w-5 text-center"></i>
-                    Advertisements
-                </a>
-                <a href="orders.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-receipt mr-3 w-5 text-center"></i>
-                    Orders
-                </a>
-                <a href="contacts.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-envelope mr-3 w-5 text-center"></i>
-                    Contacts
-                </a>
-                <a href="settings.php" class="flex items-center px-4 py-3 text-white bg-folly hover:bg-folly-600 transition-colors touch-manipulation">
-                    <i class="bi bi-gear mr-3 w-5 text-center"></i>
-                    Settings
-                </a>
-                <a href="file-manager.php" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-folder mr-3 w-5 text-center"></i>
-                    File Manager
-                </a>
-                
-                <div class="border-t border-charcoal-500 my-4"></div>
-                
-                <a href="../" target="_blank" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-house mr-3 w-5 text-center"></i>
-                    View Site
-                </a>
-                <a href="auth.php?logout=1" class="flex items-center px-4 py-3 text-charcoal-200 hover:text-white hover:bg-charcoal-700 transition-colors touch-manipulation">
-                    <i class="bi bi-box-arrow-right mr-3 w-5 text-center"></i>
-                    Logout
-                </a>
+            <nav class="p-2 sm:p-4 space-y-1 overflow-y-auto max-h-[calc(100vh-140px)]">
+                <?php $activePage = 'settings'; include __DIR__ . '/partials/nav_links_mobile.php'; ?>
             </nav>
         </div>
 
@@ -387,7 +322,8 @@ if (!isset($settings['available_sizes'])) {
                 </div>
                 <?php endif; ?>
 
-                <form method="POST" class="space-y-6 lg:space-y-8">
+<form method="POST" class="space-y-6 lg:space-y-8">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['admin_csrf_token']) ?>">
                     <!-- General Settings -->
                     <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
                         <div class="bg-charcoal text-white px-4 lg:px-6 py-3 lg:py-4">
@@ -477,6 +413,38 @@ if (!isset($settings['available_sizes'])) {
                                     <input type="number" name="free_shipping_threshold" step="0.01" min="0" class="w-full px-4 py-3 border border-gray-300 focus:border-folly focus:ring-1 focus:ring-folly" value="<?= htmlspecialchars($settings['shipping']['free_shipping_threshold'] ?? 50) ?>">
                                     <p class="mt-1 text-xs text-gray-500">Set to 0 to disable free shipping</p>
                                 </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-charcoal-600 mb-2">Customer Shipping Method Selection</label>
+                                    <div class="space-y-2 bg-gray-50 p-3 border border-gray-200 rounded">
+                                        <label class="flex items-center gap-2">
+                                            <input type="checkbox" name="allow_method_selection" value="1" <?= !empty($settings['shipping']['allow_method_selection']) ? 'checked' : '' ?>>
+                                            <span class="text-sm text-charcoal-700">Allow customer to choose Delivery or Pickup at checkout</span>
+                                        </label>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <label class="flex items-center gap-2">
+                                                <input type="checkbox" name="enable_delivery" value="1" <?= !empty($settings['shipping']['enable_delivery']) ? 'checked' : '' ?>>
+                                                <span class="text-sm text-charcoal-700">Enable Delivery</span>
+                                            </label>
+                                            <label class="flex items-center gap-2">
+                                                <input type="checkbox" name="enable_pickup" value="1" <?= !empty($settings['shipping']['enable_pickup']) ? 'checked' : '' ?>>
+                                                <span class="text-sm text-charcoal-700">Enable Pickup</span>
+                                            </label>
+                                            <div class="col-span-1 sm:col-span-2">
+                                                <div class="flex flex-wrap gap-4 items-center">
+                                                    <span class="text-sm text-gray-600">Default method:</span>
+                                                    <label class="flex items-center gap-2">
+                                                        <input type="radio" name="default_method" value="delivery" <?= (($settings['shipping']['default_method'] ?? 'delivery') === 'delivery') ? 'checked' : '' ?>>
+                                                        <span class="text-sm text-charcoal-700">Delivery</span>
+                                                    </label>
+                                                    <label class="flex items-center gap-2">
+                                                        <input type="radio" name="default_method" value="pickup" <?= (($settings['shipping']['default_method'] ?? 'delivery') === 'pickup') ? 'checked' : '' ?>>
+                                                        <span class="text-sm text-charcoal-700">Pickup</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             
                             <div class="border-t border-gray-200 pt-6">
@@ -523,6 +491,35 @@ if (!isset($settings['available_sizes'])) {
                                     </div>
                                     <?php endforeach; ?>
                                 </div>
+                            </div>
+
+                            <div class="border-t border-gray-200 pt-6">
+                                <h4 class="text-md font-medium text-charcoal-800 mb-4">Pickup Settings</h4>
+                                <div class="space-y-4">
+                                    <label class="flex items-center gap-2">
+                                        <input type="checkbox" name="enable_pickup" value="1" <?= !empty($settings['shipping']['enable_pickup']) ? 'checked' : '' ?>>
+                                        <span class="text-sm text-charcoal-700">Enable Pickup as a shipping option</span>
+                                    </label>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-charcoal-600 mb-2">Pickup Label</label>
+                                            <input type="text" name="pickup_label" class="w-full px-4 py-3 border border-gray-300 focus:border-folly focus:ring-1 focus:ring-folly" value="<?= htmlspecialchars($settings['shipping']['pickup_label'] ?? 'Pickup') ?>" placeholder="e.g., Click & Collect">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-charcoal-600 mb-2">Pickup Instructions</label>
+                                            <input type="text" name="pickup_instructions" class="w-full px-4 py-3 border border-gray-300 focus:border-folly focus:ring-1 focus:ring-folly" value="<?= htmlspecialchars($settings['shipping']['pickup_instructions'] ?? '') ?>" placeholder="e.g., We will email when your order is ready for collection.">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="border-t border-gray-200 pt-6">
+                                <h4 class="text-md font-medium text-charcoal-800 mb-2">Display Settings</h4>
+                                <p class="text-xs text-gray-600 mb-3">Control whether shipping info (free shipping badges or amounts) is shown before checkout on product/listing pages.</p>
+                                <label class="flex items-center gap-2">
+                                    <input type="checkbox" name="show_shipping_pre_checkout" value="1" <?= !empty($settings['shipping']['show_shipping_pre_checkout']) ? 'checked' : '' ?>>
+                                    <span class="text-sm text-charcoal-700">Show shipping info on product/listing pages (pre-checkout)</span>
+                                </label>
                             </div>
                         </div>
                     </div>

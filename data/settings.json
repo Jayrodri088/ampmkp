@@ -4,7 +4,7 @@
     "site_email": "info@angelmarketplace.org",
     "site_phone": "+44 791 815 4909",
     "site_phone_alt": "+44 01708556604",
-    "site_address": "London, UK",
+    "site_address": "",
     "currency_symbol": "\u00a3",
     "currency_code": "GBP",
     "currencies": [
@@ -86,7 +86,14 @@
                 "standard": 3000,
                 "free_threshold": 0
             }
-        }
+        },
+        "enable_pickup": true,
+        "allow_method_selection": true,
+        "default_method": "delivery",
+        "pickup_label": "Pickup",
+        "pickup_instructions": "",
+        "enable_delivery": true,
+        "show_shipping_pre_checkout": false
     },
     "maintenance_mode": false,
     "analytics": {

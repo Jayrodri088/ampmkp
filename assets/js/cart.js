@@ -118,10 +118,10 @@ function initializeOptionsModal() {
     // Create product options modal if it doesn't exist
     if (!document.getElementById('product-options-modal')) {
         const modalHTML = `
-            <div id="product-options-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
-                <div class="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 transform transition-all duration-300 scale-95 opacity-0" id="options-modal-content">
+            <div id="product-options-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden p-4">
+                <div class="bg-white rounded-2xl shadow-xl max-w-md w-full transform transition-all duration-300 scale-95 opacity-0 max-h-[90vh] overflow-y-auto" id="options-modal-content">
                     <div class="p-6">
-                        <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center justify-between mb-4 sticky top-0 bg-white z-10 pb-2 border-b border-gray-100">
                             <h3 class="text-xl font-bold text-gray-900">Select Options</h3>
                             <button onclick="closeOptionsModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -154,7 +154,7 @@ function initializeOptionsModal() {
                             <div id="color-error" class="text-red-600 text-sm mt-2 hidden">Please select a color</div>
                         </div>
                         
-                        <div class="flex gap-3">
+                        <div class="flex gap-3 sticky bottom-0 bg-white pt-4 border-t border-gray-100 pb-2">
                             <button onclick="closeOptionsModal()" class="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors">
                                 Cancel
                             </button>
@@ -267,13 +267,44 @@ function showOptionsModal(product, quantity = 1, sourceElement = null) {
         const sizeOptionsDiv = document.getElementById('size-options');
         sizeOptionsDiv.innerHTML = '';
         
-        product.available_sizes.forEach(size => {
+        // Separate common sizes from custom sizes for better display
+        const commonSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'One Size'];
+        const productCommonSizes = product.available_sizes.filter(size => commonSizes.includes(size));
+        const productCustomSizes = product.available_sizes.filter(size => !commonSizes.includes(size));
+        
+        // Display common sizes first
+        productCommonSizes.forEach(size => {
             const sizeButton = document.createElement('button');
             sizeButton.className = 'size-option px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:border-folly hover:text-folly transition-colors';
             sizeButton.textContent = size;
             sizeButton.onclick = () => selectSize(size, sizeButton);
             sizeOptionsDiv.appendChild(sizeButton);
         });
+        
+        // Display custom sizes with different styling
+        productCustomSizes.forEach(size => {
+            const sizeButton = document.createElement('button');
+            sizeButton.className = 'size-option px-3 py-2 border border-blue-300 bg-blue-50 rounded-lg text-sm font-medium hover:border-blue-500 hover:bg-blue-100 transition-colors relative';
+            sizeButton.textContent = size;
+            sizeButton.onclick = () => selectSize(size, sizeButton);
+            
+            // Add custom size indicator
+            const indicator = document.createElement('span');
+            indicator.className = 'absolute -top-1 -right-1 bg-blue-500 text-white text-xs px-1 rounded-full';
+            indicator.textContent = 'C';
+            indicator.title = 'Custom Size';
+            sizeButton.appendChild(indicator);
+            
+            sizeOptionsDiv.appendChild(sizeButton);
+        });
+        
+        // Add info text if custom sizes exist
+        if (productCustomSizes.length > 0) {
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'mt-2 text-xs text-gray-600 flex items-center';
+            infoDiv.innerHTML = '<span class="inline-block w-3 h-3 bg-blue-500 rounded-full mr-1"></span>Custom sizes available';
+            sizeOptionsDiv.appendChild(infoDiv);
+        }
     } else {
         sizeSection.classList.add('hidden');
     }
@@ -582,7 +613,7 @@ function updateMiniCart() {
                     <div class="text-right">
                         <div class="text-sm font-bold text-gray-900">${formatPrice(item.item_total)}</div>
                         <button 
-                            onclick="removeCartItem(${item.product_id})"
+                            onclick="removeCartItem('${item.cart_key}')"
                             class="text-xs text-red-600 hover:text-red-700 mt-1"
                         >
                             Remove
@@ -733,7 +764,7 @@ async function updateCartItemQuantity(productId, newQuantity) {
 }
 
 // Remove item from cart
-async function removeCartItem(productId) {
+async function removeCartItem(cartKey) {
     if (cartState.isLoading) return;
     
     cartState.isLoading = true;
@@ -746,7 +777,7 @@ async function removeCartItem(productId) {
             },
             body: JSON.stringify({
                 action: 'remove',
-                product_id: productId
+                cart_key: cartKey
             })
         });
         

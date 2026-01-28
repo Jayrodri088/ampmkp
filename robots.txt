@@ -1,0 +1,69 @@
+# ===========================================
+# Robots.txt for AMPMKP
+# Rhapsody of Realities GPD Marketplace
+# ===========================================
+
+# Allow all search engines
+User-agent: *
+
+# Allow crawling of public pages
+Allow: /
+Allow: /index.php
+Allow: /shop.php
+Allow: /about.php
+Allow: /contact.php
+Allow: /category.php
+Allow: /product.php
+Allow: /journal.php
+Allow: /categories.php
+Allow: /angelprints.php
+Allow: /big-church-festival.php
+
+# Disallow sensitive/admin areas
+Disallow: /admin/
+Disallow: /api/
+Disallow: /includes/
+Disallow: /data/
+Disallow: /backup/
+Disallow: /logs/
+Disallow: /vendor/
+Disallow: /vendors/
+Disallow: /discordbot/
+Disallow: /scripts/
+Disallow: /lib/
+Disallow: /stripe-sample-code/
+
+# Disallow checkout and payment pages (private user sessions)
+Disallow: /checkout.php
+Disallow: /cart.php
+Disallow: /order-success.php
+Disallow: /stripe-success.php
+Disallow: /stripe-cancel.php
+Disallow: /payment-pending.php
+Disallow: /confirm-payment.php
+
+# Disallow debug and test pages
+Disallow: /debug*.php
+Disallow: /test*.php
+Disallow: /*debug*
+Disallow: /*test*
+
+# Disallow backup files
+Disallow: /*.bak
+Disallow: /*.backup
+
+# Disallow environment and config files
+Disallow: /.env
+Disallow: /.htaccess
+Disallow: /*.json
+Disallow: /*.md
+Disallow: /*.sh
+
+# Disallow hidden directories
+Disallow: /.*
+
+# Crawl-delay to be respectful of server resources
+Crawl-delay: 1
+
+# Sitemap location (uncomment when sitemap is created)
+# Sitemap: https://yourdomain.com/sitemap.xml

@@ -16,29 +16,51 @@ if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
 require_once __DIR__ . '/functions.php';
 $settings = getSettings();
 
+// Load environment variables from .env file
+$envFile = __DIR__ . '/../.env';
+if (file_exists($envFile)) {
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        // Skip comments
+        if (strpos(trim($line), '#') === 0) continue;
+        
+        // Parse key=value
+        if (strpos($line, '=') !== false) {
+            list($key, $value) = explode('=', $line, 2);
+            $key = trim($key);
+            $value = trim($value);
+            
+            // Only set if not already set
+            if (!isset($_ENV[$key])) {
+                $_ENV[$key] = $value;
+                putenv("$key=$value");
+            }
+        }
+    }
+}
+
 // Stripe Configuration
 class StripeConfig {
-    // Test API Keys
-    const TEST_SECRET_KEY = 'sk_test_your_test_secret_key_here';
-    const TEST_PUBLISHABLE_KEY = 'pk_test_your_test_publishable_key_here';
-    
-    // Live API Keys (set these in production)
-    const LIVE_SECRET_KEY = '';
-    const LIVE_PUBLISHABLE_KEY = '';
-    
-    // Environment (set to 'live' in production)
-    const ENVIRONMENT = 'test';
     
     public static function getSecretKey() {
-        return self::ENVIRONMENT === 'live' ? self::LIVE_SECRET_KEY : self::TEST_SECRET_KEY;
+        $env = $_ENV['STRIPE_ENVIRONMENT'] ?? getenv('STRIPE_ENVIRONMENT') ?? 'test';
+        if ($env === 'live') {
+            return $_ENV['STRIPE_LIVE_SECRET_KEY'] ?? getenv('STRIPE_LIVE_SECRET_KEY') ?? '';
+        }
+        return $_ENV['STRIPE_TEST_SECRET_KEY'] ?? getenv('STRIPE_TEST_SECRET_KEY') ?? '';
     }
     
     public static function getPublishableKey() {
-        return self::ENVIRONMENT === 'live' ? self::LIVE_PUBLISHABLE_KEY : self::TEST_PUBLISHABLE_KEY;
+        $env = $_ENV['STRIPE_ENVIRONMENT'] ?? getenv('STRIPE_ENVIRONMENT') ?? 'test';
+        if ($env === 'live') {
+            return $_ENV['STRIPE_LIVE_PUBLISHABLE_KEY'] ?? getenv('STRIPE_LIVE_PUBLISHABLE_KEY') ?? '';
+        }
+        return $_ENV['STRIPE_TEST_PUBLISHABLE_KEY'] ?? getenv('STRIPE_TEST_PUBLISHABLE_KEY') ?? '';
     }
     
     public static function isLive() {
-        return self::ENVIRONMENT === 'live';
+        $env = $_ENV['STRIPE_ENVIRONMENT'] ?? getenv('STRIPE_ENVIRONMENT') ?? 'test';
+        return $env === 'live';
     }
     
     public static function getDomain() {

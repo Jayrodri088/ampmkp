@@ -3,7 +3,7 @@ session_start();
 
 // Check authentication
 if (!isset($_SESSION['admin_logged_in'])) {
-    header('Location: auth.php');
+    header('Location: /admin/auth.php');
     exit;
 }
 
@@ -35,7 +35,18 @@ if (file_exists('../data/categories.json')) {
 $message = '';
 $message_type = '';
 
+// CSRF token setup
+if (!isset($_SESSION['admin_csrf_token'])) {
+    $_SESSION['admin_csrf_token'] = bin2hex(random_bytes(32));
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $postedToken = $_POST['csrf_token'] ?? '';
+    if (empty($postedToken) || !hash_equals($_SESSION['admin_csrf_token'], $postedToken)) {
+        http_response_code(403);
+        $message = 'Invalid CSRF token.';
+        $message_type = 'error';
+    } else {
     if (isset($_POST['action'])) {
         switch ($_POST['action']) {
             case 'add':
@@ -128,6 +139,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) 
         }
     }
 }
+}
 ?>
 
 <!DOCTYPE html>
@@ -181,30 +193,31 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) 
                     </div>
                 </div>
                 
+<?php require_once __DIR__ . '/includes/admin_functions.php'; ?>
                 <nav class="nav flex-column px-3">
-                    <a class="nav-link" href="index.php">
+                    <a class="nav-link" href="<?= getAdminUrl('index.php') ?>">
                         <i class="bi bi-speedometer2 me-2"></i> Dashboard
                     </a>
-                    <a class="nav-link active" href="products-simple.php">
+                    <a class="nav-link active" href="<?= getAdminUrl('products-simple.php') ?>">
                         <i class="bi bi-box-seam me-2"></i> Products
                     </a>
-                    <a class="nav-link" href="categories.php">
+                    <a class="nav-link" href="<?= getAdminUrl('categories.php') ?>">
                         <i class="bi bi-tags me-2"></i> Categories
                     </a>
-                    <a class="nav-link" href="orders.php">
+                    <a class="nav-link" href="<?= getAdminUrl('orders.php') ?>">
                         <i class="bi bi-receipt me-2"></i> Orders
                     </a>
-                    <a class="nav-link" href="contacts.php">
+                    <a class="nav-link" href="<?= getAdminUrl('contacts.php') ?>">
                         <i class="bi bi-envelope me-2"></i> Contacts
                     </a>
-                    <a class="nav-link" href="settings.php">
+                    <a class="nav-link" href="<?= getAdminUrl('settings.php') ?>">
                         <i class="bi bi-gear me-2"></i> Settings
                     </a>
                     <hr class="text-white-50">
-                    <a class="nav-link" href="../" target="_blank">
+                    <a class="nav-link" href="<?= getMainSiteUrl() ?>" target="_blank">
                         <i class="bi bi-house me-2"></i> View Site
                     </a>
-                    <a class="nav-link" href="logout.php">
+                    <a class="nav-link" href="<?= getAdminUrl('auth.php?logout=1') ?>">
                         <i class="bi bi-box-arrow-right me-2"></i> Logout
                     </a>
                 </nav>
@@ -330,6 +343,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) 
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['admin_csrf_token']) ?>">
                     <input type="hidden" name="action" value="<?php echo $edit_product ? 'edit' : 'add'; ?>">
                     <?php if ($edit_product): ?>
                     <input type="hidden" name="id" value="<?php echo $edit_product['id']; ?>">

@@ -41,22 +41,22 @@ function renderNavCategoryHierarchy($categories, $isMobile = false, $level = 0) 
     $html = '';
     foreach ($categories as $category) {
         $indent = str_repeat('&nbsp;&nbsp;&nbsp;', $level);
-        $levelClass = $level > 0 ? 'text-gray-600 hover:text-folly' : 'text-charcoal-700 hover:text-folly';
-        $mobileClass = $isMobile ? 'text-charcoal-600 hover:text-folly' : $levelClass;
+        $levelClass = $level > 0 ? 'text-gray-500 hover:text-folly font-normal' : 'text-charcoal-800 hover:text-folly font-medium';
+        $mobileClass = $isMobile ? 'text-charcoal-600 hover:text-folly font-medium' : $levelClass;
         $paddingClass = $level > 0 ? 'pl-' . ($level * 4 + 4) : 'px-4';
         
         if ($isMobile) {
-            $html .= '<a href="' . getBaseUrl('category.php?slug=' . $category['slug']) . '" class="block ' . $paddingClass . ' py-3 text-sm ' . $mobileClass . ' hover:bg-gray-50 rounded-lg touch-manipulation" @click="$store.mobileMenu.open = false">';
+            $html .= '<a href="' . getBaseUrl('category.php?slug=' . $category['slug']) . '" class="block ' . $paddingClass . ' py-3 text-sm ' . $mobileClass . ' hover:bg-gray-50 rounded-lg touch-manipulation transition-colors duration-200" @click="$store.mobileMenu.open = false">';
             $html .= $indent . htmlspecialchars($category['name']);
             if (!empty($category['children'])) {
-                $html .= ' <span class="text-xs text-gray-500">(' . count($category['children']) . ')</span>';
+                $html .= ' <span class="text-xs text-gray-400 ml-1">(' . count($category['children']) . ')</span>';
             }
             $html .= '</a>';
         } else {
-            $html .= '<a href="' . getBaseUrl('category.php?slug=' . $category['slug']) . '" class="block px-4 py-3 text-sm ' . $levelClass . ' hover:bg-folly-50 hover:text-folly transition-colors duration-200 mx-2 rounded-lg">';
+            $html .= '<a href="' . getBaseUrl('category.php?slug=' . $category['slug']) . '" class="block px-4 py-2.5 text-sm ' . $levelClass . ' hover:bg-folly-50 hover:text-folly transition-all duration-200 mx-1 rounded-md">';
             $html .= $indent . htmlspecialchars($category['name']);
             if (!empty($category['children'])) {
-                $html .= ' <span class="text-xs text-gray-500">(' . count($category['children']) . ')</span>';
+                $html .= ' <span class="text-xs text-gray-400 ml-1">(' . count($category['children']) . ')</span>';
             }
             $html .= '</a>';
         }
@@ -70,17 +70,18 @@ function renderNavCategoryHierarchy($categories, $isMobile = false, $level = 0) 
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="overflow-x-hidden">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo isset($page_title) ? $page_title . ' - ' : ''; ?><?php echo htmlspecialchars($settings['site_name']); ?></title>
     <meta name="description" content="<?php echo isset($page_description) ? $page_description : htmlspecialchars($settings['site_description']); ?>">
     
-    <!-- Google Fonts - Coves -->
+    <!-- Google Fonts - Coves & Poppins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Coves:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Coves font is usually local or custom, assuming it's loaded or falling back to sans -->
     
     <!-- Load Tailwind CSS first -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -90,8 +91,9 @@ function renderNavCategoryHierarchy($categories, $isMobile = false, $level = 0) 
         tailwind.config = {
             theme: {
                 fontFamily: {
-                    sans: ['Coves', 'sans-serif'],
-                    brand: ['Coves', 'sans-serif'],
+                    sans: ['Poppins', 'sans-serif'],
+                    display: ['Coves', 'Poppins', 'sans-serif'],
+                    brand: ['Coves', 'Poppins', 'sans-serif'],
                 },
                 extend: {
                     colors: {
@@ -137,6 +139,10 @@ function renderNavCategoryHierarchy($categories, $isMobile = false, $level = 0) 
                         'primary': '#FF0055',
                         'secondary': '#3B4255',
                         'accent': '#F5884B'
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'glow': '0 0 15px rgba(255, 0, 85, 0.3)',
                     }
                 }
             }
@@ -259,17 +265,26 @@ function renderNavCategoryHierarchy($categories, $isMobile = false, $level = 0) 
     
     <!-- Custom CSS -->
     <style>
-        /* Apply Coves font to all elements */
-        * {
-            font-family: 'Coves', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+        /* Font Configuration */
+        @font-face {
+            font-family: 'Coves';
+            src: url('<?php echo getAssetUrl("fonts/Coves-Bold.otf"); ?>') format('opentype');
+            font-weight: bold;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Coves';
+            src: url('<?php echo getAssetUrl("fonts/Coves-Light.otf"); ?>') format('opentype');
+            font-weight: 300;
+            font-style: normal;
+        }
+
+        h1, h2, h3, h4, h5, h6, .font-brand, .font-display {
+            font-family: 'Coves', 'Poppins', sans-serif !important;
         }
         
-        /* Fix for specific elements that might be overriding */
-        body, button, input, optgroup, select, textarea,
-        h1, h2, h3, h4, h5, h6,
-        .font-sans, .font-brand,
-        .btn, .button, button, [type='button'], [type='submit'] {
-            font-family: 'Coves', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+        body, input, select, textarea, button {
+            font-family: 'Poppins', sans-serif;
         }
         
         /* Page Loading Animation */
@@ -323,53 +338,15 @@ function renderNavCategoryHierarchy($categories, $isMobile = false, $level = 0) 
             box-shadow: 0 2px 4px rgba(255, 0, 85, 0.3);
         }
         
-        #sq1 {
-            margin-top: -25px;
-            margin-left: -25px;
-            animation: loader_5191 675ms ease-in-out 0s infinite alternate;
-        }
-        
-        #sq2 {
-            margin-top: -25px;
-            animation: loader_5191 675ms ease-in-out 75ms infinite alternate;
-        }
-        
-        #sq3 {
-            margin-top: -25px;
-            margin-left: 15px;
-            animation: loader_5191 675ms ease-in-out 150ms infinite alternate;
-        }
-        
-        #sq4 {
-            margin-left: -25px;
-            animation: loader_5191 675ms ease-in-out 225ms infinite alternate;
-        }
-        
-        #sq5 {
-            animation: loader_5191 675ms ease-in-out 300ms infinite alternate;
-        }
-        
-        #sq6 {
-            margin-left: 15px;
-            animation: loader_5191 675ms ease-in-out 375ms infinite alternate;
-        }
-        
-        #sq7 {
-            margin-top: 15px;
-            margin-left: -25px;
-            animation: loader_5191 675ms ease-in-out 450ms infinite alternate;
-        }
-        
-        #sq8 {
-            margin-top: 15px;
-            animation: loader_5191 675ms ease-in-out 525ms infinite alternate;
-        }
-        
-        #sq9 {
-            margin-top: 15px;
-            margin-left: 15px;
-            animation: loader_5191 675ms ease-in-out 600ms infinite alternate;
-        }
+        #sq1 { margin-top: -25px; margin-left: -25px; animation: loader_5191 675ms ease-in-out 0s infinite alternate; }
+        #sq2 { margin-top: -25px; animation: loader_5191 675ms ease-in-out 75ms infinite alternate; }
+        #sq3 { margin-top: -25px; margin-left: 15px; animation: loader_5191 675ms ease-in-out 150ms infinite alternate; }
+        #sq4 { margin-left: -25px; animation: loader_5191 675ms ease-in-out 225ms infinite alternate; }
+        #sq5 { animation: loader_5191 675ms ease-in-out 300ms infinite alternate; }
+        #sq6 { margin-left: 15px; animation: loader_5191 675ms ease-in-out 375ms infinite alternate; }
+        #sq7 { margin-top: 15px; margin-left: -25px; animation: loader_5191 675ms ease-in-out 450ms infinite alternate; }
+        #sq8 { margin-top: 15px; animation: loader_5191 675ms ease-in-out 525ms infinite alternate; }
+        #sq9 { margin-top: 15px; margin-left: 15px; animation: loader_5191 675ms ease-in-out 600ms infinite alternate; }
         
         /* Loading text */
         .loading-text {
@@ -388,51 +365,27 @@ function renderNavCategoryHierarchy($categories, $isMobile = false, $level = 0) 
         
         /* Mobile optimizations */
         @media (max-width: 768px) {
-            /* Ensure touch targets are at least 44px */
-            .touch-manipulation {
-                min-height: 44px;
-                min-width: 44px;
-            }
-            
-            /* Improve scrolling performance */
-            body {
-                -webkit-overflow-scrolling: touch;
-            }
-            
-            /* Better tap highlighting */
-            * {
-                -webkit-tap-highlight-color: rgba(255, 0, 85, 0.2);
-            }
-            
-            /* Prevent zoom on input focus */
-            input[type="text"], input[type="email"], input[type="number"], textarea, select {
-                font-size: 16px;
-            }
-            
-            /* Smooth transitions for mobile */
-            .transition-colors {
-                transition: color 150ms ease-in-out, background-color 150ms ease-in-out;
-            }
+            .touch-manipulation { min-height: 44px; min-width: 44px; }
+            body { -webkit-overflow-scrolling: touch; }
+            * { -webkit-tap-highlight-color: rgba(255, 0, 85, 0.2); }
+            input[type="text"], input[type="email"], input[type="number"], textarea, select { font-size: 16px; }
+            .transition-colors { transition: color 150ms ease-in-out, background-color 150ms ease-in-out; }
         }
         
         /* iOS specific fixes */
         @supports (-webkit-touch-callout: none) {
-            /* Fix for iOS Safari header spacing */
-            .fixed {
-                position: -webkit-sticky;
-                position: sticky;
-            }
+            .fixed { position: -webkit-sticky; position: sticky; }
         }
     </style>
     <link rel="stylesheet" href="<?php echo getAssetUrl('css/custom.css'); ?>">
     <link rel="stylesheet" href="<?php echo getAssetUrl('css/loading-spinner.css'); ?>">
     
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="<?php echo getAssetUrl('images/general/favicon.png'); ?>">
-    <link rel="icon" type="image/x-icon" href="<?php echo getAssetUrl('images/general/favicon.ico'); ?>">
+    <link rel="icon" type="image/png" sizes="32x32" href="<?php echo getAssetUrl('images/general/logo.png'); ?>">
+    <link rel="icon" type="image/png" sizes="16x16" href="<?php echo getAssetUrl('images/general/logo.png'); ?>">
     <link rel="apple-touch-icon" href="<?php echo getAssetUrl('images/general/logo.png'); ?>">
 </head>
-<body class="font-brand bg-gray-50 min-h-screen flex flex-col">
+<body class="font-sans bg-gray-50 min-h-screen flex flex-col selection:bg-folly selection:text-white overflow-x-hidden">
     <!-- Page Loading Animation -->
     <div id="page-loader">
         <div class="text-center">
@@ -453,215 +406,204 @@ function renderNavCategoryHierarchy($categories, $isMobile = false, $level = 0) 
 
     <div class="flex-grow">
     <!-- Header -->
-    <header x-data="{ showMobileMenu: false }" 
+    <header x-data="{ showMobileMenu: false, searchOpen: false }" 
            x-init="$store.scrolled.init()"
-           :class="{'bg-white/95 backdrop-blur-md shadow-xl': $store.scrolled.isScrolled}" 
-           class="fixed top-0 left-0 right-0 z-50 bg-white transition-all duration-300 border-b border-gray-200 shadow-sm">
+           class="w-full z-50 transition-all duration-300">
         
         <!-- Top Bar -->
-        <div class="bg-gradient-to-r from-charcoal-50 to-charcoal-100 border-b border-charcoal-200">
-            <div class="container mx-auto px-4">
-                <div class="flex justify-between items-center py-3 px-6 text-sm text-gray-600">
-                    <div class="hidden md:block">
-                        <span class="font-medium">24/7 SUPPORT: <?php echo htmlspecialchars($settings['site_phone']); ?></span>
-                    </div>
-                    <div class="flex space-x-6">
-                        <a href="https://recruitments.angeldiscounts.sale" class="hover:text-folly transition-colors duration-200 font-medium">Sign Up as a Representative</a>
-                        <a href="https://angeldiscounts.sale" class="hover:text-folly transition-colors duration-200 font-medium">Discounts</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Main Header -->
-        <div class="container mx-auto px-4">
-            <div class="flex justify-between items-center py-4 md:py-6 px-3 md:px-6">
-                <!-- Logo -->
-                <div class="flex items-center">
-                    <a href="<?php echo getBaseUrl(); ?>" class="flex items-center hover:opacity-80 transition-opacity duration-200">
-                        <img 
-                            src="<?php echo getAssetUrl('images/general/logo.png'); ?>" 
-                            alt="Angel Marketplace Logo" 
-                            class="h-8 md:h-12 w-auto mr-2 md:mr-3"
-                        >
-                        <span class="text-lg md:text-2xl font-bold text-charcoal-800 hover:text-folly transition-colors duration-200">
-                            <?php echo htmlspecialchars($settings['site_name']); ?>
-                        </span>
+        <div class="bg-charcoal-900 text-white py-1.5 text-[11px] font-medium tracking-wide z-50 relative border-b border-charcoal-800">
+            <div class="container mx-auto px-4 flex justify-between items-center">
+                <div class="hidden md:flex items-center space-x-6">
+                    <span class="flex items-center text-gray-300 hover:text-white transition-colors">
+                        <svg class="w-3 h-3 mr-1.5 text-folly" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg> 
+                        <?php echo htmlspecialchars($settings['site_phone']); ?>
+                    </span>
+                    <a href="https://recruitments.angeldiscounts.sale" class="text-gray-300 hover:text-folly transition-colors flex items-center">
+                        <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                        Become a Representative
                     </a>
                 </div>
-                
-                <!-- Search Bar -->
-                <div class="hidden md:flex flex-1 max-w-xl mx-8">
-                    <form action="<?php echo getBaseUrl('search.php'); ?>" method="GET" class="w-full">
-                        <div class="relative">
-                            <input 
-                                type="text" 
-                                name="q" 
-                                placeholder="Search products..." 
-                                class="w-full px-5 py-3 pr-16 border border-charcoal-300 rounded-xl focus:ring-2 focus:ring-folly focus:border-folly shadow-sm transition-all duration-200"
-                                value="<?php echo isset($_GET['q']) ? htmlspecialchars($_GET['q']) : ''; ?>"
-                            >
-                            <button 
-                                type="submit" 
-                                class="absolute right-3 top-1/2 transform -translate-y-1/2 h-10 w-10 bg-folly text-white rounded-lg hover:bg-folly-500 transition-colors duration-200 flex items-center justify-center"
-                            >
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                </svg>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-                
-                <!-- Cart & Mobile Menu -->
-                <div class="flex items-center space-x-2 md:space-x-4">
-                    <!-- Cart -->
-                    <div class="relative">
-                        <button 
-                            onclick="toggleMiniCart()" 
-                            class="relative p-2 md:p-3 text-charcoal-600 hover:text-folly transition-colors duration-200 bg-charcoal-50 hover:bg-folly-50 rounded-xl touch-manipulation"
-                            id="cart-button"
-                        >
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l-1 12H6L5 9z"></path>
-                            </svg>
-                            <span class="cart-counter absolute -top-1 -right-1 bg-folly text-white text-xs rounded-full h-5 w-5 flex items-center justify-center shadow-lg" style="display: <?php echo $cartCount > 0 ? 'flex' : 'none'; ?>;">
-                                <?php echo $cartCount; ?>
-                            </span>
-                        </button>
-                        
-                        <!-- Mini Cart Dropdown -->
-                        <div 
-                            id="mini-cart" 
-                            class="absolute right-0 top-full mt-2 w-80 sm:w-72 md:w-80 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 hidden max-w-[calc(100vw-2rem)]"
-                        >
-                            <div class="p-4 border-b border-gray-100">
-                                <h3 class="text-lg font-semibold text-gray-900">Shopping Cart</h3>
-                            </div>
-                            <div id="mini-cart-items" class="max-h-64 overflow-y-auto">
-                                <!-- Cart items will be loaded here -->
-                            </div>
-                            <div class="p-4 border-t border-gray-100">
-                                <div class="flex justify-between items-center mb-3">
-                                    <span class="font-semibold text-gray-900">Total:</span>
-                                    <span id="mini-cart-total" class="font-bold text-lg text-gray-900">£0.00</span>
-                                </div>
-                                <div class="flex gap-2">
-                                    <a href="<?php echo getBaseUrl('cart.php'); ?>" class="flex-1 bg-charcoal-100 hover:bg-charcoal-200 text-charcoal-800 px-4 py-2 rounded-xl text-sm font-medium text-center transition-colors duration-200">
-                                        View Cart
-                                    </a>
-                                    <button 
-                                        onclick="proceedToCheckout()"
-                                        class="flex-1 bg-folly hover:bg-folly-500 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors duration-200"
-                                    >
-                                        Checkout
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Mobile Menu Button -->
-                    <button class="md:hidden p-2 text-charcoal-600 bg-charcoal-50 hover:bg-folly-50 hover:text-folly rounded-xl transition-colors duration-200 touch-manipulation" x-data x-on:click="$store.mobileMenu.toggle()">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                        </svg>
-                    </button>
+                <div class="flex items-center space-x-4 ml-auto">
+                    <!-- Currency and Account links removed as requested -->
                 </div>
             </div>
         </div>
-        
-        <!-- Navigation -->
-        <nav x-transition:enter="transition ease-out duration-300"
-             x-transition:enter-start="opacity-0 transform -translate-y-2"
-             x-transition:enter-end="opacity-100 transform translate-y-0"
-             :class="{'bg-white/95 backdrop-blur-md': $store.scrolled.isScrolled}" 
-             class="hidden md:block border-t border-charcoal-200 transition-all duration-300 bg-gradient-to-r from-charcoal-50 to-tangerine-50">
-            <div class="container mx-auto px-4">
-                <div class="py-4 px-6">
-                    <div class="flex space-x-8 justify-center">
-                        <a href="<?php echo getBaseUrl(); ?>" class="text-charcoal-700 hover:text-folly font-semibold text-sm uppercase tracking-wider transition-colors duration-200 px-4 py-2 rounded-lg hover:bg-white/50">Home</a>
-                        <!-- Categories Dropdown -->
-                        <div class="relative group" x-data="{ open: false }">
-                            <button @click="open = !open" class="flex items-center space-x-1 text-charcoal-700 hover:text-folly font-semibold text-sm uppercase tracking-wider transition-colors duration-200 px-4 py-2 rounded-lg hover:bg-white/50">
-                                <span>Categories</span>
-                                <svg class="w-4 h-4 transition-transform duration-200" :class="{'transform rotate-180': open}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                </svg>
+
+        <!-- Main Header Area -->
+        <div class="bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
+            <div class="container mx-auto px-4 py-4 md:py-6">
+                <div class="flex items-center justify-between gap-4 md:gap-8">
+                    <!-- Logo -->
+                    <a href="<?php echo getBaseUrl(); ?>" class="flex-shrink-0 flex items-center gap-3 group">
+                        <img src="<?php echo getAssetUrl('images/general/logo.png'); ?>" alt="Logo" class="h-10 md:h-14 w-auto transition-transform duration-300 group-hover:scale-105">
+                        <div class="flex flex-col max-w-[160px] md:max-w-none">
+                            <span class="font-display text-lg md:text-2xl font-bold text-charcoal-900 tracking-tight group-hover:text-folly transition-colors leading-none truncate">
+                                <?php echo htmlspecialchars($settings['site_name']); ?>
+                            </span>
+                            <span class="text-[10px] text-charcoal-500 tracking-widest uppercase hidden md:block">Premium Marketplace</span>
+                        </div>
+                    </a>
+
+                    <!-- Search Bar (Desktop) -->
+                    <div class="hidden lg:block flex-1 max-w-3xl mx-auto px-8">
+                        <form action="<?php echo getBaseUrl('search.php'); ?>" method="GET" class="relative group">
+                            <div class="relative flex items-center">
+                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <svg class="h-5 w-5 text-gray-400 group-focus-within:text-folly transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                </div>
+                                <input type="text" name="q" placeholder="Search for products, brands and more..." 
+                                       class="w-full bg-gray-50 text-charcoal-800 border border-gray-200 rounded-full py-3.5 pl-12 pr-32 focus:outline-none focus:bg-white focus:ring-2 focus:ring-folly/20 focus:border-folly transition-all duration-300 placeholder-gray-400 font-sans text-sm"
+                                       value="<?php echo isset($_GET['q']) ? htmlspecialchars($_GET['q']) : ''; ?>">
+                                <button type="submit" class="absolute right-1.5 top-1.5 bottom-1.5 bg-folly hover:bg-folly-600 text-white px-6 rounded-full transition-all duration-300 shadow-sm hover:shadow-md text-sm font-semibold tracking-wide">
+                                    Search
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Right Actions -->
+                    <div class="flex items-center space-x-3 md:space-x-6">
+                        <!-- Mobile Search Toggle -->
+                        <button @click="searchOpen = !searchOpen" class="lg:hidden p-2 text-charcoal-600 hover:text-folly hover:bg-folly-50 rounded-full transition-all">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </button>
+
+                        <!-- Wishlist removed as requested -->
+
+                        <!-- Cart -->
+                        <div class="relative group">
+                            <button onclick="toggleMiniCart()" class="flex flex-col items-center justify-center text-charcoal-600 hover:text-folly transition-colors group relative z-10">
+                                <div class="p-2 rounded-full group-hover:bg-folly-50 transition-colors relative">
+                                    <svg class="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l-1 12H6L5 9z"></path></svg>
+                                    <span class="cart-counter absolute top-0 right-0 bg-folly text-white text-[10px] font-bold h-4 w-4 flex items-center justify-center rounded-full shadow-sm ring-2 ring-white" 
+                                          style="display: <?php echo $cartCount > 0 ? 'flex' : 'none'; ?>;">
+                                        <?php echo $cartCount; ?>
+                                    </span>
+                                </div>
+                                <span class="hidden md:block text-[10px] font-semibold mt-0.5 uppercase tracking-wide group-hover:text-folly">Cart</span>
                             </button>
-                            <div x-show="open" @click.away="open = false" class="absolute left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-50 py-2 max-h-80 overflow-y-auto" style="display: none;">
+
+                            <!-- Mini Cart Dropdown -->
+                            <div id="mini-cart" class="absolute right-0 top-full mt-4 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 hidden transform transition-all origin-top-right">
+                                <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-2xl">
+                                    <h3 class="font-semibold text-charcoal-900 font-display">Shopping Cart</h3>
+                                    <span class="text-xs text-gray-500 font-sans"><?php echo $cartCount; ?> Items</span>
+                                </div>
+                                <div id="mini-cart-items" class="max-h-80 overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-gray-200">
+                                    <!-- Items loaded via JS -->
+                                </div>
+                                <div class="p-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <span class="text-gray-600 font-medium">Subtotal:</span>
+                                        <span id="mini-cart-total" class="font-bold text-lg text-folly">£0.00</span>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <a href="<?php echo getBaseUrl('cart.php'); ?>" class="px-4 py-2.5 bg-white border border-gray-200 text-charcoal-700 rounded-xl text-sm font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all text-center shadow-sm">View Cart</a>
+                                        <button onclick="proceedToCheckout()" class="px-4 py-2.5 bg-folly hover:bg-folly-600 text-white rounded-xl text-sm font-semibold transition-all shadow-md hover:shadow-lg">Checkout</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mobile Menu Button -->
+                        <button @click="$store.mobileMenu.toggle()" class="md:hidden p-2 text-charcoal-600 hover:text-folly rounded-lg transition-colors ml-1">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Navigation Bar (Desktop) -->
+            <div class="hidden md:block border-t border-gray-100 bg-white">
+                <div class="container mx-auto px-4">
+                    <nav class="flex items-center space-x-1">
+                        <!-- Categories Dropdown (Mega Menu Trigger) -->
+                        <div class="relative group z-30" x-data="{ open: false }" @mouseenter="open = true" @mouseleave="open = false">
+                            <button class="flex items-center space-x-2 px-4 py-3 text-sm font-bold text-white bg-folly hover:bg-folly-600 transition-colors rounded-t-lg mt-[-1px]">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                                <span class="uppercase tracking-wide">All Categories</span>
+                            </button>
+                            <!-- Mega Menu / Dropdown -->
+                            <div x-show="open" 
+                                 x-transition:enter="transition ease-out duration-200"
+                                 x-transition:enter-start="opacity-0 translate-y-1"
+                                 x-transition:enter-end="opacity-100 translate-y-0"
+                                 class="absolute left-0 top-full w-64 bg-white rounded-b-xl shadow-xl border-t-2 border-folly py-2"
+                                 style="display: none;">
                                 <?php echo renderNavCategoryHierarchy($categoryHierarchy, false); ?>
                                 <div class="border-t border-gray-100 mt-2 pt-2">
-                                    <a href="<?php echo getBaseUrl('categories.php'); ?>" class="block px-4 py-3 text-sm text-folly font-semibold hover:bg-folly-50 transition-colors duration-200 mx-2 rounded-lg">
+                                    <a href="<?php echo getBaseUrl('categories.php'); ?>" class="block px-6 py-3 text-xs font-bold text-folly hover:bg-folly-50 transition-colors uppercase tracking-wider">
                                         View All Categories →
                                     </a>
                                 </div>
                             </div>
                         </div>
-                        <a href="<?php echo getBaseUrl('shop.php'); ?>" class="text-charcoal-700 hover:text-folly font-semibold text-sm uppercase tracking-wider transition-colors duration-200 px-4 py-2 rounded-lg hover:bg-white/50">Shop</a>
-                        <a href="https://recruitments.angeldiscounts.sale/" target="_blank" rel="noopener noreferrer" class="text-charcoal-700 hover:text-folly font-semibold text-sm uppercase tracking-wider transition-colors duration-200 px-4 py-2 rounded-lg hover:bg-white/50">Hire</a>
-                        <a href="<?php echo getBaseUrl('about.php'); ?>" class="text-charcoal-700 hover:text-folly font-semibold text-sm uppercase tracking-wider transition-colors duration-200 px-4 py-2 rounded-lg hover:bg-white/50">About Us</a>
-                        <a href="<?php echo getBaseUrl('contact.php'); ?>" class="text-charcoal-700 hover:text-folly font-semibold text-sm uppercase tracking-wider transition-colors duration-200 px-4 py-2 rounded-lg hover:bg-white/50">Contact Us</a>
-                    </div>
+
+                        <div class="flex-1 flex items-center justify-center space-x-1">
+                            <a href="<?php echo getBaseUrl(); ?>" class="px-5 py-3 text-sm font-semibold text-charcoal-700 hover:text-folly hover:bg-gray-50 rounded-lg transition-all uppercase tracking-wide">Home</a>
+                            <a href="<?php echo getBaseUrl('shop.php'); ?>" class="px-5 py-3 text-sm font-semibold text-charcoal-700 hover:text-folly hover:bg-gray-50 rounded-lg transition-all uppercase tracking-wide">Shop</a>
+                            <a href="<?php echo getBaseUrl('angelprints.php'); ?>" class="px-5 py-3 text-sm font-semibold text-charcoal-700 hover:text-folly hover:bg-gray-50 rounded-lg transition-all uppercase tracking-wide">Angel Prints</a>
+                            <a href="<?php echo getBaseUrl('about.php'); ?>" class="px-5 py-3 text-sm font-semibold text-charcoal-700 hover:text-folly hover:bg-gray-50 rounded-lg transition-all uppercase tracking-wide">About Us</a>
+                            <a href="<?php echo getBaseUrl('contact.php'); ?>" class="px-5 py-3 text-sm font-semibold text-charcoal-700 hover:text-folly hover:bg-gray-50 rounded-lg transition-all uppercase tracking-wide">Contact Us</a>
+                        </div>
+                        
+                        <div class="px-4 text-sm font-medium text-folly flex items-center">
+                             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                             Special Deals
+                        </div>
+                    </nav>
                 </div>
             </div>
-        </nav>
-        
-        <!-- Mobile Menu -->
-        <div class="md:hidden" x-data x-show="$store.mobileMenu.open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 transform -translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 transform translate-y-0" x-transition:leave-end="opacity-0 transform -translate-y-2" style="display: none;" @click.away="$store.mobileMenu.open = false">
-            <div class="px-4 pt-4 pb-6 bg-white border-t border-charcoal-200 shadow-lg">
-                <!-- Mobile Search -->
-                <form action="<?php echo getBaseUrl('search.php'); ?>" method="GET" class="mb-6">
-                    <div class="relative">
-                        <input type="text" name="q" placeholder="Search products..." class="w-full px-4 py-3 pr-14 border border-charcoal-300 rounded-lg focus:ring-2 focus:ring-folly focus:border-folly text-base" value="<?php echo isset($_GET['q']) ? htmlspecialchars($_GET['q']) : ''; ?>">
-                        <button type="submit" class="absolute right-3 top-1/2 transform -translate-y-1/2 h-10 w-10 bg-folly text-white rounded-lg hover:bg-folly-500 transition-colors duration-200 flex items-center justify-center touch-manipulation">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                            </svg>
-                        </button>
-                    </div>
-                </form>
-                
-                <!-- Close Button -->
-                <div class="flex justify-end mb-4">
-                    <button @click="$store.mobileMenu.open = false" class="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 touch-manipulation">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
+        </div>
+
+        <!-- Mobile Search Panel -->
+        <div x-show="searchOpen" x-collapse class="lg:hidden bg-white border-t border-gray-100 p-4 shadow-inner">
+            <form action="<?php echo getBaseUrl('search.php'); ?>" method="GET">
+                <div class="relative">
+                    <input type="text" name="q" placeholder="Search products..." class="w-full bg-gray-50 border border-gray-200 rounded-full py-3 pl-5 pr-12 focus:ring-2 focus:ring-folly focus:border-folly font-sans" value="<?php echo isset($_GET['q']) ? htmlspecialchars($_GET['q']) : ''; ?>">
+                    <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-folly text-white rounded-full">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </button>
                 </div>
-                
-                <!-- Mobile Navigation -->
-                <div class="space-y-1">
-                    <a href="<?php echo getBaseUrl(); ?>" class="block px-4 py-3 text-base font-medium text-charcoal-700 hover:text-folly hover:bg-gray-50 rounded-lg touch-manipulation" @click="$store.mobileMenu.open = false">Home</a>
-                    <!-- Mobile Categories Dropdown -->
-                    <div x-data="{ open: false }">
-                        <button @click="open = !open" class="w-full flex justify-between items-center px-4 py-3 text-base font-medium text-charcoal-700 hover:text-folly hover:bg-gray-50 rounded-lg touch-manipulation">
-                            <span>Categories</span>
-                            <svg :class="{'transform rotate-180': open}" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </button>
-                        <div x-show="open" class="mt-1 space-y-1 max-h-64 overflow-y-auto">
-                            <?php echo renderNavCategoryHierarchy($categoryHierarchy, true); ?>
-                            <div class="border-t border-gray-100 mt-2 pt-2 mx-4">
-                                <a href="<?php echo getBaseUrl('categories.php'); ?>" class="block px-4 py-3 text-sm text-folly font-semibold hover:bg-gray-50 rounded-lg touch-manipulation" @click="$store.mobileMenu.open = false">
-                                    View All Categories →
-                                </a>
-                            </div>
-                        </div>
+            </form>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div class="md:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" x-show="$store.mobileMenu.open" x-transition.opacity style="display: none;"></div>
+        <div class="md:hidden fixed top-0 left-0 bottom-0 w-[85%] max-w-sm bg-white z-50 shadow-2xl transform transition-transform duration-300 flex flex-col"
+             :class="$store.mobileMenu.open ? 'translate-x-0' : '-translate-x-full'"
+             style="display: none;" x-show="$store.mobileMenu.open">
+             
+            <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <span class="font-display text-xl font-bold text-charcoal-900">Menu</span>
+                <button @click="$store.mobileMenu.open = false" class="p-2 text-gray-500 hover:text-folly transition-colors rounded-lg hover:bg-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-5 space-y-1">
+                <a href="<?php echo getBaseUrl(); ?>" class="block px-4 py-3 text-base font-medium text-charcoal-800 hover:bg-gray-50 hover:text-folly rounded-xl transition-colors">Home</a>
+                <div x-data="{ open: false }">
+                    <button @click="open = !open" class="w-full flex justify-between items-center px-4 py-3 text-base font-medium text-charcoal-800 hover:bg-gray-50 hover:text-folly rounded-xl transition-colors">
+                        <span>Categories</span>
+                        <svg :class="{'rotate-180': open}" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div x-show="open" x-collapse class="ml-4 pl-4 border-l border-gray-100 space-y-1 mt-1">
+                         <?php echo renderNavCategoryHierarchy($categoryHierarchy, true); ?>
+                         <a href="<?php echo getBaseUrl('categories.php'); ?>" class="block px-4 py-2 text-sm font-bold text-folly mt-2">View All Categories →</a>
                     </div>
-                    <a href="<?php echo getBaseUrl('shop.php'); ?>" class="block px-4 py-3 text-base font-medium text-charcoal-700 hover:text-folly hover:bg-gray-50 rounded-lg touch-manipulation" @click="$store.mobileMenu.open = false">Shop</a>
-                    <a href="https://recruitments.angeldiscounts.sale/" target="_blank" rel="noopener noreferrer" class="block px-4 py-3 text-base font-medium text-charcoal-700 hover:text-folly hover:bg-gray-50 rounded-lg touch-manipulation" @click="$store.mobileMenu.open = false">Hire</a>
-                    <a href="<?php echo getBaseUrl('about.php'); ?>" class="block px-4 py-3 text-base font-medium text-charcoal-700 hover:text-folly hover:bg-gray-50 rounded-lg touch-manipulation" @click="$store.mobileMenu.open = false">About Us</a>
-                    <a href="<?php echo getBaseUrl('contact.php'); ?>" class="block px-4 py-3 text-base font-medium text-charcoal-700 hover:text-folly hover:bg-gray-50 rounded-lg touch-manipulation" @click="$store.mobileMenu.open = false">Contact Us</a>
                 </div>
+                <a href="<?php echo getBaseUrl('shop.php'); ?>" class="block px-4 py-3 text-base font-medium text-charcoal-800 hover:bg-gray-50 hover:text-folly rounded-xl transition-colors">Shop</a>
+                <a href="<?php echo getBaseUrl('angelprints.php'); ?>" class="block px-4 py-3 text-base font-medium text-charcoal-800 hover:bg-gray-50 hover:text-folly rounded-xl transition-colors">Angel Prints</a>
+                <a href="<?php echo getBaseUrl('about.php'); ?>" class="block px-4 py-3 text-base font-medium text-charcoal-800 hover:bg-gray-50 hover:text-folly rounded-xl transition-colors">About Us</a>
+                <a href="<?php echo getBaseUrl('contact.php'); ?>" class="block px-4 py-3 text-base font-medium text-charcoal-800 hover:bg-gray-50 hover:text-folly rounded-xl transition-colors">Contact Us</a>
+            </div>
+
+            <div class="p-5 border-t border-gray-100 bg-gray-50 hidden">
+                 <!-- Auth links removed -->
             </div>
         </div>
     </header>
     
-    <!-- Spacer for fixed header - matches header height -->
-    <div class="h-24 md:h-36"></div>
-    
     <!-- Main Content -->
-    <main class="relative px-4">
+    <main class="relative">

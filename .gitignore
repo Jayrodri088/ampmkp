@@ -2,6 +2,9 @@
 .env
 !.env.example
 
+# Composer vendor directory (third-party dependencies)
+vendor/
+
 .clinerules/byterover-rules.md
 .kilocode/rules/byterover-rules.md
 .roo/rules/byterover-rules.md

@@ -1,6 +1,0 @@
----
-description: 
-globs: 
-alwaysApply: true
----
-- please esure that any form or authentication or input is sanitised, uses csrf tokenisation and no password isnt encrypted

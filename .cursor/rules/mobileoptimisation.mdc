@@ -1,7 +1,0 @@
----
-alwaysApply: true
----
-- Ensure that every component, container, text, header, etc. is optimised to work on mobile, tablet, zoom, etc. so they are responsive at all times.
-- if the web styling is complex, use a mobile adaptive styling 
-- the mobile optimisation shouldnt compromise the desktop styling.
-- also make reference to previous/recent updated edits 

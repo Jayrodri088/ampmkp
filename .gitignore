@@ -24,3 +24,14 @@ vendor/
 .worktrees/
 .security-key
 logs/security/
+
+# AI/IDE configuration directories
+.cursor/
+.clinerules/
+.augment/
+.kiro/
+.roo/
+.superdesign/
+.vercel/
+.kilocode/
+.claude/

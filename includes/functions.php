@@ -1,5 +1,35 @@
 <?php
 
+/**
+ * Load .env file into associative array (KEY => value).
+ * Use this instead of parse_ini_file() to avoid "unexpected '='" on .env format.
+ */
+function loadEnvFile($filepath) {
+    $env = [];
+    if (!file_exists($filepath)) {
+        return $env;
+    }
+    $lines = @file($filepath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if (!is_array($lines)) {
+        return $env;
+    }
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '' || (strlen($line) > 0 && $line[0] === '#')) {
+            continue;
+        }
+        $eq = strpos($line, '=');
+        if ($eq !== false) {
+            $key = trim(substr($line, 0, $eq));
+            $val = trim(substr($line, $eq + 1));
+            if ($key !== '') {
+                $env[$key] = $val;
+            }
+        }
+    }
+    return $env;
+}
+
 // JSON Database Helper Functions
 
 function readJsonFile($filename) {
@@ -1420,8 +1450,9 @@ function getCategoryHierarchy($includeInactive = false) {
  */
 function getCategoryPath($categoryId, $separator = ' > ') {
     $categories = getAllCategories();
+    $categories = is_array($categories) ? $categories : [];
     $path = [];
-    
+
     // Find the starting category from all categories (including inactive)
     $category = null;
     foreach ($categories as $cat) {
@@ -1459,6 +1490,7 @@ function getCategoryPath($categoryId, $separator = ' > ') {
  */
 function hasSubCategories($categoryId) {
     $categories = getAllCategories();
+    $categories = is_array($categories) ? $categories : [];
     foreach ($categories as $category) {
         if (($category['parent_id'] ?? 0) == $categoryId) {
             return true;

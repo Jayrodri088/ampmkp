@@ -35,6 +35,23 @@ if (!$product) {
 // Get category information using the new helper function
 $category = getCategoryById($product['category_id']);
 
+// Meta Dual Tracking: shared event ID for Pixel + Conversions API deduplication
+$price = getProductPrice($product);
+require_once 'includes/meta-integration.php';
+$meta = new MetaIntegration();
+$viewContentEventId = MetaIntegration::generateEventId('ViewContent', [$product['id']]);
+$meta->trackViewContent(
+    $product['id'],
+    $product['name'],
+    $price,
+    $category ? $category['name'] : '',
+    [
+        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? '',
+        'ip' => $_SERVER['REMOTE_ADDR'] ?? ''
+    ],
+    $viewContentEventId
+);
+
 // Get related products (same category, excluding current product)
 $relatedProducts = array_filter(
     getProducts($product['category_id'], null, 8),
@@ -49,6 +66,13 @@ $page_description = $product['description'];
 
 include 'includes/header.php';
 ?>
+
+<!-- Meta Pixel: ViewContent (same eventID as Conversions API for deduplication) -->
+<script>
+if (typeof fbq === 'function') {
+    fbq('track', 'ViewContent', { eventID: '<?php echo htmlspecialchars($viewContentEventId, ENT_QUOTES, 'UTF-8'); ?>' });
+}
+</script>
 
 <!-- Breadcrumb -->
 <div class="bg-white border-b border-gray-100 py-4">

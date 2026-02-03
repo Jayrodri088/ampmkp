@@ -13,7 +13,8 @@ header('Content-Disposition: attachment; filename="facebook_products.txt"');
 require_once __DIR__ . '/../includes/functions.php';
 
 $env = loadEnvFile(__DIR__ . '/../.env');
-$fbCurrency = $env['FACEBOOK_FEED_CURRENCY'] ?? 'GBP';
+// Strict GBP: Meta requires item currency to match shopfront dominant currency. No other currency.
+$fbCurrency = 'GBP';
 // Meta requires absolute URLs for link and image_link. Prefer env, else build from request.
 $baseUrl = $env['SITE_BASE_URL'] ?? '';
 if ($baseUrl === '' && !empty($_SERVER['HTTP_HOST'])) {
@@ -85,10 +86,9 @@ foreach ($products as $product) {
     $availability = ($product['stock'] > 0) ? 'in stock' : 'out of stock';
     $condition = 'new';
 
-    $priceNum = isset($product['prices'][$fbCurrency])
-        ? $product['prices'][$fbCurrency]
-        : ($product['prices']['GBP'] ?? 0);
-    $price = number_format((float) $priceNum, 2) . ' ' . $fbCurrency;
+    // Only GBP; no fallback to other currencies (avoids "item currency and shopfront dominant currency mismatch").
+    $priceNum = isset($product['prices']['GBP']) ? (float) $product['prices']['GBP'] : 0;
+    $price = number_format($priceNum, 2, '.', '') . ' ' . $fbCurrency;
 
     $productSlug = $product['slug'] ?? $product['id'];
     $link = $baseUrl . '/product.php?slug=' . urlencode($productSlug);

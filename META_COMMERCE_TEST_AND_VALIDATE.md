@@ -54,14 +54,69 @@ Reference: [Catalog fields](https://developers.facebook.com/docs/commerce-platfo
 
 ---
 
+## "Item currency and shopfront dominant currency mismatch" (Not visible in Shops)
+
+If the catalog issue report shows **"Item currency and shopfront dominant currency mismatch"** and **Result: Not visible in Shops**, your product prices are in a different currency than the shop’s dominant currency.
+
+### 1. Make the feed strictly GBP
+
+The feed (`api/facebook-feed.php`) now outputs **only GBP**:
+
+- All prices are in the form `XX.XX GBP` (e.g. `24.99 GBP`).
+- Prices are taken only from `product['prices']['GBP']` (no fallback to USD or other currencies).
+
+Ensure your **products** in `data/products.json` have a `GBP` key under `prices` for each product. After the next feed sync, items will have the correct currency.
+
+### 2. Set shopfront dominant currency to GBP in Commerce Manager
+
+1. Go to [Commerce Manager](https://business.facebook.com/commerce) → your **Commerce account** (or shop).
+2. Open **Settings** (gear icon).
+3. Find **Currency** / **Shop currency** / **Dominant currency** (wording varies by account type).
+4. Set it to **GBP** and save.
+
+Your **catalog feed** and **shopfront currency** must both be GBP so items become visible in Shops.
+
+### 3. Deleting or replacing the current upload (wrong-currency items)
+
+You don’t have to delete the catalog; you can fix currency and let the next sync update items.
+
+**Option A – Update in place (recommended)**  
+1. Set shopfront dominant currency to **GBP** (step 2 above).  
+2. Ensure the feed is strictly GBP (already done in the feed script).  
+3. In Commerce Manager → your catalog → **Data sources**, open your data feed.  
+4. Set the schedule to **Replace** (not “Update only”) if available, so the next run **replaces** existing product data with the new GBP prices.  
+5. Trigger a **sync now** (or wait for the next scheduled fetch).  
+Existing items will be updated with GBP; the mismatch errors should clear after Meta re-processes.
+
+**Option B – Remove the data source and re-add**  
+1. Commerce Manager → your catalog → **Data sources**.  
+2. Open the existing data feed (your feed URL) and choose **Remove** / **Delete data source** (or equivalent).  
+3. Confirm. This removes the feed; catalog **items** may remain until the next full replace.  
+4. **Add** a new data source → **Data file** → **Scheduled fetch** → enter the same feed URL: `https://angelmarketplace.org/api/facebook-feed.php`.  
+5. Set schedule to **Replace** and save.  
+The next fetch will repopulate the catalog with GBP-only data.
+
+**Option C – Archive items manually**  
+1. Commerce Manager → catalog → **Items** (or **Products**).  
+2. Select the items you want to hide, then **Archive**.  
+3. Re-add products by using Option A or B so the feed (with GBP) fills the catalog again.  
+Archived items are hidden from Shops; new feed syncs can add/update items.
+
+Reference: [Archive or make products active](https://www.facebook.com/business/help/543317109402043), [Scheduled data feed uploads](https://www.facebook.com/business/help/2284463181837648).
+
+---
+
 ## What was improved
 
-1. **Absolute URLs in feed**  
+1. **Strict GBP in feed**  
+   The feed now outputs **only GBP** (no other currency). Prices use `product['prices']['GBP']` and the format `XX.XX GBP`. This avoids "Item currency and shopfront dominant currency mismatch" when the shopfront is set to GBP.
+
+2. **Absolute URLs in feed**  
    Meta needs full URLs for `link` and `image_link`. The feed now:
    - Uses **SITE_BASE_URL** from `.env` when set (e.g. `https://angelmarketplace.org`).
    - Falls back to request host + path when the feed is called in a browser (e.g. for local testing).
 
-2. **.env**  
+3. **.env**  
    Add (or update) in `.env` for **live**:
    ```env
    SITE_BASE_URL=https://angelmarketplace.org

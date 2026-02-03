@@ -7,5 +7,7 @@
 			"path": "../crusades/stripe-sample-code"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"postman.settings.dotenv-detection-notification-visibility": false
+	}
 }

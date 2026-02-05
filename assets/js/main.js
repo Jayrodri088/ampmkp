@@ -61,11 +61,8 @@ function initializeApp() {
     initializeSearch();
     updateCartCounter();
     
-    // Initialize Alpine.js components if available
-    if (typeof Alpine !== 'undefined') {
-        Alpine.start();
-    }
-    
+    // Note: Alpine.js auto-starts when loaded with 'defer', no manual start needed
+
     console.log('Angel Marketplace initialized successfully');
 }
 
@@ -357,53 +354,51 @@ function updateActiveSuggestion(items, activeIndex) {
 function showSearchSuggestions(query, inputElement) {
     // Hide existing suggestions
     hideSearchSuggestions();
-    
+
     // Create suggestions container
     const suggestions = document.createElement('div');
     suggestions.className = 'search-suggestions absolute top-full left-0 right-0 bg-white border border-gray-200 border-t-0 rounded-b-md shadow-lg max-h-64 overflow-y-auto z-50';
-    
+
     // Position relative to input
     const inputContainer = inputElement.closest('.relative') || inputElement.parentNode;
     inputContainer.style.position = 'relative';
     inputContainer.appendChild(suggestions);
-    
+
     // Add loading state
     suggestions.innerHTML = '<div class="p-3 text-gray-500 text-sm">Searching...</div>';
-    
-    // Mock search suggestions (replace with actual API call)
-    setTimeout(() => {
-        const mockResults = [
-            'T-shirts - Grace',
-            'Hoodies - Grace',
-            'Sweatshirts-Loveworld',
-            'Premium Jackets'
-        ].filter(item => item.toLowerCase().includes(query.toLowerCase()));
-        
-        if (mockResults.length > 0) {
-            suggestions.innerHTML = mockResults.map(result => 
-                `<div class="search-suggestion p-3 cursor-pointer hover:bg-gray-50 text-sm" data-query="${result}">
-                    <span class="font-medium">${result}</span>
-                </div>`
-            ).join('');
-            
-            // Add click handlers
-            suggestions.querySelectorAll('.search-suggestion').forEach(item => {
-                item.addEventListener('click', function() {
-                    const query = this.dataset.query;
-                    inputElement.value = query;
-                    hideSearchSuggestions();
-                    
-                    // Trigger search
-                    const form = inputElement.closest('form');
-                    if (form) {
-                        form.submit();
-                    }
+
+    // Fetch search suggestions from API
+    const basePath = getBasePath();
+    const apiUrl = basePath ? `${basePath}/api/search.php` : '/api/search.php';
+
+    fetch(`${apiUrl}?q=${encodeURIComponent(query)}&limit=8`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.results && data.results.length > 0) {
+                suggestions.innerHTML = data.results.map(result =>
+                    `<a href="${result.url}" class="search-suggestion flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0">
+                        <img src="${result.image}" alt="" class="w-10 h-10 object-cover rounded" onerror="this.style.display='none'">
+                        <div class="flex-1 min-w-0">
+                            <span class="font-medium text-charcoal-800 block truncate">${escapeHtml(result.name)}</span>
+                            ${result.in_stock ? '' : '<span class="text-xs text-red-500">Out of stock</span>'}
+                        </div>
+                    </a>`
+                ).join('');
+
+                // Add click handlers for keyboard navigation
+                suggestions.querySelectorAll('.search-suggestion').forEach(item => {
+                    item.addEventListener('click', function(e) {
+                        hideSearchSuggestions();
+                    });
                 });
-            });
-        } else {
-            suggestions.innerHTML = '<div class="p-3 text-gray-500 text-sm">No suggestions found</div>';
-        }
-    }, 500);
+            } else {
+                suggestions.innerHTML = '<div class="p-3 text-gray-500 text-sm">No products found</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Search error:', error);
+            suggestions.innerHTML = '<div class="p-3 text-gray-500 text-sm">Search unavailable</div>';
+        });
 }
 
 function hideSearchSuggestions() {

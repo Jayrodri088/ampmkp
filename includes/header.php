@@ -1,4 +1,7 @@
 <?php
+require_once __DIR__ . '/functions.php';
+$env = loadEnvFile(__DIR__ . '/../.env');
+
 // Strengthen session cookies and set security headers early
 if (!headers_sent()) {
     // Security headers
@@ -76,6 +79,8 @@ function renderNavCategoryHierarchy($categories, $isMobile = false, $level = 0) 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo isset($page_title) ? $page_title . ' - ' : ''; ?><?php echo htmlspecialchars($settings['site_name']); ?></title>
     <meta name="description" content="<?php echo isset($page_description) ? $page_description : htmlspecialchars($settings['site_description']); ?>">
+    <!-- Meta / Facebook domain verification for angelmarketplace.org -->
+    <meta name="facebook-domain-verification" content="xmvafrvv54tics9gc6oyb6mgj7zotm" />
     
     <!-- Google Fonts - Coves & Poppins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -208,7 +213,24 @@ function renderNavCategoryHierarchy($categories, $isMobile = false, $level = 0) 
     
     <!-- Stripe.js -->
     <script src="https://js.stripe.com/v3/"></script>
-    
+
+    <!-- Facebook Pixel -->
+    <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '<?php echo $env['FACEBOOK_PIXEL_ID'] ?? ''; ?>');
+    fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=<?php echo $env['FACEBOOK_PIXEL_ID'] ?? ''; ?>&ev=PageView&noscript=1"
+    /></noscript>
+
     <!-- Inject currency context -->
     <script>
         window.currentCurrency = <?php echo json_encode($selectedCurrency); ?>;

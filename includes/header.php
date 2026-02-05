@@ -79,6 +79,8 @@ function renderNavCategoryHierarchy($categories, $isMobile = false, $level = 0) 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo isset($page_title) ? $page_title . ' - ' : ''; ?><?php echo htmlspecialchars($settings['site_name']); ?></title>
     <meta name="description" content="<?php echo isset($page_description) ? $page_description : htmlspecialchars($settings['site_description']); ?>">
+    <!-- Meta / Facebook domain verification for angelmarketplace.org -->
+    <meta name="facebook-domain-verification" content="xmvafrvv54tics9gc6oyb6mgj7zotm" />
     
     <!-- Google Fonts - Coves & Poppins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

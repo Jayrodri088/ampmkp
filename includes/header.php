@@ -154,7 +154,8 @@ function renderNavCategoryHierarchy($categories, $isMobile = false, $level = 0) 
         }
     </script>
     
-    <!-- Alpine.js -->
+    <!-- Alpine.js with Collapse plugin -->
+    <script defer src="https://unpkg.com/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
     <script>
@@ -287,19 +288,26 @@ function renderNavCategoryHierarchy($categories, $isMobile = false, $level = 0) 
     
     <!-- Custom CSS -->
     <style>
-        /* Font Configuration */
+        /* Font Configuration - Only load if fonts exist */
+        <?php
+        $fontPath = __DIR__ . '/../assets/fonts/';
+        if (file_exists($fontPath . 'Coves-Bold.otf')):
+        ?>
         @font-face {
             font-family: 'Coves';
             src: url('<?php echo getAssetUrl("fonts/Coves-Bold.otf"); ?>') format('opentype');
             font-weight: bold;
             font-style: normal;
         }
+        <?php endif; ?>
+        <?php if (file_exists($fontPath . 'Coves-Light.otf')): ?>
         @font-face {
             font-family: 'Coves';
             src: url('<?php echo getAssetUrl("fonts/Coves-Light.otf"); ?>') format('opentype');
             font-weight: 300;
             font-style: normal;
         }
+        <?php endif; ?>
 
         h1, h2, h3, h4, h5, h6, .font-brand, .font-display {
             font-family: 'Coves', 'Poppins', sans-serif !important;

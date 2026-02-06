@@ -45,7 +45,7 @@ if (!$category) {
 
 // Get filter parameters
 $searchQuery = $_GET['search'] ?? '';
-$sortBy = $_GET['sort'] ?? 'name';
+$sortBy = $_GET['sort'] ?? 'newest';
 $page = max(1, intval($_GET['page'] ?? 1));
 $itemsPerPage = $settings['items_per_page'] ?? 12;
 
@@ -63,8 +63,11 @@ if (!empty($searchQuery)) {
 // Get sub-categories for display
 $subCategories = getSubCategories($category['id'], false); // Only active sub-categories
 
-// Sort products
+// Sort products (newest first by default)
 switch ($sortBy) {
+    case 'newest':
+        usort($products, function($a, $b) { return getProductSortTimestamp($b) <=> getProductSortTimestamp($a); });
+        break;
     case 'price_low':
         usort($products, function($a, $b) { return $a['price'] <=> $b['price']; });
         break;
@@ -176,6 +179,7 @@ include 'includes/header.php';
                     <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Sort By</label>
                     <div class="relative">
                         <select name="sort" class="w-full pl-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-folly focus:border-folly transition-all outline-none appearance-none cursor-pointer">
+                            <option value="newest" <?php echo $sortBy === 'newest' ? 'selected' : ''; ?>>Newest first</option>
                             <option value="name" <?php echo $sortBy === 'name' ? 'selected' : ''; ?>>Name (A-Z)</option>
                             <option value="featured" <?php echo $sortBy === 'featured' ? 'selected' : ''; ?>>Featured First</option>
                             <option value="price_low" <?php echo $sortBy === 'price_low' ? 'selected' : ''; ?>>Price: Low to High</option>
@@ -192,7 +196,7 @@ include 'includes/header.php';
                     <button type="submit" class="flex-1 bg-charcoal-900 hover:bg-charcoal-800 text-white px-6 py-3 rounded-xl font-bold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
                         Apply
                     </button>
-                    <?php if ($searchQuery || $sortBy !== 'name'): ?>
+                    <?php if ($searchQuery || $sortBy !== 'newest'): ?>
                         <a href="<?php echo getBaseUrl('category.php?slug=' . htmlspecialchars($slug)); ?>" class="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl font-bold transition-colors" title="Clear Filters">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                         </a>

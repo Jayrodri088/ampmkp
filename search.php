@@ -10,7 +10,7 @@ $settings = getSettings();
 // Get search parameters
 $query = trim($_GET['q'] ?? '');
 $categorySlug = $_GET['category'] ?? '';
-$sortBy = $_GET['sort'] ?? 'name';
+$sortBy = $_GET['sort'] ?? 'newest';
 $page = max(1, intval($_GET['page'] ?? 1));
 $itemsPerPage = $settings['items_per_page'] ?? 12;
 
@@ -32,9 +32,12 @@ if (!empty($query)) {
     $page_title = 'Search Results for "' . htmlspecialchars($query) . '"';
 }
 
-// Sort products
+// Sort products (newest first by default)
 if (!empty($products)) {
     switch ($sortBy) {
+        case 'newest':
+            usort($products, function($a, $b) { return getProductSortTimestamp($b) <=> getProductSortTimestamp($a); });
+            break;
         case 'price_low':
             usort($products, function($a, $b) { return $a['price'] <=> $b['price']; });
             break;

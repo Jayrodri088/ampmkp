@@ -156,7 +156,7 @@ include 'includes/header.php';
 ?>
 
 <!-- Error Page if something went wrong -->
-<section class="bg-gray-50 py-16 md:py-24">
+<section class="bg-gradient-to-b from-gray-50 to-white py-16 md:py-24">
     <div class="container mx-auto px-4">
         <div class="max-w-2xl mx-auto text-center">
             <!-- Error Icon -->
@@ -168,7 +168,7 @@ include 'includes/header.php';
             
             <!-- Error Message -->
             <h1 class="text-3xl md:text-4xl font-bold text-charcoal-900 mb-4 font-display">Payment Processing Error</h1>
-            <div class="bg-white rounded-2xl shadow-soft border border-red-100 p-8 mb-10">
+            <div class="glass-strong rounded-2xl shadow-soft p-8 mb-10">
                 <p class="text-lg text-gray-600 mb-2">We encountered an issue while processing your payment.</p>
                 <p class="text-red-500 font-medium bg-red-50 py-2 px-4 rounded-lg inline-block">
                     <?php echo htmlspecialchars($error ?? 'Unknown error occurred.'); ?>
@@ -177,11 +177,11 @@ include 'includes/header.php';
             
             <!-- Action Buttons -->
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="<?php echo getBaseUrl('cart.php'); ?>" class="px-8 py-4 bg-folly text-white rounded-xl font-bold hover:bg-folly-600 transition-all shadow-lg hover:shadow-folly/30 flex items-center justify-center gap-2">
+                <a href="<?php echo getBaseUrl('cart.php'); ?>" class="px-8 py-4 bg-gradient-to-r from-folly to-folly-500 hover:from-folly-600 hover:to-folly text-white rounded-xl font-bold transition-all shadow-lg hover:shadow-folly/30 flex items-center justify-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l-2.5 5m12.5 0H9"></path></svg>
                     Return to Cart
                 </a>
-                <a href="<?php echo getBaseUrl('contact.php'); ?>" class="px-8 py-4 bg-white text-charcoal-900 border border-gray-200 rounded-xl font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
+                <a href="<?php echo getBaseUrl('contact.php'); ?>" class="px-8 py-4 glass text-charcoal-900 rounded-xl font-bold hover:shadow-lg transition-all flex items-center justify-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
                     Contact Support
                 </a>

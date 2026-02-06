@@ -55,54 +55,45 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Main initialization function
 function initializeApp() {
-    initializeScrollToTop();
+    initializeHeaderGlass();
     initializeFormValidation();
     initializeImageLazyLoading();
     initializeSearch();
     updateCartCounter();
     
-    // Note: Alpine.js auto-starts when loaded with 'defer', no manual start needed
-
+    // Initialize Alpine.js components if available
+    if (typeof Alpine !== 'undefined') {
+        Alpine.start();
+    }
+    
     console.log('Angel Marketplace initialized successfully');
 }
 
 // Scroll to Top Button
-function initializeScrollToTop() {
-    // Create scroll to top button - positioned above chat widget
-    const scrollButton = document.createElement('button');
-    scrollButton.innerHTML = '↑';
-    scrollButton.className = 'fixed text-white w-11 h-11 sm:w-12 sm:h-12 rounded-full shadow-lg transition-all duration-200 opacity-0 pointer-events-none z-40';
-    scrollButton.style.backgroundColor = '#FF0055'; // folly color
-    scrollButton.style.bottom = '2rem';
-    scrollButton.style.left = '2rem';
-    scrollButton.style.setProperty('--hover-bg', '#CC0044'); // folly-600 color
-    scrollButton.addEventListener('mouseover', () => {
-        scrollButton.style.backgroundColor = '#CC0044';
-    });
-    scrollButton.addEventListener('mouseout', () => {
-        scrollButton.style.backgroundColor = '#FF0055';
-    });
-    scrollButton.setAttribute('aria-label', 'Scroll to top');
-    scrollButton.setAttribute('type', 'button');
-    scrollButton.id = 'scroll-to-top-btn';
-    document.body.appendChild(scrollButton);
-    
-    // Show/hide button based on scroll position
-    window.addEventListener('scroll', throttle(function() {
-        if (window.pageYOffset > 300) {
-            scrollButton.classList.remove('opacity-0', 'pointer-events-none');
-        } else {
-            scrollButton.classList.add('opacity-0', 'pointer-events-none');
+// Header Liquid Glass Scroll Effect
+function initializeHeaderGlass() {
+    const header = document.getElementById('main-header');
+    if (!header) return;
+
+    let ticking = false;
+    window.addEventListener('scroll', function() {
+        if (!ticking) {
+            requestAnimationFrame(function() {
+                if (window.scrollY > 10) {
+                    header.classList.add('header-scrolled');
+                } else {
+                    header.classList.remove('header-scrolled');
+                }
+                ticking = false;
+            });
+            ticking = true;
         }
-    }, 100));
-    
-    // Scroll to top when clicked
-    scrollButton.addEventListener('click', function() {
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-        });
     });
+
+    // Set initial state
+    if (window.scrollY > 10) {
+        header.classList.add('header-scrolled');
+    }
 }
 
 // Form Validation
@@ -290,20 +281,29 @@ function initializeSearch() {
     
     searchInputs.forEach(function(input) {
         let searchTimeout;
-        
+
         input.addEventListener('input', function() {
             clearTimeout(searchTimeout);
             const query = this.value.trim();
-            
+
             if (query.length >= 2) {
                 searchTimeout = setTimeout(() => {
                     showSearchSuggestions(query, this);
                 }, 300);
+            } else if (query.length === 0) {
+                showTrendingSuggestions(this);
             } else {
                 hideSearchSuggestions();
             }
         });
-        
+
+        // Show trending on focus when input is empty
+        input.addEventListener('focus', function() {
+            if (this.value.trim().length < 2 && !document.querySelector('.search-suggestions')) {
+                showTrendingSuggestions(this);
+            }
+        });
+
         // Hide suggestions when clicking outside
         document.addEventListener('click', function(e) {
             if (!input.contains(e.target) && !e.target.closest('.search-suggestions')) {
@@ -355,9 +355,10 @@ function showSearchSuggestions(query, inputElement) {
     // Hide existing suggestions
     hideSearchSuggestions();
 
-    // Create suggestions container
+    // Create suggestions container with glass design matching search bar
     const suggestions = document.createElement('div');
-    suggestions.className = 'search-suggestions absolute top-full left-0 right-0 bg-white border border-gray-200 border-t-0 rounded-b-md shadow-lg max-h-64 overflow-y-auto z-50';
+    suggestions.className = 'search-suggestions absolute left-0 right-0 max-h-80 overflow-y-auto overflow-x-hidden z-50 rounded-2xl border border-gray-200/60 shadow-xl';
+    suggestions.style.cssText = 'background: rgba(255,255,255,0.93); backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%); top: calc(100% + 6px);';
 
     // Position relative to input
     const inputContainer = inputElement.closest('.relative') || inputElement.parentNode;
@@ -365,40 +366,105 @@ function showSearchSuggestions(query, inputElement) {
     inputContainer.appendChild(suggestions);
 
     // Add loading state
-    suggestions.innerHTML = '<div class="p-3 text-gray-500 text-sm">Searching...</div>';
+    suggestions.innerHTML = '<div class="px-4 py-3 text-gray-400 text-sm">Searching...</div>';
 
-    // Fetch search suggestions from API
-    const basePath = getBasePath();
-    const apiUrl = basePath ? `${basePath}/api/search.php` : '/api/search.php';
+    // Derive API URL from the form action
+    const form = inputElement.closest('form');
+    const formAction = form ? form.getAttribute('action') : '';
+    const apiUrl = formAction.replace('search.php', 'api/search.php');
 
-    fetch(`${apiUrl}?q=${encodeURIComponent(query)}&limit=8`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.results && data.results.length > 0) {
-                suggestions.innerHTML = data.results.map(result =>
-                    `<a href="${result.url}" class="search-suggestion flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0">
-                        <img src="${result.image}" alt="" class="w-10 h-10 object-cover rounded" onerror="this.style.display='none'">
-                        <div class="flex-1 min-w-0">
-                            <span class="font-medium text-charcoal-800 block truncate">${escapeHtml(result.name)}</span>
-                            ${result.in_stock ? '' : '<span class="text-xs text-red-500">Out of stock</span>'}
-                        </div>
-                    </a>`
-                ).join('');
+    fetch(apiUrl + '?q=' + encodeURIComponent(query) + '&limit=6')
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            if (!document.contains(suggestions)) return;
 
-                // Add click handlers for keyboard navigation
-                suggestions.querySelectorAll('.search-suggestion').forEach(item => {
-                    item.addEventListener('click', function(e) {
+            if (data.success && data.results.length > 0) {
+                let html = '<div class="p-1.5">';
+
+                data.results.forEach(function(product) {
+                    const img = product.image || '';
+                    const price = product.price ? parseFloat(product.price).toFixed(2) : '';
+                    const currencySymbol = window.currentCurrency ? window.currentCurrency.symbol || '' : '';
+
+                    html += '<a href="' + product.url + '" class="search-suggestion flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-xl text-sm no-underline text-charcoal-800 transition-colors duration-150 hover:bg-folly/5">'
+                        + (img ? '<img src="' + img + '" alt="" class="w-10 h-10 object-cover rounded-lg flex-shrink-0 border border-gray-100">' : '')
+                        + '<div class="flex-1 min-w-0">'
+                        + '<div class="font-medium truncate">' + escapeHtml(product.name) + '</div>'
+                        + '<div class="text-xs text-gray-400">'
+                        + (product.category_name ? escapeHtml(product.category_name) : '')
+                        + (product.category_name && price ? ' &middot; ' : '')
+                        + (price ? currencySymbol + price : '')
+                        + '</div>'
+                        + '</div>'
+                        + '</a>';
+                });
+
+                html += '</div>';
+
+                // "View all results" link
+                html += '<div class="border-t border-gray-200/50 p-1.5">'
+                    + '<a href="' + (formAction || 'search.php') + '?q=' + encodeURIComponent(query) + '" class="search-suggestion block px-3 py-2.5 text-center text-sm font-semibold rounded-xl transition-colors duration-150 hover:bg-folly/5 no-underline" style="color: var(--color-folly, #e8356d);">'
+                    + 'View all results (' + data.count + ')'
+                    + '</a></div>';
+
+                suggestions.innerHTML = html;
+
+                suggestions.querySelectorAll('.search-suggestion').forEach(function(item) {
+                    item.addEventListener('click', function() {
                         hideSearchSuggestions();
                     });
                 });
             } else {
-                suggestions.innerHTML = '<div class="p-3 text-gray-500 text-sm">No products found</div>';
+                suggestions.innerHTML = '<div class="px-4 py-3 text-gray-400 text-sm">No products found for "' + escapeHtml(query) + '"</div>';
             }
         })
-        .catch(error => {
-            console.error('Search error:', error);
-            suggestions.innerHTML = '<div class="p-3 text-gray-500 text-sm">Search unavailable</div>';
+        .catch(function() {
+            if (document.contains(suggestions)) {
+                suggestions.innerHTML = '<div class="px-4 py-3 text-gray-400 text-sm">Search unavailable</div>';
+            }
         });
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function showTrendingSuggestions(inputElement) {
+    const terms = window.trendingSearches || [];
+    if (terms.length === 0) return;
+
+    hideSearchSuggestions();
+
+    const suggestions = document.createElement('div');
+    suggestions.className = 'search-suggestions absolute left-0 right-0 max-h-80 overflow-y-auto overflow-x-hidden z-50 rounded-2xl border border-gray-200/60 shadow-xl';
+    suggestions.style.cssText = 'background: rgba(255,255,255,0.93); backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%); top: calc(100% + 6px);';
+
+    const inputContainer = inputElement.closest('.relative') || inputElement.parentNode;
+    inputContainer.style.position = 'relative';
+    inputContainer.appendChild(suggestions);
+
+    const form = inputElement.closest('form');
+    const formAction = form ? form.getAttribute('action') : 'search.php';
+
+    let html = '<div class="px-4 pt-3 pb-1 text-[11px] font-semibold tracking-[0.15em] uppercase text-gray-400">Trending</div>';
+    html += '<div class="p-1.5 pt-0">';
+    terms.forEach(function(term) {
+        html += '<a href="' + formAction + '?q=' + encodeURIComponent(term) + '" class="search-suggestion flex items-center gap-2.5 px-3 py-2.5 cursor-pointer rounded-xl text-sm no-underline text-charcoal-800 transition-colors duration-150 hover:bg-folly/5">'
+            + '<svg class="w-3.5 h-3.5 text-folly flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>'
+            + '<span class="truncate">' + escapeHtml(term) + '</span>'
+            + '</a>';
+    });
+    html += '</div>';
+
+    suggestions.innerHTML = html;
+
+    suggestions.querySelectorAll('.search-suggestion').forEach(function(item) {
+        item.addEventListener('click', function() {
+            hideSearchSuggestions();
+        });
+    });
 }
 
 function hideSearchSuggestions() {

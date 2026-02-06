@@ -89,7 +89,7 @@ include 'includes/header.php';
 ?>
 
 <!-- Breadcrumb -->
-<div class="bg-white border-b border-gray-100 py-4">
+<div class="bg-white/60 backdrop-blur-xl border-b border-white/30 py-4">
     <div class="container mx-auto px-4">
         <nav class="text-sm flex items-center space-x-2">
             <a href="<?php echo getBaseUrl(); ?>" class="text-gray-500 hover:text-folly transition-colors">Home</a>
@@ -105,10 +105,10 @@ include 'includes/header.php';
     <div class="absolute inset-0 bg-gradient-to-b from-charcoal-900/50 to-charcoal-900"></div>
     
     <div class="relative container mx-auto px-4 text-center">
-        <span class="inline-block py-1 px-3 rounded-full bg-folly/20 text-folly-300 text-xs sm:text-sm font-bold mb-4 sm:mb-6 border border-folly/30 backdrop-blur-sm">
+        <span class="inline-block py-1.5 px-4 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/90 text-xs font-semibold tracking-[0.2em] uppercase mb-4 sm:mb-6">
             We're Here to Help
         </span>
-        <h1 class="text-3xl sm:text-4xl md:text-6xl font-bold text-white mb-4 sm:mb-6 font-display">
+        <h1 class="text-3xl sm:text-4xl md:text-6xl font-bold text-white mb-4 sm:mb-6 font-display tracking-tight">
             Get in Touch
         </h1>
         <p class="text-base sm:text-lg md:text-xl text-gray-300 mb-6 sm:mb-10 max-w-2xl mx-auto leading-relaxed px-2">
@@ -116,11 +116,11 @@ include 'includes/header.php';
         </p>
         
         <div class="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 px-4 sm:px-0">
-            <a href="tel:+447918154909" class="inline-flex items-center justify-center gap-2 bg-white text-charcoal-900 px-5 sm:px-6 py-3 rounded-xl font-bold hover:bg-gray-50 transition-colors text-sm sm:text-base">
+            <a href="tel:+447918154909" class="inline-flex items-center justify-center gap-2 glass text-charcoal-900 px-5 sm:px-6 py-3 rounded-xl font-bold hover:bg-white/90 transition-colors text-sm sm:text-base">
                 <svg class="w-5 h-5 text-folly" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path></svg>
                 Call Us Now
             </a>
-            <a href="mailto:sales@angelmarketplace.org" class="inline-flex items-center justify-center gap-2 bg-charcoal-800 text-white px-5 sm:px-6 py-3 rounded-xl font-bold hover:bg-charcoal-700 transition-colors border border-charcoal-700 text-sm sm:text-base">
+            <a href="mailto:sales@angelmarketplace.org" class="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-md text-white px-5 sm:px-6 py-3 rounded-xl font-bold hover:bg-white/20 transition-colors border border-white/20 text-sm sm:text-base">
                 <svg class="w-5 h-5 text-folly" fill="currentColor" viewBox="0 0 20 20"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path></svg>
                 Email Us
             </a>
@@ -129,14 +129,15 @@ include 'includes/header.php';
 </section>
 
 <!-- Contact Content -->
-<section class="py-10 sm:py-16 md:py-20 bg-gray-50 -mt-6 sm:-mt-10 relative z-10 rounded-t-[1.5rem] sm:rounded-t-[2.5rem]">
+<section class="py-10 sm:py-16 md:py-20 bg-gradient-to-b from-gray-50 to-white -mt-6 sm:-mt-10 relative z-10 rounded-t-[1.5rem] sm:rounded-t-[2.5rem]">
     <div class="container mx-auto px-3 sm:px-4">
         <div class="max-w-6xl mx-auto">
             <div class="grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-20">
                 <!-- Contact Info -->
                 <div class="space-y-6 sm:space-y-10 overflow-hidden">
                     <div>
-                        <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-charcoal-900 mb-3 sm:mb-4 md:mb-6">Contact Information</h2>
+                        <span class="text-xs font-semibold tracking-[0.2em] uppercase text-folly mb-3 block">Reach Out</span>
+                        <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-charcoal-900 mb-3 sm:mb-4 md:mb-6 tracking-tight">Contact Information</h2>
                         <p class="text-gray-600 text-sm sm:text-base md:text-lg leading-relaxed">
                             Reach out to us through any of these channels. We're committed to providing you with the best support possible.
                         </p>
@@ -144,8 +145,8 @@ include 'includes/header.php';
                     
                     <div class="space-y-4 sm:space-y-6">
                         <!-- Phone -->
-                        <div class="flex items-start p-4 sm:p-6 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-folly-50 rounded-xl flex items-center justify-center flex-shrink-0 text-folly mr-3 sm:mr-5">
+                        <div class="flex items-start p-4 sm:p-6 glass rounded-2xl hover:shadow-lg transition-shadow">
+                            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-folly/10 rounded-xl flex items-center justify-center flex-shrink-0 text-folly mr-3 sm:mr-5">
                                 <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
                             </div>
                             <div class="min-w-0 flex-1">
@@ -159,8 +160,8 @@ include 'includes/header.php';
                         </div>
                         
                         <!-- Email -->
-                        <div class="flex items-start p-4 sm:p-6 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-tangerine-50 rounded-xl flex items-center justify-center flex-shrink-0 text-tangerine mr-3 sm:mr-5">
+                        <div class="flex items-start p-4 sm:p-6 glass rounded-2xl hover:shadow-lg transition-shadow">
+                            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-tangerine/10 rounded-xl flex items-center justify-center flex-shrink-0 text-tangerine mr-3 sm:mr-5">
                                 <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                             </div>
                             <div class="min-w-0 flex-1">
@@ -183,8 +184,9 @@ include 'includes/header.php';
                 </div>
                 
                 <!-- Contact Form -->
-                <div class="bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-gray-100 p-4 sm:p-6 md:p-10">
-                    <h2 class="text-xl sm:text-2xl font-bold text-charcoal-900 mb-4 sm:mb-6">Send us a Message</h2>
+                <div class="glass-strong rounded-2xl sm:rounded-3xl shadow-xl p-4 sm:p-6 md:p-10">
+                    <span class="text-xs font-semibold tracking-[0.2em] uppercase text-folly mb-2 block">Message Us</span>
+                    <h2 class="text-xl sm:text-2xl font-bold text-charcoal-900 mb-4 sm:mb-6 tracking-tight">Send us a Message</h2>
                     
                     <?php if ($success): ?>
                         <div class="mb-8 p-4 bg-green-50 border border-green-200 rounded-xl flex items-start gap-3">
@@ -316,7 +318,7 @@ include 'includes/header.php';
                         </div>
                         
                         <button type="submit" id="contact-submit-btn"
-                            class="w-full bg-folly hover:bg-folly-600 text-white font-bold py-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                            class="w-full bg-gradient-to-r from-folly to-folly-500 hover:from-folly-600 hover:to-folly text-white font-bold py-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center gap-2">
                             <span>Send Message</span>
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                         </button>
@@ -328,27 +330,28 @@ include 'includes/header.php';
 </section>
 
 <!-- FAQ Section -->
-<section class="py-10 sm:py-16 md:py-20 bg-white">
+<section class="py-10 sm:py-16 md:py-20 bg-gradient-to-b from-white to-gray-50">
     <div class="container mx-auto px-3 sm:px-4">
         <div class="text-center mb-8 sm:mb-12 md:mb-16">
-            <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-charcoal-900 mb-3 sm:mb-4">Frequently Asked Questions</h2>
-            <p class="text-gray-600 text-sm sm:text-base md:text-lg">Quick answers to common questions</p>
+            <span class="text-xs font-semibold tracking-[0.2em] uppercase text-folly mb-3 block">FAQ</span>
+            <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-charcoal-900 mb-3 sm:mb-4 tracking-tight">Frequently Asked Questions</h2>
+            <p class="text-gray-500 text-sm sm:text-base md:text-lg">Quick answers to common questions</p>
         </div>
         
         <div class="grid md:grid-cols-2 gap-4 sm:gap-6 md:gap-8 max-w-4xl mx-auto">
-            <div class="bg-gray-50 p-4 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl border border-gray-100">
+            <div class="glass p-4 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl">
                 <h3 class="text-base sm:text-lg md:text-xl font-bold text-charcoal-900 mb-2 sm:mb-3">How long does shipping take?</h3>
                 <p class="text-gray-600 text-sm sm:text-base">Standard shipping typically takes 3-7 business days within the UK. International shipping may take 10-14 business days.</p>
             </div>
-            <div class="bg-gray-50 p-4 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl border border-gray-100">
+            <div class="glass p-4 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl">
                 <h3 class="text-base sm:text-lg md:text-xl font-bold text-charcoal-900 mb-2 sm:mb-3">What is your return policy?</h3>
                 <p class="text-gray-600 text-sm sm:text-base">We offer a 30-day return policy for unused items in original condition. Custom or personalized items may not be returnable.</p>
             </div>
-            <div class="bg-gray-50 p-4 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl border border-gray-100">
+            <div class="glass p-4 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl">
                 <h3 class="text-base sm:text-lg md:text-xl font-bold text-charcoal-900 mb-2 sm:mb-3">Do you offer bulk discounts?</h3>
                 <p class="text-gray-600 text-sm sm:text-base">Yes! We offer special pricing for bulk orders and church groups. Contact us for a custom quote.</p>
             </div>
-            <div class="bg-gray-50 p-4 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl border border-gray-100">
+            <div class="glass p-4 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl">
                 <h3 class="text-base sm:text-lg md:text-xl font-bold text-charcoal-900 mb-2 sm:mb-3">Can I track my order?</h3>
                 <p class="text-gray-600 text-sm sm:text-base">Absolutely! Once your order ships, you'll receive a tracking number via email to monitor your package's progress.</p>
             </div>

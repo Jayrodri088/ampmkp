@@ -35,7 +35,7 @@ include 'includes/header.php';
 ?>
 
 <!-- Breadcrumb -->
-<div class="bg-white border-b border-gray-100 py-4">
+<div class="bg-white/60 backdrop-blur-xl border-b border-white/30 py-4">
     <div class="container mx-auto px-4">
         <nav class="text-sm flex items-center space-x-2">
             <a href="<?php echo getBaseUrl(); ?>" class="text-gray-500 hover:text-folly transition-colors">Home</a>
@@ -69,12 +69,12 @@ include 'includes/header.php';
 </section>
 
 <!-- Order Details Section -->
-<section class="bg-gray-50 py-12 md:py-20">
+<section class="bg-gradient-to-b from-gray-50 to-white py-12 md:py-20">
     <div class="container mx-auto px-4">
         <div class="max-w-5xl mx-auto">
-            
+
             <!-- Status Steps -->
-            <div class="bg-white rounded-2xl shadow-soft border border-gray-100 p-8 mb-12">
+            <div class="glass-strong rounded-2xl shadow-soft p-8 mb-12">
                 <h2 class="text-center text-xl font-bold text-charcoal-900 mb-8 font-display">What Happens Next?</h2>
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
@@ -114,7 +114,7 @@ include 'includes/header.php';
                 <!-- Order Info -->
                 <div class="lg:col-span-2 space-y-8">
                     <!-- Items -->
-                    <div class="bg-white rounded-2xl shadow-soft border border-gray-100 overflow-hidden">
+                    <div class="glass-strong rounded-2xl shadow-soft overflow-hidden">
                         <div class="p-6 border-b border-gray-100 flex justify-between items-center">
                             <h3 class="font-bold text-charcoal-900 font-display text-lg">Order Items</h3>
                             <span class="text-sm text-gray-500"><?php echo count($order['items']); ?> items</span>
@@ -172,7 +172,7 @@ include 'includes/header.php';
                     
                     <!-- Customer Details -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-white rounded-2xl shadow-soft border border-gray-100 p-6">
+                        <div class="glass-strong rounded-2xl shadow-soft p-6">
                             <h3 class="font-bold text-charcoal-900 font-display mb-4 flex items-center gap-2">
                                 <svg class="w-5 h-5 text-folly" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                                 Shipping Address
@@ -195,7 +195,7 @@ include 'includes/header.php';
                             </div>
                         </div>
                         
-                        <div class="bg-white rounded-2xl shadow-soft border border-gray-100 p-6">
+                        <div class="glass-strong rounded-2xl shadow-soft p-6">
                             <h3 class="font-bold text-charcoal-900 font-display mb-4 flex items-center gap-2">
                                 <svg class="w-5 h-5 text-folly" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
                                 Payment Info
@@ -222,7 +222,7 @@ include 'includes/header.php';
                 
                 <!-- Summary Sidebar -->
                 <div class="lg:col-span-1">
-                    <div class="bg-white rounded-2xl shadow-soft border border-gray-100 p-6">
+                    <div class="glass-strong rounded-2xl shadow-soft p-6">
                         <h3 class="font-bold text-charcoal-900 font-display mb-6">Order Summary</h3>
                         
                         <div class="space-y-3 pb-6 border-b border-gray-100">
@@ -252,7 +252,7 @@ include 'includes/header.php';
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                                 Print Receipt
                             </button>
-                            <a href="<?php echo getBaseUrl('shop.php'); ?>" class="w-full flex items-center justify-center px-4 py-3 bg-folly text-white rounded-xl text-sm font-bold hover:bg-folly-600 transition-colors shadow-lg hover:shadow-folly/30">
+                            <a href="<?php echo getBaseUrl('shop.php'); ?>" class="w-full flex items-center justify-center px-4 py-3 bg-gradient-to-r from-folly to-folly-500 hover:from-folly-600 hover:to-folly text-white rounded-xl text-sm font-bold transition-colors shadow-lg hover:shadow-folly/30">
                                 Continue Shopping
                             </a>
                         </div>
@@ -266,15 +266,16 @@ include 'includes/header.php';
 
 <!-- Recommendations -->
 <?php if (!empty($featuredProducts)): ?>
-<section class="bg-white py-16 border-t border-gray-100">
+<section class="bg-gradient-to-b from-white to-gray-50 py-16">
     <div class="container mx-auto px-4">
         <div class="text-center mb-10">
-            <h2 class="text-3xl font-bold text-charcoal-900 font-display">You Might Also Like</h2>
+            <span class="text-xs font-semibold tracking-[0.2em] uppercase text-folly mb-3 block">Recommendations</span>
+            <h2 class="text-3xl font-bold text-charcoal-900 font-display tracking-tight">You Might Also Like</h2>
         </div>
         
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <?php foreach ($featuredProducts as $product): ?>
-                <a href="<?php echo getBaseUrl('product.php?slug=' . $product['slug']); ?>" class="group bg-white rounded-xl border border-gray-100 hover:shadow-lg transition-all duration-300 overflow-hidden">
+                <a href="<?php echo getBaseUrl('product.php?slug=' . $product['slug']); ?>" class="group glass rounded-xl hover:shadow-lg transition-all duration-300 overflow-hidden">
                     <div class="aspect-w-1 aspect-h-1 bg-gray-100 overflow-hidden">
                         <img 
                             src="<?php echo getAssetUrl('images/' . $product['image']); ?>" 

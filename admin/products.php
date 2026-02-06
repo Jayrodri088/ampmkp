@@ -14,6 +14,7 @@ if (!isset($_SESSION['admin_logged_in'])) {
 
 // Include main functions
 require_once '../includes/functions.php';
+require_once '../includes/admin_helpers.php';
 
 // CSRF token setup
 if (!isset($_SESSION['admin_csrf_token'])) {
@@ -120,27 +121,9 @@ function renderProductCategorySelection($categories, $selectedId = 0, $level = 0
 }
 
 // Load data
-$products = array();
-$categories = array();
-$settings = array();
-
-if (file_exists('../data/products.json')) {
-    $products_json = file_get_contents('../data/products.json');
-    $products = json_decode($products_json, true);
-    if (!$products) $products = array();
-}
-
-if (file_exists('../data/categories.json')) {
-    $categories_json = file_get_contents('../data/categories.json');
-    $categories = json_decode($categories_json, true);
-    if (!$categories) $categories = array();
-}
-
-if (file_exists('../data/settings.json')) {
-    $settings_json = file_get_contents('../data/settings.json');
-    $settings = json_decode($settings_json, true);
-    if (!$settings) $settings = array();
-}
+$products = adminGetAllProducts();
+$categories = adminGetAllCategories();
+$settings = getSettings();
 
 // Handle form submissions
 $message = '';

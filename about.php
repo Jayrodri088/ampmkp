@@ -7,7 +7,7 @@ include 'includes/header.php';
 ?>
 
 <!-- Breadcrumb -->
-<div class="bg-white border-b border-gray-100 py-4">
+<div class="bg-white/60 backdrop-blur-xl border-b border-white/30 py-4">
     <div class="container mx-auto px-4">
         <nav class="text-sm flex items-center space-x-2">
             <a href="<?php echo getBaseUrl(); ?>" class="text-gray-500 hover:text-folly transition-colors">Home</a>
@@ -18,7 +18,7 @@ include 'includes/header.php';
 </div>
 
 <!-- Hero Section -->
-<section class="relative bg-white py-20 md:py-32 overflow-hidden">
+<section class="relative bg-gradient-to-b from-gray-50 to-white py-20 md:py-32 overflow-hidden">
     <!-- Decorative Background -->
     <div class="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div class="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-folly-50 to-transparent opacity-50"></div>
@@ -26,28 +26,29 @@ include 'includes/header.php';
         <div class="absolute top-20 left-20 w-64 h-64 bg-folly-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
         <div class="absolute top-20 right-20 w-64 h-64 bg-tangerine-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
     </div>
-    
+
     <div class="relative container mx-auto px-4 text-center">
-        <span class="inline-block py-1 px-3 rounded-full bg-folly/10 text-folly font-bold text-sm mb-6 tracking-wide uppercase">Our Story</span>
-        <h1 class="text-3xl sm:text-5xl md:text-7xl font-bold text-charcoal-900 mb-6 sm:mb-8 leading-tight font-display">
+        <span class="inline-block py-1.5 px-4 rounded-full glass text-folly font-semibold text-xs mb-6 tracking-[0.2em] uppercase">Our Story</span>
+        <h1 class="text-3xl sm:text-5xl md:text-7xl font-bold text-charcoal-900 mb-6 sm:mb-8 leading-tight font-display tracking-tight">
             Your Journey Starts at <br class="hidden sm:block"/>
             <span class="text-transparent bg-clip-text bg-gradient-to-r from-folly to-tangerine">Angel Marketplace</span>
         </h1>
-        <p class="text-xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
-            More than just a marketplace—we're your destination for products that 
-            <span class="font-bold text-charcoal-900">inspire, delight, and bring people together</span>.
+        <p class="text-lg sm:text-xl text-gray-500 mb-10 max-w-3xl mx-auto leading-relaxed">
+            More than just a marketplace—we're your destination for products that
+            <span class="font-semibold text-charcoal-900">inspire, delight, and bring people together</span>.
         </p>
     </div>
 </section>
 
 <!-- Mission Section -->
-<section class="py-20 bg-gray-50">
+<section class="py-20 bg-gradient-to-b from-white to-gray-50">
     <div class="container mx-auto px-4">
         <div class="max-w-6xl mx-auto">
-            <div class="bg-white rounded-[2.5rem] shadow-xl overflow-hidden border border-gray-100">
+            <div class="glass-strong rounded-[2.5rem] shadow-xl overflow-hidden border border-white/40">
                 <div class="grid md:grid-cols-2">
                     <div class="p-6 sm:p-12 md:p-16 flex flex-col justify-center">
-                        <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-charcoal-900 mb-4 sm:mb-6">
+                        <span class="text-xs font-semibold tracking-[0.2em] uppercase text-folly mb-3">Our Mission</span>
+                        <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-charcoal-900 mb-4 sm:mb-6 tracking-tight">
                             A Unique Experience
                         </h2>
                         <div class="space-y-4 sm:space-y-6 text-gray-600 text-base sm:text-lg leading-relaxed">
@@ -71,7 +72,7 @@ include 'includes/header.php';
                             </h3>
                             <ul class="space-y-4 sm:space-y-6">
                                 <li class="flex items-start gap-4">
-                                    <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 text-folly">
+                                    <div class="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center flex-shrink-0 text-folly">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
                                     </div>
                                     <div>
@@ -80,7 +81,7 @@ include 'includes/header.php';
                                     </div>
                                 </li>
                                 <li class="flex items-start gap-4">
-                                    <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 text-tangerine">
+                                    <div class="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center flex-shrink-0 text-tangerine">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                                     </div>
                                     <div>
@@ -89,7 +90,7 @@ include 'includes/header.php';
                                     </div>
                                 </li>
                                 <li class="flex items-start gap-4">
-                                    <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 text-blue-400">
+                                    <div class="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center flex-shrink-0 text-blue-400">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                     </div>
                                     <div>
@@ -98,7 +99,7 @@ include 'includes/header.php';
                                     </div>
                                 </li>
                                 <li class="flex items-start gap-4">
-                                    <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 text-purple-400">
+                                    <div class="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center flex-shrink-0 text-purple-400">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
                                     </div>
                                     <div>
@@ -118,10 +119,10 @@ include 'includes/header.php';
                 </p>
                 
                 <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <a href="<?php echo getBaseUrl('shop.php'); ?>" class="bg-folly hover:bg-folly-600 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                    <a href="<?php echo getBaseUrl('shop.php'); ?>" class="bg-gradient-to-r from-folly to-folly-500 hover:from-folly-600 hover:to-folly text-white px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
                         Explore Our Collection
                     </a>
-                    <a href="<?php echo getBaseUrl('contact.php'); ?>" class="bg-white text-charcoal-900 border-2 border-gray-200 hover:border-charcoal-900 px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300">
+                    <a href="<?php echo getBaseUrl('contact.php'); ?>" class="glass text-charcoal-900 px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 hover:shadow-lg">
                         Get in Touch
                     </a>
                 </div>

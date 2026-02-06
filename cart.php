@@ -136,7 +136,7 @@ include 'includes/header.php';
 ?>
 
 <!-- Breadcrumb -->
-<div class="bg-white border-b border-gray-100 py-4">
+<div class="bg-white/60 backdrop-blur-xl border-b border-white/30 py-4">
     <div class="container mx-auto px-4">
         <nav class="text-sm flex items-center space-x-2">
             <a href="<?php echo getBaseUrl(); ?>" class="text-gray-500 hover:text-folly transition-colors">Home</a>
@@ -147,12 +147,13 @@ include 'includes/header.php';
 </div>
 
 <!-- Cart Section -->
-<section class="py-12 md:py-20 bg-gray-50 min-h-screen">
+<section class="py-12 md:py-20 bg-gradient-to-b from-gray-50 to-white min-h-screen">
     <div class="container mx-auto px-4">
-        <h1 class="text-3xl md:text-4xl font-bold text-charcoal-900 mb-8 font-display">Your Shopping Cart</h1>
+        <p class="text-xs font-semibold tracking-[0.2em] uppercase text-folly mb-3">Shopping Cart</p>
+        <h1 class="text-3xl md:text-4xl font-bold text-charcoal-900 mb-8 font-display tracking-tight">Your Cart</h1>
         
         <?php if (empty($cartItems)): ?>
-            <div class="bg-white rounded-3xl p-12 text-center shadow-sm border border-gray-100 max-w-2xl mx-auto">
+            <div class="glass-strong rounded-3xl p-12 text-center max-w-2xl mx-auto">
                 <div class="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
                     <svg class="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
@@ -168,7 +169,7 @@ include 'includes/header.php';
             <div class="flex flex-col lg:flex-row gap-8">
                 <!-- Cart Items List -->
                 <div class="lg:w-2/3 space-y-6">
-                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="glass-strong rounded-3xl overflow-hidden">
                         <div class="p-6 md:p-8">
                             <div class="space-y-8">
                                 <?php foreach ($cartItems as $item): ?>
@@ -263,7 +264,7 @@ include 'includes/header.php';
                 
                 <!-- Order Summary -->
                 <div class="lg:w-1/3">
-                    <div class="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8 sticky top-24">
+                    <div class="glass-strong rounded-3xl p-6 md:p-8 sticky top-24">
                         <h2 class="text-xl font-bold text-charcoal-900 mb-6">Order Summary</h2>
                         
                         <!-- Currency Selector (only shows currencies available for ALL cart products) -->
@@ -308,7 +309,7 @@ include 'includes/header.php';
                             <span class="text-3xl font-bold text-folly font-display"><?php echo formatPriceWithCurrency($total, $selectedCurrency); ?></span>
                         </div>
                         
-                        <a href="<?php echo getBaseUrl('checkout.php'); ?>" class="w-full block bg-charcoal-900 hover:bg-charcoal-800 text-white text-center font-bold py-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                        <a href="<?php echo getBaseUrl('checkout.php'); ?>" class="w-full block bg-gradient-to-r from-charcoal-900 to-charcoal-800 hover:from-folly hover:to-folly-500 text-white text-center font-semibold py-4 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-folly/25">
                             Proceed to Checkout
                         </a>
                         

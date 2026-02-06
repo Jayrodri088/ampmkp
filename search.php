@@ -65,7 +65,7 @@ include 'includes/header.php';
 ?>
 
 <!-- Breadcrumb -->
-<div class="bg-white border-b border-gray-100 py-4">
+<div class="bg-white/60 backdrop-blur-xl border-b border-white/30 py-4">
     <div class="container mx-auto px-4">
         <nav class="text-sm flex items-center space-x-2">
             <a href="<?php echo getBaseUrl(); ?>" class="text-gray-500 hover:text-folly transition-colors">Home</a>
@@ -78,16 +78,14 @@ include 'includes/header.php';
 </div>
 
 <!-- Search Hero Section -->
-<section class="relative bg-charcoal-900 py-20 md:py-28 overflow-hidden">
-    <!-- Background Image with Overlay -->
-    <div class="absolute inset-0 z-0">
+<section class="relative bg-charcoal-900 py-20 md:py-28" style="z-index: 10;">
+    <!-- Background Image with Overlay + Decorative Elements (clipped) -->
+    <div class="absolute inset-0 z-0 overflow-hidden">
         <img src="<?php echo getAssetUrl('images/general/hero-bg.jpg'); ?>" alt="Search" class="w-full h-full object-cover opacity-30" onerror="this.style.display='none'">
         <div class="absolute inset-0 bg-gradient-to-r from-charcoal-900 via-charcoal-900/90 to-charcoal-900/70"></div>
+        <div class="absolute top-0 right-0 w-96 h-96 bg-folly rounded-full mix-blend-overlay filter blur-3xl opacity-20 animate-pulse"></div>
+        <div class="absolute bottom-0 left-0 w-72 h-72 bg-tangerine rounded-full mix-blend-overlay filter blur-3xl opacity-20"></div>
     </div>
-    
-    <!-- Decorative Elements -->
-    <div class="absolute top-0 right-0 w-96 h-96 bg-folly rounded-full mix-blend-overlay filter blur-3xl opacity-20 animate-pulse"></div>
-    <div class="absolute bottom-0 left-0 w-72 h-72 bg-tangerine rounded-full mix-blend-overlay filter blur-3xl opacity-20"></div>
     
     <div class="relative z-10 container mx-auto px-4">
         <div class="max-w-4xl mx-auto text-center mb-8 sm:mb-12">
@@ -114,10 +112,10 @@ include 'includes/header.php';
         </div>
         
         <!-- Search Form -->
-        <div class="max-w-5xl mx-auto bg-white/10 backdrop-blur-md p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl shadow-2xl border border-white/10">
+        <div class="max-w-5xl mx-auto bg-white/10 backdrop-blur-xl p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl shadow-2xl border border-white/20">
             <form method="GET" action="<?php echo getBaseUrl('search.php'); ?>" class="space-y-6">
                 <!-- Main Search -->
-                <div class="relative group">
+                <div class="relative group" style="z-index: 20;">
                     <input 
                         type="text" 
                         name="q" 
@@ -168,9 +166,9 @@ include 'includes/header.php';
                     
                     <!-- Submit Button -->
                     <div class="md:col-span-3">
-                        <button 
-                            type="submit" 
-                            class="w-full h-full bg-folly hover:bg-folly-600 text-white px-6 py-3 rounded-xl font-bold transition-all duration-300 shadow-lg hover:shadow-folly/30 flex items-center justify-center gap-2"
+                        <button
+                            type="submit"
+                            class="w-full h-full bg-gradient-to-r from-folly to-folly-500 hover:from-folly-600 hover:to-folly text-white px-6 py-3 rounded-xl font-bold transition-all duration-300 shadow-lg hover:shadow-folly/30 flex items-center justify-center gap-2"
                         >
                             Search
                         </button>
@@ -193,19 +191,20 @@ include 'includes/header.php';
 </section>
 
 <!-- Search Results -->
-<section class="bg-gray-50 py-16 md:py-24">
+<section class="bg-gradient-to-b from-gray-50 to-white py-16 md:py-24">
     <div class="container mx-auto px-4">
         <?php if (!$searchPerformed): ?>
             <!-- Search Suggestions -->
             <div class="max-w-6xl mx-auto">
                 <div class="text-center mb-12">
-                    <h2 class="text-3xl md:text-4xl font-bold text-charcoal-900 mb-4 font-display">Popular Categories</h2>
+                    <span class="text-xs font-semibold tracking-[0.2em] uppercase text-folly mb-3 block">Browse</span>
+                    <h2 class="text-3xl md:text-4xl font-bold text-charcoal-900 mb-4 font-display tracking-tight">Popular Categories</h2>
                     <p class="text-gray-500">Browse our most popular product categories</p>
                 </div>
                 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
                     <?php foreach (array_slice($categories, 0, 6) as $category): ?>
-                        <a href="<?php echo getBaseUrl('category.php?slug=' . $category['slug']); ?>" class="group relative bg-white rounded-2xl p-6 shadow-soft hover:shadow-xl transition-all duration-300 border border-gray-100 flex items-center gap-4">
+                        <a href="<?php echo getBaseUrl('category.php?slug=' . $category['slug']); ?>" class="group relative glass rounded-2xl p-6 hover:shadow-xl transition-all duration-300 flex items-center gap-4">
                             <div class="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
                                 <img 
                                     src="<?php echo getAssetUrl('images/' . $category['image']); ?>" 
@@ -230,16 +229,38 @@ include 'includes/header.php';
                 </div>
                 
                 <!-- Popular Searches -->
-                <div class="text-center bg-white p-10 rounded-3xl shadow-soft border border-gray-100 max-w-4xl mx-auto">
-                    <h3 class="text-xl font-bold text-charcoal-900 mb-6 font-display">Trending Searches</h3>
+                <div class="text-center glass-strong p-10 rounded-3xl max-w-4xl mx-auto">
+                    <h3 class="text-xl font-bold text-charcoal-900 mb-6 font-display tracking-tight">Trending Searches</h3>
                     <div class="flex flex-wrap justify-center gap-3">
-                        <?php 
-                        $popularSearches = ['sweatshirts', 'hoodies', 'grace', 'loveworld', 'iexcel', 'tap 2 read', 'affirmation'];
-                        foreach ($popularSearches as $search): 
+                        <?php
+                        // Build trending searches from actual product/category data
+                        $allProducts = readJsonFile('products.json');
+                        $allProducts = array_filter($allProducts, function($p) { return !empty($p['active']); });
+
+                        // Featured product names (shortened to first 2-3 words)
+                        $featuredProducts = array_filter($allProducts, function($p) { return !empty($p['featured']); });
+                        usort($featuredProducts, function($a, $b) { return ($b['id'] ?? 0) <=> ($a['id'] ?? 0); }); // newest first
+                        $trendingTerms = [];
+                        foreach (array_slice($featuredProducts, 0, 5) as $p) {
+                            $words = explode(' ', $p['name']);
+                            $trendingTerms[] = implode(' ', array_slice($words, 0, min(3, count($words))));
+                        }
+
+                        // Add top active category names
+                        $activeCategories = array_filter($categories, function($c) { return !empty($c['active']) && !empty($c['featured']); });
+                        foreach (array_slice($activeCategories, 0, 4) as $cat) {
+                            $trendingTerms[] = $cat['name'];
+                        }
+
+                        // Deduplicate and limit
+                        $trendingTerms = array_unique($trendingTerms);
+                        $trendingTerms = array_slice($trendingTerms, 0, 8);
+
+                        foreach ($trendingTerms as $search):
                         ?>
                             <a 
                                 href="<?php echo getBaseUrl('search.php?q=' . urlencode($search)); ?>" 
-                                class="px-5 py-2 rounded-full bg-gray-50 text-gray-600 hover:bg-folly hover:text-white transition-all duration-300 text-sm font-medium border border-gray-200 hover:border-folly"
+                                class="px-5 py-2 rounded-full glass text-gray-600 hover:bg-folly hover:text-white transition-all duration-300 text-sm font-medium hover:border-folly"
                             >
                                 <?php echo htmlspecialchars($search); ?>
                             </a>
@@ -250,7 +271,7 @@ include 'includes/header.php';
         <?php elseif (empty($products)): ?>
             <!-- No Results -->
             <div class="max-w-2xl mx-auto text-center py-12">
-                <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <div class="w-24 h-24 glass rounded-full flex items-center justify-center mx-auto mb-6">
                     <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                     </svg>
@@ -262,10 +283,10 @@ include 'includes/header.php';
                 </p>
                 
                 <div class="flex justify-center gap-4">
-                    <a href="<?php echo getBaseUrl('shop.php'); ?>" class="px-8 py-3 bg-folly text-white rounded-xl font-bold hover:bg-folly-600 transition-all shadow-lg hover:shadow-folly/30">
+                    <a href="<?php echo getBaseUrl('shop.php'); ?>" class="px-8 py-3 bg-gradient-to-r from-folly to-folly-500 text-white rounded-xl font-bold hover:from-folly-600 hover:to-folly transition-all shadow-lg hover:shadow-folly/30">
                         Browse All Products
                     </a>
-                    <a href="<?php echo getBaseUrl('categories.php'); ?>" class="px-8 py-3 bg-white text-charcoal-900 border border-gray-200 rounded-xl font-bold hover:bg-gray-50 transition-all">
+                    <a href="<?php echo getBaseUrl('categories.php'); ?>" class="px-8 py-3 glass text-charcoal-900 rounded-xl font-bold hover:shadow-lg transition-all">
                         View Categories
                     </a>
                 </div>
@@ -295,7 +316,7 @@ include 'includes/header.php';
                 <?php foreach ($paginatedProducts as $index => $product): 
                     $isLcp = $index < 4; // Eager load first 4 products
                 ?>
-                    <div class="group relative bg-white rounded-2xl shadow-soft hover:shadow-xl transition-all duration-500 overflow-hidden border border-gray-100 flex flex-col h-full">
+                    <div class="group relative glass rounded-2xl hover:shadow-xl transition-all duration-500 overflow-hidden flex flex-col h-full">
                         
                         <!-- Image Container -->
                         <div class="relative aspect-square bg-gray-100 overflow-hidden">
@@ -382,7 +403,7 @@ include 'includes/header.php';
             <!-- Pagination -->
             <?php if ($pagination['total_pages'] > 1): ?>
                 <div class="flex justify-center">
-                    <nav class="flex space-x-2 bg-white p-2 rounded-xl shadow-sm border border-gray-100">
+                    <nav class="flex space-x-2 glass-strong p-2 rounded-xl">
                         <?php if ($pagination['has_prev']): ?>
                             <a 
                                 href="?<?php echo http_build_query(array_merge($_GET, ['page' => $pagination['prev_page']])); ?>" 

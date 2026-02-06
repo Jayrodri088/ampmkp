@@ -44,6 +44,7 @@ try {
 
     // Format results for frontend
     $results = array_map(function($product) {
+        $category = getCategoryById($product['category_id'] ?? 0);
         return [
             'id' => $product['id'],
             'name' => $product['name'],
@@ -52,6 +53,7 @@ try {
             'image' => getAssetUrl('images/' . $product['image']),
             'url' => getBaseUrl('product.php?slug=' . $product['slug']),
             'category' => $product['category_id'] ?? null,
+            'category_name' => $category ? $category['name'] : null,
             'featured' => $product['featured'] ?? false,
             'in_stock' => ($product['stock'] ?? 0) > 0
         ];

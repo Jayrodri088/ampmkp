@@ -1,6 +1,44 @@
 <?php
 
 /**
+ * Storage Backend Configuration
+ * Set STORAGE_BACKEND in .env to 'mysql' to use MySQL, defaults to 'json'
+ */
+function getStorageBackend(): string {
+    static $backend = null;
+    if ($backend === null) {
+        $envFile = __DIR__ . '/../.env';
+        if (file_exists($envFile)) {
+            $lines = @file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            if (is_array($lines)) {
+                foreach ($lines as $line) {
+                    if (strpos($line, 'STORAGE_BACKEND=') === 0) {
+                        $backend = trim(substr($line, strlen('STORAGE_BACKEND=')));
+                        break;
+                    }
+                }
+            }
+        }
+        $backend = $backend ?: 'json';
+    }
+    return $backend;
+}
+
+function isMySQLBackend(): bool {
+    return getStorageBackend() === 'mysql';
+}
+
+// Include repository classes for MySQL backend
+if (isMySQLBackend()) {
+    require_once __DIR__ . '/database.php';
+    require_once __DIR__ . '/repositories/ProductRepository.php';
+    require_once __DIR__ . '/repositories/CategoryRepository.php';
+    require_once __DIR__ . '/repositories/OrderRepository.php';
+    require_once __DIR__ . '/repositories/RatingRepository.php';
+    require_once __DIR__ . '/repositories/SettingsRepository.php';
+}
+
+/**
  * Load .env file into associative array (KEY => value).
  * Use this instead of parse_ini_file() to avoid "unexpected '='" on .env format.
  */
@@ -94,12 +132,20 @@ function writeJsonFile($filename, $data) {
 function getSettings() {
     static $settings = null;
     if ($settings === null) {
-        $settings = readJsonFile('settings.json');
+        if (isMySQLBackend()) {
+            $settings = SettingsRepository::getAll();
+        } else {
+            $settings = readJsonFile('settings.json');
+        }
     }
     return $settings;
 }
 
 function getCategories() {
+    if (isMySQLBackend()) {
+        return CategoryRepository::getAll();
+    }
+
     static $cache = ['mtime' => null, 'data' => null];
 
     $categories = readJsonFile('categories.json');
@@ -118,36 +164,44 @@ function getCategories() {
 }
 
 function getProducts($categoryId = null, $featured = null, $limit = null) {
+    if (isMySQLBackend()) {
+        return ProductRepository::getAll($categoryId, $featured, $limit);
+    }
+
     $products = readJsonFile('products.json');
-    
+
     // Filter active products
     $products = array_filter($products, function($product) {
         return $product['active'];
     });
-    
+
     // Filter by category
     if ($categoryId !== null) {
         $products = array_filter($products, function($product) use ($categoryId) {
             return $product['category_id'] == $categoryId;
         });
     }
-    
+
     // Filter by featured
     if ($featured !== null) {
         $products = array_filter($products, function($product) use ($featured) {
             return $product['featured'] == $featured;
         });
     }
-    
+
     // Apply limit
     if ($limit !== null) {
         $products = array_slice($products, 0, $limit);
     }
-    
+
     return array_values($products);
 }
 
 function getFeaturedProductsByRating($limit = null) {
+    if (isMySQLBackend()) {
+        return ProductRepository::getFeaturedByRating($limit);
+    }
+
     $products = readJsonFile('products.json');
 
     // Filter for active and featured products
@@ -166,7 +220,7 @@ function getFeaturedProductsByRating($limit = null) {
         $product['rating_average'] = (float)($ratingStats['average'] ?? 0);
         return $product;
     }, $products);
-    
+
     // Sort by rating count (descending), then by average rating (descending) as tiebreaker
     usort($productsWithRatings, function($a, $b) {
         if ($a['rating_count'] == $b['rating_count']) {
@@ -174,16 +228,20 @@ function getFeaturedProductsByRating($limit = null) {
         }
         return $b['rating_count'] <=> $a['rating_count'];
     });
-    
+
     // Apply limit
     if ($limit !== null) {
         $productsWithRatings = array_slice($productsWithRatings, 0, $limit);
     }
-    
+
     return array_values($productsWithRatings);
 }
 
 function getProductById($id) {
+    if (isMySQLBackend()) {
+        return ProductRepository::getById((int)$id);
+    }
+
     $products = readJsonFile('products.json');
     foreach ($products as $product) {
         if ($product['id'] == $id && $product['active']) {
@@ -194,6 +252,10 @@ function getProductById($id) {
 }
 
 function getProductBySlug($slug) {
+    if (isMySQLBackend()) {
+        return ProductRepository::getBySlug($slug);
+    }
+
     $products = readJsonFile('products.json');
     foreach ($products as $product) {
         if ($product['slug'] == $slug && $product['active']) {
@@ -204,6 +266,10 @@ function getProductBySlug($slug) {
 }
 
 function getCategoryBySlug($slug) {
+    if (isMySQLBackend()) {
+        return CategoryRepository::getBySlug($slug);
+    }
+
     $categories = getCategories();
     foreach ($categories as $category) {
         if ($category['slug'] === $slug) {
@@ -214,6 +280,10 @@ function getCategoryBySlug($slug) {
 }
 
 function getCategoryById($id) {
+    if (isMySQLBackend()) {
+        return CategoryRepository::getById((int)$id);
+    }
+
     $categories = getCategories();
     foreach ($categories as $category) {
         if ($category['id'] == $id) {
@@ -224,26 +294,30 @@ function getCategoryById($id) {
 }
 
 function searchProducts($query, $categoryId = null) {
+    if (isMySQLBackend()) {
+        return ProductRepository::search($query, $categoryId);
+    }
+
     $products = readJsonFile('products.json');
     $query = strtolower(trim($query));
-    
+
     if (empty($query)) {
         return [];
     }
-    
+
     $results = array_filter($products, function($product) use ($query, $categoryId) {
         $match = $product['active'] && (
             strpos(strtolower($product['name']), $query) !== false ||
             strpos(strtolower($product['description']), $query) !== false
         );
-        
+
         if ($match && $categoryId !== null) {
             $match = $product['category_id'] == $categoryId;
         }
-        
+
         return $match;
     });
-    
+
     return array_values($results);
 }
 
@@ -462,7 +536,7 @@ function sanitizeInput($input) {
     if (is_array($input)) {
         return array_map('sanitizeInput', $input);
     }
-    return htmlspecialchars(strip_tags(trim((string)$input)), ENT_QUOTES, 'UTF-8');
+    return strip_tags(trim((string)$input));
 }
 
 function validateEmail($email) {
@@ -507,6 +581,10 @@ function getCategoryProductCounts() {
  * This is designed to avoid calling getTotalProductCountForCategory() repeatedly in loops.
  */
 function getTotalProductCountsForAllCategories(): array {
+    if (isMySQLBackend()) {
+        return CategoryRepository::getAllTotalProductCounts();
+    }
+
     static $cache = ['mtimes' => null, 'data' => null];
 
     // Touch the sources so __AMP_JSON_CACHE mtimes are populated.
@@ -1282,10 +1360,17 @@ if (session_status() == PHP_SESSION_NONE) {
 // Rating Functions
 
 function getRatings() {
+    if (isMySQLBackend()) {
+        return RatingRepository::getAll();
+    }
     return readJsonFile('ratings.json');
 }
 
 function getProductRatings($productId) {
+    if (isMySQLBackend()) {
+        return RatingRepository::getByProductId((int)$productId);
+    }
+
     $ratings = getRatings();
     return array_filter($ratings, function($rating) use ($productId) {
         return $rating['product_id'] == $productId;
@@ -1293,6 +1378,10 @@ function getProductRatings($productId) {
 }
 
 function getProductRatingStats($productId) {
+    if (isMySQLBackend()) {
+        return RatingRepository::getProductStats((int)$productId);
+    }
+
     $productId = (int)$productId;
     $all = getAllProductRatingStats();
     return $all[$productId] ?? [
@@ -1307,6 +1396,10 @@ function getProductRatingStats($productId) {
  * Returns: [product_id => ['average'=>float,'count'=>int,'distribution'=>array]]
  */
 function getAllProductRatingStats(): array {
+    if (isMySQLBackend()) {
+        return RatingRepository::getAllProductStats();
+    }
+
     static $cache = ['mtime' => null, 'data' => null];
 
     // Touch ratings source so __AMP_JSON_CACHE mtime is populated.
@@ -1317,7 +1410,7 @@ function getAllProductRatingStats(): array {
         return $cache['data'];
     }
 
-    $ratings = getRatings();
+    $ratings = readJsonFile('ratings.json');
     $totals = [];
     $counts = [];
     $distributions = [];
@@ -1351,14 +1444,30 @@ function getAllProductRatingStats(): array {
 }
 
 function addRating($productId, $rating, $review, $reviewerName, $reviewerEmail) {
+    if (isMySQLBackend()) {
+        $id = RatingRepository::create([
+            'product_id' => (int)$productId,
+            'rating' => (int)$rating,
+            'review' => sanitizeInput($review),
+            'reviewer_name' => sanitizeInput($reviewerName),
+            'reviewer_email' => sanitizeInput($reviewerEmail),
+            'date' => date('Y-m-d'),
+            'verified_purchase' => 0,
+        ]);
+        if ($id) {
+            return RatingRepository::getById($id);
+        }
+        return false;
+    }
+
     $ratings = getRatings();
-    
+
     // Get next ID
     $nextId = 1;
     if (!empty($ratings)) {
         $nextId = max(array_column($ratings, 'id')) + 1;
     }
-    
+
     $newRating = [
         'id' => $nextId,
         'product_id' => (int)$productId,
@@ -1369,13 +1478,13 @@ function addRating($productId, $rating, $review, $reviewerName, $reviewerEmail) 
         'date' => date('Y-m-d'),
         'verified_purchase' => false // Can be updated later based on order history
     ];
-    
+
     $ratings[] = $newRating;
-    
+
     if (writeJsonFile('ratings.json', $ratings)) {
         return $newRating;
     }
-    
+
     return false;
 }
 
@@ -1419,6 +1528,9 @@ function renderStars($rating, $maxStars = 5, $size = 'w-4 h-4') {
  * Get all categories including inactive ones (for admin use)
  */
 function getAllCategories() {
+    if (isMySQLBackend()) {
+        return CategoryRepository::getAllIncludingInactive();
+    }
     return readJsonFile('categories.json');
 }
 
@@ -1441,6 +1553,9 @@ function buildCategoryTree($categories, $parentId = 0) {
  * Get category hierarchy organized as tree
  */
 function getCategoryHierarchy($includeInactive = false) {
+    if (isMySQLBackend()) {
+        return CategoryRepository::getTree($includeInactive);
+    }
     $categories = $includeInactive ? getAllCategories() : getCategories();
     return buildCategoryTree($categories);
 }
@@ -1503,15 +1618,19 @@ function hasSubCategories($categoryId) {
  * Get direct children of a category
  */
 function getSubCategories($parentId, $includeInactive = false) {
+    if (isMySQLBackend()) {
+        return CategoryRepository::getSubcategories((int)$parentId, $includeInactive);
+    }
+
     $categories = $includeInactive ? getAllCategories() : getCategories();
     $subCategories = [];
-    
+
     foreach ($categories as $category) {
         if (($category['parent_id'] ?? 0) == $parentId) {
             $subCategories[] = $category;
         }
     }
-    
+
     return $subCategories;
 }
 
@@ -1672,13 +1791,17 @@ function getTotalProductCountForCategory($categoryId) {
  * Get latest products added to the store
  */
 function getLatestProducts($limit = 6) {
+    if (isMySQLBackend()) {
+        return ProductRepository::getLatest($limit);
+    }
+
     $products = getProducts(); // Get all products
-    
+
     // Sort by ID descending (assuming higher ID = newer)
     usort($products, function($a, $b) {
         return $b['id'] <=> $a['id'];
     });
-    
+
     return array_slice($products, 0, $limit);
 }
 
@@ -1686,6 +1809,10 @@ function getLatestProducts($limit = 6) {
  * Get featured categories
  */
 function getFeaturedCategories() {
+    if (isMySQLBackend()) {
+        return CategoryRepository::getFeatured();
+    }
+
     $categories = getCategories();
     return array_filter($categories, function($category) {
         return ($category['featured'] ?? false) === true;
@@ -1696,26 +1823,30 @@ function getFeaturedCategories() {
  * Get products from category and all its sub-categories (for frontend)
  */
 function getProductsFromCategoryTree($categoryId, $featured = null, $limit = null) {
+    if (isMySQLBackend()) {
+        return ProductRepository::getByCategory((int)$categoryId, $featured, $limit);
+    }
+
     $products = readJsonFile('products.json');
-    
+
     // Get all descendant categories
     $descendants = getAllDescendants($categoryId, false); // Only active categories
     $categoryIds = array_merge([$categoryId], array_column($descendants, 'id'));
-    
+
     // Filter active products
     $products = array_filter($products, function($product) use ($categoryIds, $featured) {
         $categoryMatch = in_array($product['category_id'], $categoryIds);
         $activeMatch = $product['active'];
         $featuredMatch = ($featured === null) || ($product['featured'] == $featured);
-        
+
         return $categoryMatch && $activeMatch && $featuredMatch;
     });
-    
+
     // Apply limit
     if ($limit !== null) {
         $products = array_slice($products, 0, $limit);
     }
-    
+
     return array_values($products);
 }
 

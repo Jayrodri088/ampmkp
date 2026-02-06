@@ -75,7 +75,7 @@ if (typeof fbq === 'function') {
 </script>
 
 <!-- Breadcrumb -->
-<div class="bg-white border-b border-gray-100 py-4">
+<div class="bg-white/60 backdrop-blur-xl border-b border-white/30 py-4">
     <div class="container mx-auto px-4">
         <nav class="text-sm flex items-center space-x-2">
             <a href="<?php echo getBaseUrl(); ?>" class="text-gray-500 hover:text-folly transition-colors">Home</a>
@@ -263,7 +263,7 @@ if (typeof fbq === 'function') {
                 <div class="flex flex-col sm:flex-row gap-4 mb-8">
                     <button 
                         onclick="addToCartProduct(<?php echo $product['id']; ?>)"
-                        class="flex-1 bg-charcoal-900 hover:bg-folly text-white px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                        class="flex-1 bg-gradient-to-r from-charcoal-900 to-charcoal-800 hover:from-folly hover:to-folly-500 text-white px-8 py-4 rounded-2xl font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-folly/25 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
                         <?php echo $product['stock'] <= 0 ? 'disabled' : ''; ?>
                     >
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l-1 12H6L5 9z"></path></svg>
@@ -271,7 +271,7 @@ if (typeof fbq === 'function') {
                     </button>
                     <button 
                         onclick="buyNowProduct(<?php echo $product['id']; ?>)"
-                        class="flex-1 bg-white border-2 border-gray-200 hover:border-charcoal-900 text-charcoal-900 px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                        class="flex-1 glass text-charcoal-900 px-8 py-4 rounded-2xl font-semibold text-lg transition-all duration-300 hover:bg-white/90 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
                         <?php echo $product['stock'] <= 0 ? 'disabled' : ''; ?>
                     >
                         Buy Now
@@ -280,8 +280,8 @@ if (typeof fbq === 'function') {
                 
                 <!-- Trust Badges -->
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-                        <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-green-500">
+                    <div class="glass flex items-center gap-3 p-4 rounded-2xl">
+                        <div class="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-green-500">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         </div>
                         <div>
@@ -289,8 +289,8 @@ if (typeof fbq === 'function') {
                             <p class="text-xs text-gray-500">100% Protected</p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-                        <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-blue-500">
+                    <div class="glass flex items-center gap-3 p-4 rounded-2xl">
+                        <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-500">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
                         </div>
                         <div>
@@ -329,7 +329,7 @@ if (typeof fbq === 'function') {
                     <?php endif; ?>
                 </div>
                 
-                <div class="bg-gray-50 rounded-2xl p-8 h-fit">
+                <div class="glass rounded-2xl p-8 h-fit">
                     <h3 class="text-xl font-bold text-charcoal-900 mb-4">Why Shop With Us?</h3>
                     <ul class="space-y-4">
                         <li class="flex items-center text-gray-600">
@@ -358,13 +358,13 @@ if (typeof fbq === 'function') {
 </section>
 
 <!-- Reviews Section -->
-<section id="reviews" class="bg-gray-50 py-12 md:py-20 border-t border-gray-200">
+<section id="reviews" class="bg-gradient-to-b from-gray-50 to-white py-12 md:py-20 border-t border-gray-100">
     <div class="container mx-auto px-4">
         <div class="max-w-4xl mx-auto">
             <h2 class="text-3xl font-bold text-charcoal-900 mb-8 text-center">Customer Reviews</h2>
             
             <!-- Review Stats -->
-            <div class="bg-white rounded-2xl shadow-sm p-8 mb-12 flex flex-col md:flex-row items-center justify-between gap-8">
+            <div class="glass-strong rounded-2xl p-8 mb-12 flex flex-col md:flex-row items-center justify-between gap-8">
                 <div class="text-center md:text-left">
                     <div class="text-5xl font-bold text-charcoal-900 mb-2"><?php echo $ratingStats['average']; ?></div>
                     <div class="flex items-center justify-center md:justify-start mb-2">
@@ -435,7 +435,7 @@ if (typeof fbq === 'function') {
             <?php endif; ?>
             
             <!-- Review Form -->
-            <div id="review-form" class="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+            <div id="review-form" class="glass-strong rounded-2xl p-8">
                 <h3 class="text-2xl font-bold text-charcoal-900 mb-6">Leave a Review</h3>
                 <form method="POST" action="">
                     <div class="mb-6">
@@ -615,7 +615,7 @@ function addToCartProduct(productId) {
             Swal.fire({
                 icon: 'success',
                 title: 'Added to Cart!',
-                text: '<?php echo htmlspecialchars($product['name']); ?> has been added to your cart.',
+                text: <?php echo json_encode($product['name'] . ' has been added to your cart.'); ?>,
                 showCancelButton: true,
                 confirmButtonText: 'View Cart',
                 cancelButtonText: 'Continue Shopping',

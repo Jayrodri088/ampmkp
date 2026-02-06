@@ -21,7 +21,7 @@ function renderCategoryHierarchy($categories, $level = 0) {
     foreach ($categories as $category) {
         $borderClass = $level > 0 ? 'border-l-4 border-folly-200 ml-4' : '';
         
-        $html .= '<div class="group relative bg-white rounded-2xl shadow-soft hover:shadow-xl transition-all duration-500 overflow-hidden transform hover:-translate-y-2 border border-gray-100 ' . $borderClass . '">';
+        $html .= '<div class="group relative glass rounded-2xl hover:shadow-xl transition-all duration-500 overflow-hidden transform hover:-translate-y-2 ' . $borderClass . '">';
         
         // Image container
         $html .= '<div class="relative overflow-hidden aspect-[4/3] bg-gray-100">';
@@ -82,7 +82,7 @@ include 'includes/header.php';
 ?>
 
 <!-- Breadcrumb -->
-<div class="bg-white border-b border-gray-100 py-4">
+<div class="bg-white/60 backdrop-blur-xl border-b border-white/30 py-4">
     <div class="container mx-auto px-4">
         <nav class="text-sm flex items-center space-x-2">
             <a href="<?php echo getBaseUrl(); ?>" class="text-gray-500 hover:text-folly transition-colors">Home</a>
@@ -105,7 +105,7 @@ include 'includes/header.php';
     <div class="absolute bottom-0 left-0 w-72 h-72 bg-tangerine rounded-full mix-blend-overlay filter blur-3xl opacity-20"></div>
     
     <div class="relative z-10 container mx-auto px-4 text-center">
-        <span class="inline-block py-1 px-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/90 text-xs font-bold tracking-widest uppercase mb-6">
+        <span class="inline-block py-1.5 px-4 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/90 text-xs font-semibold tracking-[0.2em] uppercase mb-6">
             Our Collections
         </span>
         <h1 class="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-4 sm:mb-6 font-display tracking-tight">
@@ -136,10 +136,10 @@ include 'includes/header.php';
 
 
 <!-- Categories Grid -->
-<section class="bg-gray-50 py-16 md:py-24">
+<section class="bg-gradient-to-b from-gray-50 to-white py-16 md:py-24">
     <div class="container mx-auto px-4">
         <?php if (empty($categoryHierarchy)): ?>
-            <div class="text-center py-20 bg-white rounded-3xl shadow-sm border border-gray-100 max-w-2xl mx-auto">
+            <div class="text-center py-20 glass-strong rounded-3xl shadow-sm max-w-2xl mx-auto">
                 <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
                     <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
@@ -149,7 +149,7 @@ include 'includes/header.php';
                 <p class="text-gray-500 mb-8 max-w-md mx-auto">
                     We couldn't find any categories at the moment. Please check back later or browse our shop.
                 </p>
-                <a href="<?php echo getBaseUrl('shop.php'); ?>" class="inline-flex items-center justify-center px-8 py-3 bg-folly hover:bg-folly-600 text-white rounded-xl font-bold transition-all shadow-lg hover:shadow-folly/30">
+                <a href="<?php echo getBaseUrl('shop.php'); ?>" class="inline-flex items-center justify-center px-8 py-3 bg-gradient-to-r from-folly to-folly-500 hover:from-folly-600 hover:to-folly text-white rounded-xl font-bold transition-all shadow-lg hover:shadow-folly/30">
                     Browse All Products
                 </a>
             </div>
@@ -161,7 +161,7 @@ include 'includes/header.php';
 </section>
 
 <!-- Call to Action -->
-<section class="py-20 bg-white border-t border-gray-100">
+<section class="py-20 bg-gradient-to-b from-white to-gray-50">
     <div class="container mx-auto px-4">
         <div class="bg-gradient-to-r from-charcoal-900 to-charcoal-800 rounded-3xl p-8 md:p-16 text-center relative overflow-hidden shadow-2xl">
             <!-- Decorative circles -->
@@ -176,10 +176,10 @@ include 'includes/header.php';
                     Our catalog is vast and constantly growing. Try our advanced search to find specific products or brands.
                 </p>
                 <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <a href="<?php echo getBaseUrl('shop.php'); ?>" class="px-8 py-4 bg-white text-charcoal-900 rounded-xl font-bold hover:bg-gray-50 transition-all shadow-lg transform hover:-translate-y-1">
+                    <a href="<?php echo getBaseUrl('shop.php'); ?>" class="px-8 py-4 glass text-charcoal-900 rounded-xl font-bold hover:bg-white/90 transition-all shadow-lg transform hover:-translate-y-1">
                         Browse All Products
                     </a>
-                    <a href="<?php echo getBaseUrl('search.php'); ?>" class="px-8 py-4 bg-folly text-white rounded-xl font-bold hover:bg-folly-600 transition-all shadow-lg shadow-folly/30 transform hover:-translate-y-1">
+                    <a href="<?php echo getBaseUrl('search.php'); ?>" class="px-8 py-4 bg-gradient-to-r from-folly to-folly-500 text-white rounded-xl font-bold hover:from-folly-600 hover:to-folly transition-all shadow-lg shadow-folly/30 transform hover:-translate-y-1">
                         Advanced Search
                     </a>
                 </div>

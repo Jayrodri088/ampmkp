@@ -30,7 +30,7 @@ include 'includes/header.php';
 ?>
 
 <!-- Breadcrumb -->
-<div class="bg-white border-b border-gray-100 py-4">
+<div class="bg-white/60 backdrop-blur-xl border-b border-white/30 py-4">
     <div class="container mx-auto px-4">
         <nav class="text-sm flex items-center space-x-2">
             <a href="<?php echo getBaseUrl(); ?>" class="text-gray-500 hover:text-folly transition-colors">Home</a>
@@ -63,7 +63,7 @@ include 'includes/header.php';
 </section>
 
 <!-- Payment Content -->
-<section class="bg-gray-50 py-12 md:py-20">
+<section class="bg-gradient-to-b from-gray-50 to-white py-12 md:py-20">
     <div class="container mx-auto px-4">
         <div class="max-w-4xl mx-auto">
             
@@ -88,7 +88,7 @@ include 'includes/header.php';
 
                     <!-- Payment Method Specific Instructions -->
                     <?php if ($paymentMethod === 'paypal'): ?>
-                        <div class="bg-white rounded-2xl shadow-soft border border-gray-100 overflow-hidden">
+                        <div class="glass-strong rounded-2xl shadow-soft overflow-hidden">
                             <div class="p-6 md:p-8 border-b border-gray-100">
                                 <div class="flex items-center gap-4 mb-6">
                                     <img src="https://www.paypalobjects.com/webstatic/mktg/Logo/pp-logo-200px.png" alt="PayPal" class="h-8 w-auto">
@@ -136,7 +136,7 @@ include 'includes/header.php';
                         </div>
 
                     <?php elseif ($paymentMethod === 'bank_transfer'): ?>
-                        <div class="bg-white rounded-2xl shadow-soft border border-gray-100 overflow-hidden">
+                        <div class="glass-strong rounded-2xl shadow-soft overflow-hidden">
                             <div class="p-6 md:p-8 border-b border-gray-100">
                                 <div class="flex items-center gap-4 mb-6">
                                     <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-charcoal-900">
@@ -180,7 +180,7 @@ include 'includes/header.php';
                         </div>
                     
                     <?php else: ?>
-                        <div class="bg-white rounded-2xl shadow-soft border border-gray-100 p-8 text-center">
+                        <div class="glass-strong rounded-2xl shadow-soft p-8 text-center">
                             <h2 class="text-xl font-bold text-charcoal-900 mb-4 font-display">Payment Instructions</h2>
                             <p class="text-gray-600 mb-6">Please contact our support team for payment instructions for this method.</p>
                             <button onclick="confirmPayment()" class="inline-flex items-center justify-center bg-folly hover:bg-folly-600 text-white px-8 py-3 rounded-xl font-bold transition-all">
@@ -193,7 +193,7 @@ include 'includes/header.php';
                 
                 <!-- Sidebar (Order Summary) -->
                 <div class="lg:col-span-1">
-                    <div class="bg-white rounded-2xl shadow-soft border border-gray-100 p-6 sticky top-24">
+                    <div class="glass-strong rounded-2xl shadow-soft p-6 sticky top-24">
                         <h3 class="text-lg font-bold text-charcoal-900 mb-4 font-display border-b border-gray-100 pb-4">Order Summary</h3>
                         
                         <div class="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2 custom-scrollbar">

@@ -12,7 +12,7 @@ include 'includes/header.php';
 ?>
 
 <!-- Breadcrumb -->
-<div class="bg-white border-b border-gray-100 py-4">
+<div class="bg-white/60 backdrop-blur-xl border-b border-white/30 py-4">
     <div class="container mx-auto px-4">
         <nav class="text-sm flex items-center space-x-2">
             <a href="<?php echo getBaseUrl(); ?>" class="text-gray-500 hover:text-folly transition-colors">Home</a>
@@ -46,11 +46,11 @@ include 'includes/header.php';
 </section>
 
 <!-- Content -->
-<section class="bg-gray-50 py-12 md:py-20">
+<section class="bg-gradient-to-b from-gray-50 to-white py-12 md:py-20">
     <div class="container mx-auto px-4">
         <div class="max-w-3xl mx-auto">
             
-            <div class="bg-white rounded-2xl shadow-soft border border-gray-100 p-8 md:p-12 text-center">
+            <div class="glass-strong rounded-2xl shadow-soft p-8 md:p-12 text-center">
                 <h2 class="text-2xl font-bold text-charcoal-900 mb-4 font-display">What would you like to do?</h2>
                 <p class="text-gray-500 mb-10 max-w-lg mx-auto">
                     Your items are safe in your cart. You can try paying again with a different method or continue shopping.
@@ -64,11 +64,11 @@ include 'includes/header.php';
                 <?php endif; ?>
                 
                 <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <a href="<?php echo getBaseUrl('checkout.php'); ?>" class="px-8 py-4 bg-folly text-white rounded-xl font-bold hover:bg-folly-600 transition-all shadow-lg hover:shadow-folly/30 flex items-center justify-center gap-2">
+                    <a href="<?php echo getBaseUrl('checkout.php'); ?>" class="px-8 py-4 bg-gradient-to-r from-folly to-folly-500 hover:from-folly-600 hover:to-folly text-white rounded-xl font-bold transition-all shadow-lg hover:shadow-folly/30 flex items-center justify-center gap-2">
                         <span>Return to Checkout</span>
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
                     </a>
-                    <a href="<?php echo getBaseUrl('shop.php'); ?>" class="px-8 py-4 bg-white text-charcoal-900 border border-gray-200 rounded-xl font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
+                    <a href="<?php echo getBaseUrl('shop.php'); ?>" class="px-8 py-4 glass text-charcoal-900 rounded-xl font-bold hover:shadow-lg transition-all flex items-center justify-center gap-2">
                         <span>Continue Shopping</span>
                     </a>
                 </div>
@@ -76,7 +76,7 @@ include 'includes/header.php';
             
             <!-- Help Section -->
             <div class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-start gap-4">
+                <div class="glass p-6 rounded-xl flex items-start gap-4">
                     <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
                     </div>
@@ -87,7 +87,7 @@ include 'includes/header.php';
                     </div>
                 </div>
                 
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-start gap-4">
+                <div class="glass p-6 rounded-xl flex items-start gap-4">
                     <div class="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-600 flex-shrink-0">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
                     </div>

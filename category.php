@@ -97,7 +97,7 @@ include 'includes/header.php';
 ?>
 
 <!-- Breadcrumb -->
-<div class="bg-white border-b border-gray-100 py-4">
+<div class="bg-white/60 backdrop-blur-xl border-b border-white/30 py-4">
     <div class="container mx-auto px-4">
         <nav class="text-sm flex items-center space-x-2">
             <a href="<?php echo getBaseUrl(); ?>" class="text-gray-500 hover:text-folly transition-colors">Home</a>
@@ -148,11 +148,11 @@ include 'includes/header.php';
 </section>
 
 <!-- Main Content -->
-<section class="py-12 bg-gray-50 min-h-screen">
+<section class="py-12 bg-gradient-to-b from-gray-50 to-white min-h-screen">
     <div class="container mx-auto px-4">
         
         <!-- Filter & Search Bar -->
-        <div class="bg-white rounded-xl sm:rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6 mb-8 sm:mb-10 -mt-16 sm:-mt-20 relative z-10">
+        <div class="glass-strong rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 mb-8 sm:mb-10 -mt-16 sm:-mt-20 relative z-10">
             <form method="GET" class="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
                 <!-- Search -->
                 <div class="md:col-span-5">
@@ -189,7 +189,7 @@ include 'includes/header.php';
                 
                 <!-- Actions -->
                 <div class="md:col-span-3 flex gap-3">
-                    <button type="submit" class="flex-1 bg-charcoal-900 hover:bg-charcoal-800 text-white px-6 py-3 rounded-xl font-bold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                    <button type="submit" class="flex-1 bg-gradient-to-r from-charcoal-900 to-charcoal-800 hover:from-folly hover:to-folly-500 text-white px-6 py-3 rounded-xl font-bold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
                         Apply
                     </button>
                     <?php if ($searchQuery || $sortBy !== 'name'): ?>
@@ -213,7 +213,7 @@ include 'includes/header.php';
             </h2>
             <div class="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-6">
                 <?php foreach ($subCategories as $subCategory): ?>
-                    <a href="<?php echo getBaseUrl('category.php?slug=' . htmlspecialchars($subCategory['slug'])); ?>" class="group bg-white rounded-xl sm:rounded-2xl p-3 sm:p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 text-center transform hover:-translate-y-1">
+                    <a href="<?php echo getBaseUrl('category.php?slug=' . htmlspecialchars($subCategory['slug'])); ?>" class="group glass rounded-xl sm:rounded-2xl p-3 sm:p-6 hover:shadow-xl transition-all duration-300 text-center transform hover:-translate-y-1">
                         <div class="w-10 h-10 sm:w-16 sm:h-16 mx-auto mb-2 sm:mb-4 rounded-full bg-gray-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 overflow-hidden">
                             <img 
                                 src="<?php echo getAssetUrl('images/' . $subCategory['image']); ?>" 
@@ -242,7 +242,7 @@ include 'includes/header.php';
         </div>
 
         <?php if (empty($products)): ?>
-            <div class="bg-white rounded-3xl p-12 text-center shadow-sm border border-gray-100">
+            <div class="glass-strong rounded-3xl p-12 text-center shadow-sm">
                 <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
                     <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2 2v-5m16 0h-6m-10 0h6"></path>
@@ -256,7 +256,7 @@ include 'includes/header.php';
                         This category doesn't have any products yet. Check back soon!
                     <?php endif; ?>
                 </p>
-                <a href="<?php echo getBaseUrl('shop.php'); ?>" class="inline-flex items-center gap-2 bg-charcoal-900 hover:bg-charcoal-800 text-white px-8 py-3 rounded-xl font-bold transition-all duration-300">
+                <a href="<?php echo getBaseUrl('shop.php'); ?>" class="inline-flex items-center gap-2 bg-gradient-to-r from-charcoal-900 to-charcoal-800 hover:from-folly hover:to-folly-500 text-white px-8 py-3 rounded-xl font-bold transition-all duration-300">
                     Browse All Products
                 </a>
             </div>
@@ -265,7 +265,7 @@ include 'includes/header.php';
                 <?php foreach ($products as $index => $product): 
                     $isLcp = $index < 4; // Eager load first 4 products
                 ?>
-                    <div class="group bg-white rounded-2xl sm:rounded-3xl shadow-sm sm:shadow-lg hover:shadow-xl sm:hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100 flex flex-col h-full transform hover:-translate-y-1 sm:hover:-translate-y-2">
+                    <div class="group glass rounded-2xl sm:rounded-3xl hover:shadow-xl sm:hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col h-full transform hover:-translate-y-1 sm:hover:-translate-y-2">
                         <!-- Image Container -->
                         <div class="relative aspect-[4/5] overflow-hidden bg-gray-100">
                             <!-- Loading Skeleton -->
@@ -357,7 +357,7 @@ include 'includes/header.php';
             <!-- Pagination -->
             <?php if ($pagination['total_pages'] > 1): ?>
                 <div class="mt-16 flex justify-center">
-                    <nav class="flex items-center gap-2 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
+                    <nav class="flex items-center gap-2 glass-strong p-2 rounded-2xl">
                         <?php if ($pagination['has_prev']): ?>
                             <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $pagination['prev_page']])); ?>" class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-600 hover:bg-folly hover:text-white transition-colors">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>

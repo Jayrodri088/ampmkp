@@ -8,6 +8,7 @@ if (!isset($_SESSION['admin_logged_in'])) {
 }
 
 require_once '../includes/functions.php';
+require_once '../includes/admin_helpers.php';
 require_once '../includes/mail_config.php';
 
 // CSRF token setup
@@ -16,7 +17,7 @@ if (!isset($_SESSION['admin_csrf_token'])) {
 }
 
 // Load orders data
-$orders = readJsonFile('orders.json');
+$orders = adminGetAllOrders();
 
 // Load products to enrich order item details (name, image, slug)
 $products = json_decode(file_get_contents('../data/products.json'), true) ?? [];
@@ -44,30 +45,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $orderId = $_POST['order_id'] ?? '';
                 $newStatus = $_POST['status'] ?? '';
                 $newPaymentStatus = $_POST['payment_status'] ?? '';
-                
+
                 if ($orderId && $newStatus) {
-                    $updatedOrder = null;
-                    $prevPaymentStatus = null;
-                    $prevStatus = null;
-                    $statusChanged = false;
-                    foreach ($orders as &$order) {
-                        if ($order['id'] === $orderId) {
-                            $prevPaymentStatus = $order['payment_status'] ?? '';
-                            $prevStatus = $order['status'] ?? '';
-                            $order['status'] = $newStatus;
-                            $statusChanged = ($newStatus !== '' && $newStatus !== $prevStatus);
-                            if ($newPaymentStatus !== '' && $newPaymentStatus !== $prevPaymentStatus) {
-                                $order['payment_status'] = $newPaymentStatus;
-                            }
-                            $order['updated_at'] = date('Y-m-d H:i:s');
-                            $updatedOrder = $order;
-                            break;
-                        }
+                    $currentOrder = adminGetOrderById($orderId);
+                    $prevStatus = $currentOrder['status'] ?? '';
+                    $prevPaymentStatus = $currentOrder['payment_status'] ?? '';
+                    $statusChanged = ($newStatus !== '' && $newStatus !== $prevStatus);
+
+                    // Update order status
+                    $updateSuccess = adminUpdateOrderStatus($orderId, $newStatus);
+
+                    // Update payment status if provided
+                    if ($newPaymentStatus !== '' && $newPaymentStatus !== $prevPaymentStatus) {
+                        adminUpdatePaymentStatus($orderId, $newPaymentStatus);
                     }
-                    
-                    if (writeJsonFile('orders.json', $orders)) {
+
+                    if ($updateSuccess) {
                         $message = 'Order status updated successfully';
                         $message_type = 'success';
+                        // Reload order for email
+                        $updatedOrder = adminGetOrderById($orderId);
+                        // Also update the local $orders array for the page
+                        $orders = adminGetAllOrders();
                         // Send email notification based on ORDER status changes
                         if ($statusChanged) {
                             $emailSent = false;
@@ -90,19 +89,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'update_payment_status':
                 $orderId = $_POST['order_id'] ?? '';
                 $newPaymentStatus = $_POST['payment_status'] ?? '';
-                
+
                 if ($orderId && $newPaymentStatus) {
-                    foreach ($orders as &$order) {
-                        if ($order['id'] === $orderId) {
-                            $order['payment_status'] = $newPaymentStatus;
-                            $order['updated_at'] = date('Y-m-d H:i:s');
-                            break;
-                        }
-                    }
-                    
-                    if (writeJsonFile('orders.json', $orders)) {
+                    if (adminUpdatePaymentStatus($orderId, $newPaymentStatus)) {
                         $message = 'Payment status updated successfully';
                         $message_type = 'success';
+                        // Reload orders for the page
+                        $orders = adminGetAllOrders();
                         // Emails are triggered by ORDER status changes only to avoid duplicates
                     } else {
                         $message = 'Failed to update payment status';
@@ -110,17 +103,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 break;
-                
+
             case 'delete_order':
                 $orderId = $_POST['order_id'] ?? '';
-                
+
                 if ($orderId) {
-                    $orders = array_filter($orders, fn($order) => $order['id'] !== $orderId);
-                    $orders = array_values($orders); // Re-index array
-                    
-                    if (writeJsonFile('orders.json', $orders)) {
+                    if (adminDeleteOrder($orderId)) {
                         $message = 'Order deleted successfully';
                         $message_type = 'success';
+                        // Reload orders for the page
+                        $orders = adminGetAllOrders();
                     } else {
                         $message = 'Failed to delete order';
                         $message_type = 'danger';

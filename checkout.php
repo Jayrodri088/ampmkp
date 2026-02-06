@@ -391,7 +391,7 @@ include 'includes/header.php';
 ?>
 
 <!-- Breadcrumb -->
-<div class="bg-white border-b border-gray-100 py-4">
+<div class="bg-white/60 backdrop-blur-xl border-b border-white/30 py-4">
     <div class="container mx-auto px-4">
         <nav class="text-sm flex items-center space-x-2">
             <a href="<?php echo getBaseUrl(); ?>" class="text-gray-500 hover:text-folly transition-colors">Home</a>
@@ -404,14 +404,14 @@ include 'includes/header.php';
 </div>
 
 <!-- Checkout Section -->
-<section class="py-12 md:py-20 bg-gray-50 min-h-screen">
+<section class="py-12 md:py-20 bg-gradient-to-b from-gray-50 to-white min-h-screen">
     <div class="container mx-auto px-4">
         <div class="text-center mb-12">
-            <h1 class="text-3xl md:text-5xl font-bold text-charcoal-900 mb-4 font-display">
+            <p class="text-xs font-semibold tracking-[0.2em] uppercase text-folly mb-3">Checkout</p>
+            <h1 class="text-3xl md:text-5xl font-bold text-charcoal-900 mb-4 font-display tracking-tight">
                 Secure Checkout
             </h1>
-            <div class="w-24 h-1 bg-gradient-to-r from-folly to-tangerine mx-auto rounded-full mb-6"></div>
-            <p class="text-gray-600 max-w-2xl mx-auto">
+            <p class="text-gray-500 max-w-2xl mx-auto">
                 Complete your order securely. We accept multiple payment methods for your convenience.
             </p>
         </div>
@@ -435,7 +435,7 @@ include 'includes/header.php';
             <div class="lg:col-span-2 space-y-8">
                 
                 <!-- Customer Information -->
-                <div class="checkout-step bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8">
+                <div class="checkout-step glass-strong rounded-3xl p-6 md:p-8">
                     <h2 class="text-xl font-bold text-charcoal-900 mb-6 flex items-center gap-3">
                         <span class="step-number w-8 h-8 rounded-full bg-folly/10 text-folly flex items-center justify-center text-sm font-bold">1</span>
                         Customer Information
@@ -562,7 +562,7 @@ include 'includes/header.php';
 
                 <!-- Shipping Method -->
                 <?php if (!empty($shippingSettings['allow_method_selection'])): ?>
-                <div class="checkout-step bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8">
+                <div class="checkout-step glass-strong rounded-3xl p-6 md:p-8">
                     <h2 class="text-xl font-bold text-charcoal-900 mb-6 flex items-center gap-3">
                         <span class="step-number w-8 h-8 rounded-full bg-folly/10 text-folly flex items-center justify-center text-sm font-bold">2</span>
                         Shipping Method
@@ -611,7 +611,7 @@ include 'includes/header.php';
                 <?php endif; ?>
 
                 <!-- Shipping Address -->
-                <div id="shipping-address-section" class="checkout-step bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8 <?php echo $selectedMethod === 'pickup' ? 'hidden' : ''; ?>">
+                <div id="shipping-address-section" class="checkout-step glass-strong rounded-3xl p-6 md:p-8 <?php echo $selectedMethod === 'pickup' ? 'hidden' : ''; ?>">
                     <h2 class="text-xl font-bold text-charcoal-900 mb-6 flex items-center gap-3">
                         <span class="step-number w-8 h-8 rounded-full bg-folly/10 text-folly flex items-center justify-center text-sm font-bold">3</span>
                         Shipping Address
@@ -673,7 +673,7 @@ include 'includes/header.php';
                 </div>
 
                 <!-- Payment Method -->
-                <div class="checkout-step bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8">
+                <div class="checkout-step glass-strong rounded-3xl p-6 md:p-8">
                     <h2 class="text-xl font-bold text-charcoal-900 mb-6 flex items-center gap-3">
                         <span class="step-number w-8 h-8 rounded-full bg-folly/10 text-folly flex items-center justify-center text-sm font-bold"><?php echo $selectedMethod === 'pickup' ? '3' : '4'; ?></span>
                         Payment Method
@@ -822,7 +822,7 @@ include 'includes/header.php';
                 </div>
 
                 <!-- Special Instructions -->
-                <div class="checkout-step bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8">
+                <div class="checkout-step glass-strong rounded-3xl p-6 md:p-8">
                     <h2 class="text-xl font-bold text-charcoal-900 mb-6 flex items-center gap-3">
                         <span class="step-number w-8 h-8 rounded-full bg-folly/10 text-folly flex items-center justify-center text-sm font-bold"><?php echo $selectedMethod === 'pickup' ? '4' : '5'; ?></span>
                         Special Instructions
@@ -839,7 +839,7 @@ include 'includes/header.php';
 
             <!-- Right Column: Order Summary -->
             <div class="lg:col-span-1 lg:self-start">
-                <div class="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8 lg:sticky md:sticky top-6 lg:top-8">
+                <div class="glass-strong rounded-3xl p-6 md:p-8 lg:sticky md:sticky top-6 lg:top-8">
                     <h2 class="text-xl font-bold text-charcoal-900 mb-6">Order Summary</h2>
                     
                     <div class="space-y-4 mb-6 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
@@ -890,7 +890,7 @@ include 'includes/header.php';
                         </div>
                     </div>
 
-                    <button type="submit" id="submit-btn" class="w-full bg-charcoal-900 hover:bg-charcoal-800 text-white text-center font-bold py-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                    <button type="submit" id="submit-btn" class="w-full bg-gradient-to-r from-charcoal-900 to-charcoal-800 hover:from-folly hover:to-folly-500 text-white text-center font-semibold py-4 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-folly/25">
                         Complete Order
                     </button>
 

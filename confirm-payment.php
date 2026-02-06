@@ -63,7 +63,7 @@ include 'includes/header.php';
 ?>
 
 <!-- Breadcrumb -->
-<div class="bg-white border-b border-gray-100 py-4">
+<div class="bg-white/60 backdrop-blur-xl border-b border-white/30 py-4">
     <div class="container mx-auto px-4">
         <nav class="text-sm flex items-center space-x-2">
             <a href="<?php echo getBaseUrl(); ?>" class="text-gray-500 hover:text-folly transition-colors">Home</a>
@@ -95,12 +95,12 @@ include 'includes/header.php';
 </section>
 
 <!-- Content -->
-<section class="bg-gray-50 py-12 md:py-20">
+<section class="bg-gradient-to-b from-gray-50 to-white py-12 md:py-20">
     <div class="container mx-auto px-4">
         <div class="max-w-3xl mx-auto">
-            
+
             <!-- Next Steps -->
-            <div class="bg-white rounded-2xl shadow-soft border border-gray-100 p-8 mb-8">
+            <div class="glass-strong rounded-2xl shadow-soft p-8 mb-8">
                 <h2 class="text-xl font-bold text-charcoal-900 mb-6 font-display flex items-center gap-3">
                     <span class="w-8 h-8 bg-folly text-white rounded-full flex items-center justify-center text-sm">!</span>
                     What Happens Next?
@@ -143,7 +143,7 @@ include 'includes/header.php';
             </div>
             
             <!-- Order Details Summary -->
-            <div class="bg-white rounded-2xl shadow-soft border border-gray-100 overflow-hidden mb-8">
+            <div class="glass-strong rounded-2xl shadow-soft overflow-hidden mb-8">
                 <div class="p-6 border-b border-gray-100 bg-gray-50/50">
                     <h3 class="font-bold text-charcoal-900 font-display">Order Summary</h3>
                 </div>
@@ -171,11 +171,11 @@ include 'includes/header.php';
             
             <!-- Actions -->
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="<?php echo getBaseUrl('shop.php'); ?>" class="px-8 py-4 bg-folly text-white rounded-xl font-bold hover:bg-folly-600 transition-all shadow-lg hover:shadow-folly/30 flex items-center justify-center gap-2">
+                <a href="<?php echo getBaseUrl('shop.php'); ?>" class="px-8 py-4 bg-gradient-to-r from-folly to-folly-500 hover:from-folly-600 hover:to-folly text-white rounded-xl font-bold transition-all shadow-lg hover:shadow-folly/30 flex items-center justify-center gap-2">
                     <span>Continue Shopping</span>
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
                 </a>
-                <a href="mailto:<?php echo ADMIN_EMAIL; ?>" class="px-8 py-4 bg-white text-charcoal-900 border border-gray-200 rounded-xl font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
+                <a href="mailto:<?php echo ADMIN_EMAIL; ?>" class="px-8 py-4 glass text-charcoal-900 rounded-xl font-bold hover:shadow-lg transition-all flex items-center justify-center gap-2">
                     <span>Contact Support</span>
                 </a>
             </div>

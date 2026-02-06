@@ -55,7 +55,7 @@ include 'includes/header.php';
 ?>
 
 <!-- Breadcrumb -->
-<div class="bg-white border-b border-gray-100 py-4">
+<div class="bg-white/60 backdrop-blur-xl border-b border-white/30 py-4">
     <div class="container mx-auto px-4">
         <nav class="text-sm flex items-center space-x-2">
             <a href="<?php echo getBaseUrl(); ?>" class="text-gray-500 hover:text-folly transition-colors">Home</a>
@@ -63,7 +63,7 @@ include 'includes/header.php';
             <?php if ($selectedCategory): ?>
                 <a href="<?php echo getBaseUrl('shop.php'); ?>" class="text-gray-500 hover:text-folly transition-colors">Shop</a>
                 <span class="text-gray-300">/</span>
-                <?php 
+                <?php
                 $breadcrumb = getCategoryBreadcrumb($selectedCategory['id']);
                 foreach ($breadcrumb as $index => $crumb):
                     if ($index === count($breadcrumb) - 1): // Last item (current category)
@@ -82,7 +82,7 @@ include 'includes/header.php';
 </div>
 
 <!-- Shop Header -->
-<section class="relative bg-gray-50 py-16 md:py-24 overflow-hidden">
+<section class="relative bg-gradient-to-b from-gray-50 to-white py-16 md:py-24 overflow-hidden">
     <!-- Decorative Background Elements -->
     <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
         <div class="absolute -top-24 -right-24 w-96 h-96 bg-folly/5 rounded-full blur-3xl"></div>
@@ -91,21 +91,21 @@ include 'includes/header.php';
 
     <div class="container mx-auto px-4 relative z-10">
         <div class="text-center max-w-4xl mx-auto">
-            <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-charcoal-900 mb-6 tracking-tight">
+            <p class="text-xs font-semibold tracking-[0.2em] uppercase text-folly mb-4">Our Collection</p>
+            <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-charcoal-900 mb-6 tracking-tight font-display">
                 <?php echo $selectedCategory ? htmlspecialchars($selectedCategory['name']) : 'Shop All Products'; ?>
             </h1>
-            <div class="w-24 h-1.5 bg-gradient-to-r from-folly to-tangerine mx-auto rounded-full mb-8"></div>
-            <p class="text-lg text-charcoal-600 leading-relaxed">
-                <?php echo $selectedCategory ? htmlspecialchars($selectedCategory['description']) : 'Discover our complete collection of quality products designed to inspire and delight. Find exactly what you\'re looking for with our organized product collections.'; ?>
+            <p class="text-lg text-charcoal-500 leading-relaxed max-w-2xl mx-auto">
+                <?php echo $selectedCategory ? htmlspecialchars($selectedCategory['description']) : 'Discover our complete collection of quality products designed to inspire and delight.'; ?>
             </p>
-            
+
             <!-- Stats Badges -->
-            <div class="flex flex-wrap justify-center gap-4 mt-8">
-                <div class="inline-flex items-center px-4 py-2 bg-white rounded-full shadow-sm border border-gray-100 text-sm font-medium text-charcoal-600">
+            <div class="flex flex-wrap justify-center gap-3 mt-8">
+                <div class="glass inline-flex items-center px-4 py-2 rounded-full text-sm font-medium text-charcoal-600">
                     <span class="w-2 h-2 bg-folly rounded-full mr-2"></span>
-                    <?php echo $totalProducts; ?> Products Available
+                    <?php echo $totalProducts; ?> Products
                 </div>
-                <div class="inline-flex items-center px-4 py-2 bg-white rounded-full shadow-sm border border-gray-100 text-sm font-medium text-charcoal-600">
+                <div class="glass inline-flex items-center px-4 py-2 rounded-full text-sm font-medium text-charcoal-600">
                     <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                     Quality Guaranteed
                 </div>
@@ -117,9 +117,9 @@ include 'includes/header.php';
 <!-- Main Content -->
 <section class="py-12 bg-white">
     <div class="container mx-auto px-4">
-        
+
         <!-- Filters Bar -->
-        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-12 -mt-20 relative z-20">
+        <div class="glass-strong rounded-2xl p-6 mb-12 -mt-20 relative z-20">
             <form method="GET" action="<?php echo getBaseUrl('shop.php'); ?>" class="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
                 <!-- Search -->
                 <div class="md:col-span-5">
@@ -170,7 +170,7 @@ include 'includes/header.php';
                 
                 <!-- Submit -->
                 <div class="md:col-span-2">
-                    <button type="submit" class="w-full bg-charcoal-900 hover:bg-folly text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2">
+                    <button type="submit" class="w-full bg-gradient-to-r from-folly to-folly-500 hover:from-folly-500 hover:to-folly text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-folly/25 flex items-center justify-center gap-2">
                         <span>Filter</span>
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
                     </button>
@@ -241,14 +241,11 @@ include 'includes/header.php';
                                  <?php endif; ?>>
                             
                             <!-- Quick Actions (Hidden on mobile) -->
-                            <div class="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 flex gap-2 hidden md:flex z-20">
-                                <button onclick="addToCart(<?php echo $product['id']; ?>)" class="flex-1 bg-white text-charcoal-900 font-semibold py-3 rounded-xl hover:bg-folly hover:text-white transition-colors shadow-lg text-sm flex items-center justify-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m-.4-5L2 1m5 12v2a2 2 0 002 2h10a2 2 0 002-2v-2m-6 4h.01M9 19h.01"></path></svg>
-                                    Add
+                            <div class="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 hidden md:flex z-20">
+                                <button onclick="addToCart(<?php echo $product['id']; ?>)" class="flex-1 glass-strong text-charcoal-900 font-semibold py-3 rounded-xl hover:bg-folly hover:text-white hover:border-folly transition-all text-sm flex items-center justify-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                                    Add to Cart
                                 </button>
-                                <a href="<?php echo getBaseUrl('product.php?slug=' . $product['slug']); ?>" class="w-12 bg-white text-charcoal-900 rounded-xl hover:bg-charcoal-900 hover:text-white transition-colors shadow-lg flex items-center justify-center" title="View Details">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                </a>
                             </div>
                         </div>
                         

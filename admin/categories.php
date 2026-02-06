@@ -14,6 +14,7 @@ if (!isset($_SESSION['admin_logged_in'])) {
 
 // Include main functions
 require_once '../includes/functions.php';
+require_once '../includes/admin_helpers.php';
 
 // CSRF token setup
 if (!isset($_SESSION['admin_csrf_token'])) {
@@ -36,8 +37,8 @@ function isDescendantOf($categoryId, $potentialAncestorId, $categories) {
 }
 
 // Load data
-$categories = json_decode(file_get_contents('../data/categories.json'), true) ?? [];
-$products = json_decode(file_get_contents('../data/products.json'), true) ?? [];
+$categories = adminGetAllCategories();
+$products = adminGetAllProducts();
 
 // Add parent_id to existing categories if not present
 $updated = false;

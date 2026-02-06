@@ -31,6 +31,10 @@ $hasAbsoluteBase = (strpos($baseUrl, 'http') === 0);
 
 // Get all active products and categories
 $products = readJsonFile('products.json');
+// Newest first (created_at if present, else id)
+usort($products, function($a, $b) {
+    return getProductSortTimestamp($b) <=> getProductSortTimestamp($a);
+});
 $categories = getAllCategories(); // Include inactive for proper mapping
 $categories = is_array($categories) ? $categories : [];
 

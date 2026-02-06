@@ -163,6 +163,19 @@ function getCategories() {
     return $active;
 }
 
+/**
+ * Sort key for "newest first": use created_at if present, else id (higher = newer).
+ */
+function getProductSortTimestamp($product) {
+    if (!empty($product['created_at'])) {
+        $ts = strtotime($product['created_at']);
+        if ($ts !== false) {
+            return $ts;
+        }
+    }
+    return (int)($product['id'] ?? 0);
+}
+
 function getProducts($categoryId = null, $featured = null, $limit = null) {
     if (isMySQLBackend()) {
         return ProductRepository::getAll($categoryId, $featured, $limit);
@@ -188,6 +201,11 @@ function getProducts($categoryId = null, $featured = null, $limit = null) {
             return $product['featured'] == $featured;
         });
     }
+
+    // Sort newest first (created_at if present, else id)
+    usort($products, function($a, $b) {
+        return getProductSortTimestamp($b) <=> getProductSortTimestamp($a);
+    });
 
     // Apply limit
     if ($limit !== null) {
@@ -463,14 +481,14 @@ function getShippingSettings(): array {
     return $shipping;
 }
 
-function isPickupEnabled(array $shipping = null): bool {
+function isPickupEnabled(?array $shipping = null): bool {
     if ($shipping === null) {
         $shipping = getShippingSettings();
     }
     return (bool)($shipping['enable_pickup'] ?? false);
 }
 
-function getDefaultShippingMethod(array $shipping = null): string {
+function getDefaultShippingMethod(?array $shipping = null): string {
     if ($shipping === null) {
         $shipping = getShippingSettings();
     }
@@ -489,7 +507,7 @@ function getDefaultShippingMethod(array $shipping = null): string {
     return in_array($method, ['delivery', 'pickup'], true) ? $method : ($deliveryOn ? 'delivery' : 'pickup');
 }
 
-function validateShippingMethod(?string $method, array $shipping = null): string {
+function validateShippingMethod(?string $method, ?array $shipping = null): string {
     $method = strtolower(trim((string)$method));
     if ($shipping === null) {
         $shipping = getShippingSettings();
@@ -505,7 +523,7 @@ function validateShippingMethod(?string $method, array $shipping = null): string
     return getDefaultShippingMethod($shipping);
 }
 
-function computeShippingCost(float $subtotal, ?string $currencyCode, string $method = 'delivery', array $shipping = null): float {
+function computeShippingCost(float $subtotal, ?string $currencyCode, string $method = 'delivery', ?array $shipping = null): float {
     if ($shipping === null) {
         $shipping = getShippingSettings();
     }
@@ -527,7 +545,7 @@ function computeShippingCost(float $subtotal, ?string $currencyCode, string $met
     return (float)$standardShippingCost;
 }
 
-function isAddressRequiredForMethod(string $method, array $shipping = null): bool {
+function isAddressRequiredForMethod(string $method, ?array $shipping = null): bool {
     $method = validateShippingMethod($method, $shipping ?? getShippingSettings());
     return $method === 'delivery';
 }
@@ -1788,21 +1806,22 @@ function getTotalProductCountForCategory($categoryId) {
 }
 
 /**
- * Get latest products added to the store
+ * Get latest products added to the store (newest first).
+ * Adds category_name for display (e.g. homepage hero).
  */
 function getLatestProducts($limit = 6) {
     if (isMySQLBackend()) {
         return ProductRepository::getLatest($limit);
     }
 
-    $products = getProducts(); // Get all products
-
-    // Sort by ID descending (assuming higher ID = newer)
-    usort($products, function($a, $b) {
-        return $b['id'] <=> $a['id'];
-    });
-
-    return array_slice($products, 0, $limit);
+    $products = getProducts(); // Already sorted newest first
+    $products = array_slice($products, 0, $limit);
+    foreach ($products as &$p) {
+        $cat = getCategoryById($p['category_id'] ?? 0);
+        $p['category_name'] = $cat ? ($cat['name'] ?? '') : '';
+    }
+    unset($p);
+    return $products;
 }
 
 /**
@@ -1840,6 +1859,11 @@ function getProductsFromCategoryTree($categoryId, $featured = null, $limit = nul
         $featuredMatch = ($featured === null) || ($product['featured'] == $featured);
 
         return $categoryMatch && $activeMatch && $featuredMatch;
+    });
+
+    // Sort newest first (created_at if present, else id)
+    usort($products, function($a, $b) {
+        return getProductSortTimestamp($b) <=> getProductSortTimestamp($a);
     });
 
     // Apply limit

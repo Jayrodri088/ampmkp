@@ -13,7 +13,7 @@ $selectedCurrency = getSelectedCurrency();
 // Get filter parameters
 $categorySlug = $_GET['category'] ?? null;
 $searchQuery = $_GET['search'] ?? '';
-$sortBy = $_GET['sort'] ?? 'name';
+$sortBy = $_GET['sort'] ?? 'newest';
 $page = max(1, intval($_GET['page'] ?? 1));
 $itemsPerPage = $settings['items_per_page'] ?? 12;
 
@@ -32,8 +32,11 @@ if (!empty($searchQuery)) {
     $products = getProducts($selectedCategory ? $selectedCategory['id'] : null);
 }
 
-// Sort products
+// Sort products (newest first by default)
 switch ($sortBy) {
+    case 'newest':
+        usort($products, function($a, $b) { return getProductSortTimestamp($b) <=> getProductSortTimestamp($a); });
+        break;
     case 'price_low':
         usort($products, function($a, $b) { return $a['price'] <=> $b['price']; });
         break;
@@ -158,6 +161,7 @@ include 'includes/header.php';
                     <label class="block text-xs font-bold text-charcoal-500 uppercase tracking-wider mb-2">Sort By</label>
                     <div class="relative">
                         <select name="sort" class="w-full pl-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-folly focus:border-folly transition-all appearance-none">
+                            <option value="newest" <?php echo $sortBy === 'newest' ? 'selected' : ''; ?>>Newest first</option>
                             <option value="name" <?php echo $sortBy === 'name' ? 'selected' : ''; ?>>Name (A-Z)</option>
                             <option value="price_low" <?php echo $sortBy === 'price_low' ? 'selected' : ''; ?>>Price (Low-High)</option>
                             <option value="price_high" <?php echo $sortBy === 'price_high' ? 'selected' : ''; ?>>Price (High-Low)</option>
@@ -180,7 +184,7 @@ include 'includes/header.php';
             </form>
             
             <!-- Active Filters -->
-            <?php if ($searchQuery || $categorySlug || $sortBy !== 'name'): ?>
+            <?php if ($searchQuery || $categorySlug || $sortBy !== 'newest'): ?>
                 <div class="mt-6 pt-6 border-t border-gray-100 flex flex-wrap items-center gap-3">
                     <span class="text-sm text-gray-500 font-medium">Active Filters:</span>
                     <?php if ($searchQuery): ?>

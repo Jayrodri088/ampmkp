@@ -407,14 +407,14 @@ function getShippingSettings(): array {
     return $shipping;
 }
 
-function isPickupEnabled(array $shipping = null): bool {
+function isPickupEnabled(?array $shipping = null): bool {
     if ($shipping === null) {
         $shipping = getShippingSettings();
     }
     return (bool)($shipping['enable_pickup'] ?? false);
 }
 
-function getDefaultShippingMethod(array $shipping = null): string {
+function getDefaultShippingMethod(?array $shipping = null): string {
     if ($shipping === null) {
         $shipping = getShippingSettings();
     }
@@ -433,7 +433,7 @@ function getDefaultShippingMethod(array $shipping = null): string {
     return in_array($method, ['delivery', 'pickup'], true) ? $method : ($deliveryOn ? 'delivery' : 'pickup');
 }
 
-function validateShippingMethod(?string $method, array $shipping = null): string {
+function validateShippingMethod(?string $method, ?array $shipping = null): string {
     $method = strtolower(trim((string)$method));
     if ($shipping === null) {
         $shipping = getShippingSettings();
@@ -449,7 +449,7 @@ function validateShippingMethod(?string $method, array $shipping = null): string
     return getDefaultShippingMethod($shipping);
 }
 
-function computeShippingCost(float $subtotal, ?string $currencyCode, string $method = 'delivery', array $shipping = null): float {
+function computeShippingCost(float $subtotal, ?string $currencyCode, string $method = 'delivery', ?array $shipping = null): float {
     if ($shipping === null) {
         $shipping = getShippingSettings();
     }
@@ -471,7 +471,7 @@ function computeShippingCost(float $subtotal, ?string $currencyCode, string $met
     return (float)$standardShippingCost;
 }
 
-function isAddressRequiredForMethod(string $method, array $shipping = null): bool {
+function isAddressRequiredForMethod(string $method, ?array $shipping = null): bool {
     $method = validateShippingMethod($method, $shipping ?? getShippingSettings());
     return $method === 'delivery';
 }

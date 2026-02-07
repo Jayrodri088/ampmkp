@@ -311,7 +311,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'country' => $customerData['country'] ?? ''
                 ]
             ];
-            
+            if (function_exists('isCustomerLoggedIn') && isCustomerLoggedIn() && function_exists('getLoggedInCustomerId')) {
+                $cid = getLoggedInCustomerId();
+                if ($cid !== null) {
+                    $orderData['customer_id'] = $cid;
+                }
+            }
+
             // Save order
             $orders = readJsonFile('orders.json');
             $orders[] = $orderData;
@@ -384,6 +390,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Content-Type: application/json');
         echo json_encode(['success' => false, 'error' => $error]);
         exit;
+    }
+}
+
+// Default customer form data when not POST (or when re-displaying after error)
+if (!isset($customerData)) {
+    $customerData = [
+        'email' => '',
+        'first_name' => '',
+        'last_name' => '',
+        'phone' => '',
+        'countryCode' => '+44',
+        'address' => '',
+        'city' => '',
+        'postal_code' => '',
+        'country' => '',
+        'payment_method' => '',
+        'special_instructions' => '',
+        'selected_currency' => $selectedCurrency,
+        'account_holder' => ''
+    ];
+    // Prefill from account when logged in (email, name, saved address)
+    if (function_exists('isCustomerLoggedIn') && isCustomerLoggedIn() && function_exists('getLoggedInCustomerEmail')) {
+        $customerEmail = getLoggedInCustomerEmail();
+        if ($customerEmail && function_exists('getCheckoutPrefillForCustomer')) {
+            $prefill = getCheckoutPrefillForCustomer($customerEmail);
+            $customerData['email'] = $prefill['email'] ?? $customerData['email'];
+            $customerData['first_name'] = $prefill['first_name'] ?? '';
+            $customerData['last_name'] = $prefill['last_name'] ?? '';
+            $customerData['address'] = $prefill['address'] ?? '';
+            $customerData['city'] = $prefill['city'] ?? '';
+            $customerData['postal_code'] = $prefill['postal_code'] ?? '';
+            $customerData['country'] = $prefill['country'] ?? '';
+        } else {
+            $customerData['email'] = (string) $customerEmail;
+        }
     }
 }
 

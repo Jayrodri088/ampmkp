@@ -1915,6 +1915,8 @@ function createAccount($email) {
     $account = [
         'id' => $newId,
         'email' => $email,
+        'name' => '',
+        'addresses' => [],
         'created_at' => date('Y-m-d H:i:s'),
         'last_login_at' => null
     ];
@@ -2016,6 +2018,128 @@ function getLoggedInCustomerEmail() {
         return null;
     }
     return $_SESSION['customer_email'] ?? null;
+}
+
+/**
+ * Get a single order by ID (JSON or MySQL backend).
+ * @return array|null Order array or null if not found.
+ */
+function getOrderById($id) {
+    if (empty($id)) {
+        return null;
+    }
+    if (isMySQLBackend() && class_exists('OrderRepository')) {
+        return OrderRepository::getById((string)$id);
+    }
+    $orders = readJsonFile('orders.json');
+    foreach ($orders as $o) {
+        if (($o['id'] ?? '') === (string)$id) {
+            return $o;
+        }
+    }
+    return null;
+}
+
+/**
+ * Get orders for a customer by email (JSON or MySQL backend).
+ * @return array List of orders, newest first.
+ */
+function getOrdersForCustomer($email) {
+    $email = strtolower(trim($email));
+    if ($email === '') {
+        return [];
+    }
+    if (isMySQLBackend() && class_exists('OrderRepository')) {
+        return OrderRepository::getByEmail($email);
+    }
+    $orders = readJsonFile('orders.json');
+    $out = [];
+    foreach ($orders as $o) {
+        if (strtolower(trim((string)($o['customer_email'] ?? ''))) === $email) {
+            $out[] = $o;
+        }
+    }
+    usort($out, function ($a, $b) {
+        $da = strtotime($a['date'] ?? $a['created_at'] ?? '0');
+        $db = strtotime($b['date'] ?? $b['created_at'] ?? '0');
+        return $db <=> $da;
+    });
+    return $out;
+}
+
+/**
+ * Update account fields (name, addresses). Merges into existing account.
+ * @param string $email Account email
+ * @param array $data Keys: name, addresses (array of address arrays)
+ * @return bool
+ */
+function updateAccount($email, array $data) {
+    $email = strtolower(trim($email));
+    $accounts = readJsonFile('accounts.json');
+    foreach ($accounts as $i => $acc) {
+        if (strtolower((string)($acc['email'] ?? '')) === $email) {
+            if (array_key_exists('name', $data)) {
+                $accounts[$i]['name'] = trim((string)$data['name']);
+            }
+            if (array_key_exists('addresses', $data) && is_array($data['addresses'])) {
+                $accounts[$i]['addresses'] = $data['addresses'];
+            }
+            return writeJsonFile('accounts.json', $accounts);
+        }
+    }
+    return false;
+}
+
+/**
+ * Get default or first saved address for an account.
+ * @return array|null Address with keys line1, line2, city, postcode, country, or null.
+ */
+function getDefaultAddressForAccount($email) {
+    $account = getAccountByEmail($email);
+    if (!$account || empty($account['addresses']) || !is_array($account['addresses'])) {
+        return null;
+    }
+    foreach ($account['addresses'] as $addr) {
+        if (!empty($addr['is_default'])) {
+            return $addr;
+        }
+    }
+    return $account['addresses'][0] ?? null;
+}
+
+/**
+ * Get customer data for checkout prefill (email, name, default address).
+ * Returns array with email, first_name, last_name, phone, address, city, postal_code, country.
+ */
+function getCheckoutPrefillForCustomer($email) {
+    $prefill = [
+        'email' => $email,
+        'first_name' => '',
+        'last_name' => '',
+        'phone' => '',
+        'address' => '',
+        'city' => '',
+        'postal_code' => '',
+        'country' => ''
+    ];
+    $account = getAccountByEmail($email);
+    if (!$account) {
+        return $prefill;
+    }
+    $name = trim((string)($account['name'] ?? ''));
+    if ($name !== '') {
+        $parts = explode(' ', $name, 2);
+        $prefill['first_name'] = $parts[0] ?? '';
+        $prefill['last_name'] = $parts[1] ?? '';
+    }
+    $addr = getDefaultAddressForAccount($email);
+    if ($addr) {
+        $prefill['address'] = trim((string)($addr['line1'] ?? ''));
+        $prefill['city'] = trim((string)($addr['city'] ?? ''));
+        $prefill['postal_code'] = trim((string)($addr['postcode'] ?? ''));
+        $prefill['country'] = trim((string)($addr['country'] ?? ''));
+    }
+    return $prefill;
 }
 
 // Newsletter Functions

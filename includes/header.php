@@ -591,7 +591,7 @@ function renderNavCategoryHierarchy($categories, $isMobile = false, $level = 0) 
                             <a href="<?php echo getBaseUrl('about.php'); ?>" class="nav-link-underline px-4 py-2.5 text-sm font-medium text-charcoal-600 hover:text-folly transition-all duration-300 tracking-wide">About Us</a>
                             <a href="<?php echo getBaseUrl('contact.php'); ?>" class="nav-link-underline px-4 py-2.5 text-sm font-medium text-charcoal-600 hover:text-folly transition-all duration-300 tracking-wide">Contact Us</a>
                             <?php if ($customerLoggedIn): ?>
-                            <a href="<?php echo getBaseUrl(); ?>" class="nav-link-underline px-4 py-2.5 text-sm font-medium text-charcoal-600 hover:text-folly transition-all duration-300 tracking-wide">My account</a>
+                            <a href="<?php echo getBaseUrl('account/'); ?>" class="nav-link-underline px-4 py-2.5 text-sm font-medium text-charcoal-600 hover:text-folly transition-all duration-300 tracking-wide">My account</a>
                             <a href="<?php echo getBaseUrl('logout.php'); ?>" class="nav-link-underline px-4 py-2.5 text-sm font-medium text-charcoal-600 hover:text-folly transition-all duration-300 tracking-wide">Log out</a>
                             <?php else: ?>
                             <a href="<?php echo getBaseUrl('login.php'); ?>" class="nav-link-underline px-4 py-2.5 text-sm font-medium text-charcoal-600 hover:text-folly transition-all duration-300 tracking-wide">Log in</a>
@@ -653,7 +653,7 @@ function renderNavCategoryHierarchy($categories, $isMobile = false, $level = 0) 
             <a href="<?php echo getBaseUrl('about.php'); ?>" class="block px-4 py-3 text-[15px] font-medium text-charcoal-700 hover:text-folly hover:bg-folly/5 rounded-xl transition-all duration-200">About Us</a>
             <a href="<?php echo getBaseUrl('contact.php'); ?>" class="block px-4 py-3 text-[15px] font-medium text-charcoal-700 hover:text-folly hover:bg-folly/5 rounded-xl transition-all duration-200">Contact Us</a>
             <?php if ($customerLoggedIn): ?>
-            <a href="<?php echo getBaseUrl(); ?>" class="block px-4 py-3 text-[15px] font-medium text-charcoal-700 hover:text-folly hover:bg-folly/5 rounded-xl transition-all duration-200">My account</a>
+            <a href="<?php echo getBaseUrl('account/'); ?>" class="block px-4 py-3 text-[15px] font-medium text-charcoal-700 hover:text-folly hover:bg-folly/5 rounded-xl transition-all duration-200">My account</a>
             <a href="<?php echo getBaseUrl('logout.php'); ?>" class="block px-4 py-3 text-[15px] font-medium text-charcoal-700 hover:text-folly hover:bg-folly/5 rounded-xl transition-all duration-200">Log out</a>
             <?php else: ?>
             <a href="<?php echo getBaseUrl('login.php'); ?>" class="block px-4 py-3 text-[15px] font-medium text-charcoal-700 hover:text-folly hover:bg-folly/5 rounded-xl transition-all duration-200">Log in</a>

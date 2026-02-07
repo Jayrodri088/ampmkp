@@ -333,7 +333,9 @@ function sendLoginCode($email, $code) {
     </body>
     </html>
     ";
-    if (defined('PHPMAILER_LOADED') && PHPMAILER_LOADED) {
+    $usePhpMailer = defined('PHPMAILER_LOADED') && PHPMAILER_LOADED && SMTP_USERNAME !== '' && SMTP_PASSWORD !== '';
+
+    if ($usePhpMailer) {
         try {
             $mail = new PHPMailer(true);
             $mail->isSMTP();
@@ -343,21 +345,41 @@ function sendLoginCode($email, $code) {
             $mail->Password = SMTP_PASSWORD;
             $mail->SMTPSecure = SMTP_ENCRYPTION;
             $mail->Port = SMTP_PORT;
-            $mail->setFrom(NOREPLY_EMAIL, 'Angel Marketplace');
+            $mail->setFrom(NOREPLY_EMAIL, MAIL_FROM_NAME);
             $mail->addAddress($email);
-            $mail->addReplyTo(NOREPLY_EMAIL, 'Angel Marketplace');
+            $mail->addReplyTo(NOREPLY_EMAIL, MAIL_FROM_NAME);
             $mail->isHTML(true);
             $mail->Subject = $subject;
             $mail->Body = $body;
             $mail->AltBody = strip_tags(str_replace('<br>', "\n", $body));
             $mail->send();
             return true;
-        } catch (Exception $e) {
-            error_log("PHPMailer Error (login code): " . $e->getMessage());
-            return sendMailFallback($email, $subject, $body);
+        } catch (\Throwable $e) {
+            $msg = 'Login code PHPMailer: ' . $e->getMessage();
+            error_log($msg);
+            if (function_exists('logError')) {
+                logError($msg);
+            }
+            $fallback = sendMailFallback($email, $subject, $body);
+            if (!$fallback && function_exists('logError')) {
+                logError('Login code: sendMailFallback failed for ' . $email);
+            }
+            return $fallback;
         }
     }
-    return sendMailFallback($email, $subject, $body);
+
+    if (function_exists('logError')) {
+        if (!defined('PHPMAILER_LOADED') || !PHPMAILER_LOADED) {
+            logError('Login code: PHPMailer not loaded (vendor/autoload or lib/PHPMailer)');
+        } elseif (SMTP_USERNAME === '' || SMTP_PASSWORD === '') {
+            logError('Login code: SMTP credentials empty (check .env MAIL_SMTP_USERNAME, MAIL_SMTP_PASSWORD)');
+        }
+    }
+    $fallbackOk = sendMailFallback($email, $subject, $body);
+    if (!$fallbackOk && function_exists('logError')) {
+        logError('Login code: PHP mail() fallback failed for ' . $email);
+    }
+    return $fallbackOk;
 }
 
 /**

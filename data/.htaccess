@@ -1,0 +1,126 @@
+RewriteEngine On
+
+# Enable the rewrite engine
+Options +FollowSymLinks -MultiViews
+
+# Environment detection - set environment variable
+# You can override this in your hosting provider's control panel or server config
+# Default to production for security
+SetEnvIf HTTP_HOST ^localhost ENVIRONMENT=development
+SetEnvIf HTTP_HOST ^127\.0\.0\.1 ENVIRONMENT=development
+SetEnvIf HTTP_HOST ^.*\.local$ ENVIRONMENT=development
+SetEnvIf HTTP_HOST ^.*\.test$ ENVIRONMENT=development
+SetEnvIf HTTP_HOST ^veedcos\.net$ ENVIRONMENT=production
+SetEnvIf HTTP_HOST ^www\.veedcos\.net$ ENVIRONMENT=production
+
+# Default to production if no match
+SetEnvIfNoCase ENVIRONMENT ^$ ENVIRONMENT=production
+
+# Force HTTPS in production
+RewriteCond %{ENV:ENVIRONMENT} =production
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Force WWW in production (optional - uncomment if you want www)
+# RewriteCond %{ENV:ENVIRONMENT} =production
+# RewriteCond %{HTTP_HOST} !^www\. [NC]
+# RewriteRule ^(.*)$ https://www.%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Exclude API and cart-related paths from rewriting
+RewriteCond %{REQUEST_URI} !^/api/ [NC]
+RewriteCond %{REQUEST_URI} !^/cart\.php [NC]
+RewriteCond %{REQUEST_URI} !^/checkout\.php [NC]
+RewriteCond %{REQUEST_URI} !^/admin/ [NC]
+
+# Handle product pages - flexible for both environments
+RewriteRule ^product/([0-9]+)/?$ product.php?id=$1 [L,QSA]
+
+# Handle category pages - flexible for both environments
+RewriteRule ^category/([^/]+)/?$ category.php?category=$1 [L,QSA]
+
+# Remove .php extension from URLs (only for non-API and non-cart pages)
+RewriteCond %{REQUEST_URI} !^/api/ [NC]
+RewriteCond %{REQUEST_URI} !^/cart\.php [NC]
+RewriteCond %{REQUEST_URI} !^/checkout\.php [NC]
+RewriteCond %{REQUEST_URI} !^/admin/ [NC]
+RewriteCond %{THE_REQUEST} ^[A-Z]{3,}\s([^.]+)\.php [NC]
+RewriteRule ^ %1 [R=301,L]
+
+# Handle front controller (only for non-API and non-cart pages)
+RewriteCond %{REQUEST_URI} !^/api/ [NC]
+RewriteCond %{REQUEST_URI} !^/cart\.php [NC]
+RewriteCond %{REQUEST_URI} !^/checkout\.php [NC]
+RewriteCond %{REQUEST_URI} !^/admin/ [NC]
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}\.php -f
+RewriteRule ^(.*)$ $1.php [L]
+
+# Redirect to remove trailing slashes
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)/$ /$1 [R=301,L]
+
+# Security - prevent access to sensitive files
+<FilesMatch "\.(json|env|log|sql|md|gitignore|gitattributes|lock|dist|config)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Additional security for production
+<FilesMatch "^(composer\.|package\.|\.env|config\.php|settings\.php)">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Security - prevent directory listing
+Options -Indexes
+
+# Set default charset
+AddDefaultCharset UTF-8
+
+# Enable compression for better performance
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css application/javascript application/x-javascript application/json
+    AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+# Set cache control for static files - more aggressive caching in production
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType application/x-javascript "access plus 1 month"
+    ExpiresByType image/x-icon "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresDefault "access plus 2 days"
+</IfModule>
+
+# Security headers for production
+<IfModule mod_headers.c>
+    # Security headers
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-Frame-Options DENY
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    
+    # HSTS for production (uncomment when ready)
+    # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" env=ENVIRONMENT=production
+</IfModule>
+
+<Files ".htaccess">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# Environment-specific error pages
+# In development, show detailed errors
+# In production, show user-friendly pages
+ErrorDocument 404 /404.php
+ErrorDocument 500 /500.php

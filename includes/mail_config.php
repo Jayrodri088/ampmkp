@@ -2,11 +2,15 @@
 /**
  * Mail Configuration
  * This file contains email configuration settings and functions for sending emails
- * 
+ *
  * IMPORTANT: To use this file, you need to install PHPMailer:
  * 1. Run: composer require phpmailer/phpmailer
  * 2. Or download from: https://github.com/PHPMailer/PHPMailer
+ *
+ * For IDE type resolution, see stubs/PHPMailer.php (do not require at runtime).
  */
+
+use PHPMailer\PHPMailer\PHPMailer;
 
 // Email server settings
 define('SMTP_HOST', 'smtp.hostinger.com');
@@ -118,7 +122,7 @@ function sendContactEmailToAdmin($name, $email, $phone, $message) {
     // Try to use PHPMailer if available
     if (defined('PHPMAILER_LOADED') && PHPMAILER_LOADED) {
         try {
-            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+            $mail = new PHPMailer(true);
             
             // Server settings
             $mail->isSMTP();
@@ -199,7 +203,7 @@ function sendContactConfirmationToSender($name, $email) {
     // Try to use PHPMailer if available
     if (defined('PHPMAILER_LOADED') && PHPMAILER_LOADED) {
         try {
-            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+            $mail = new PHPMailer(true);
             
             // Server settings
             $mail->isSMTP();
@@ -254,6 +258,67 @@ function sendNewsletterConfirmation($email) {
 }
 
 /**
+ * Send login code email for passwordless customer sign-in
+ *
+ * @param string $email Customer's email
+ * @param string $code 6-digit code
+ * @return bool Whether the email was sent successfully
+ */
+function sendLoginCode($email, $code) {
+    $subject = 'Your Angel Marketplace login code';
+    $body = "
+    <html>
+    <head>
+        <title>Your Login Code</title>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            h2 { color: #FF0055; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+            .code { font-size: 24px; font-weight: bold; letter-spacing: 4px; padding: 12px 20px; background: #f5f5f5; border-radius: 8px; margin: 16px 0; }
+            .footer { margin-top: 20px; font-size: 12px; color: #777; }
+        </style>
+    </head>
+    <body>
+        <div class='container'>
+            <h2>Your login code</h2>
+            <p>Use this code to sign in to your Angel Marketplace account:</p>
+            <div class='code'>" . htmlspecialchars($code) . "</div>
+            <p>This code expires in 15 minutes. If you did not request it, you can ignore this email.</p>
+            <div class='footer'>
+                <p>© " . date('Y') . " Angel Marketplace. All rights reserved.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    ";
+    if (defined('PHPMAILER_LOADED') && PHPMAILER_LOADED) {
+        try {
+            $mail = new PHPMailer(true);
+            $mail->isSMTP();
+            $mail->Host = SMTP_HOST;
+            $mail->SMTPAuth = true;
+            $mail->Username = SMTP_USERNAME;
+            $mail->Password = SMTP_PASSWORD;
+            $mail->SMTPSecure = SMTP_ENCRYPTION;
+            $mail->Port = SMTP_PORT;
+            $mail->setFrom(NOREPLY_EMAIL, 'Angel Marketplace');
+            $mail->addAddress($email);
+            $mail->addReplyTo(NOREPLY_EMAIL, 'Angel Marketplace');
+            $mail->isHTML(true);
+            $mail->Subject = $subject;
+            $mail->Body = $body;
+            $mail->AltBody = strip_tags(str_replace('<br>', "\n", $body));
+            $mail->send();
+            return true;
+        } catch (Exception $e) {
+            error_log("PHPMailer Error (login code): " . $e->getMessage());
+            return sendMailFallback($email, $subject, $body);
+        }
+    }
+    return sendMailFallback($email, $subject, $body);
+}
+
+/**
  * Send confirmation email to newsletter subscriber
  * 
  * @param string $email Subscriber's email
@@ -297,7 +362,7 @@ function sendNewsletterEmailToSubscriber($email) {
     // Try to use PHPMailer if available
     if (defined('PHPMAILER_LOADED') && PHPMAILER_LOADED) {
         try {
-            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+            $mail = new PHPMailer(true);
             
             // Server settings
             $mail->isSMTP();
@@ -373,7 +438,7 @@ function sendNewsletterNotificationToAdmin($email) {
     // Try to use PHPMailer if available
     if (defined('PHPMAILER_LOADED') && PHPMAILER_LOADED) {
         try {
-            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+            $mail = new PHPMailer(true);
             
             // Server settings
             $mail->isSMTP();
@@ -476,7 +541,7 @@ function sendFestivalLeadEmail($name, $email, $phone) {
     $adminOk = false;
     if (defined('PHPMAILER_LOADED') && PHPMAILER_LOADED) {
         try {
-            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+            $mail = new PHPMailer(true);
             $mail->isSMTP();
             $mail->Host = SMTP_HOST;
             $mail->SMTPAuth = true;
@@ -538,7 +603,7 @@ function sendFestivalLeadEmail($name, $email, $phone) {
 
         if (defined('PHPMAILER_LOADED') && PHPMAILER_LOADED) {
             try {
-                $mail2 = new PHPMailer\PHPMailer\PHPMailer(true);
+                $mail2 = new PHPMailer(true);
                 $mail2->isSMTP();
                 $mail2->Host = SMTP_HOST;
                 $mail2->SMTPAuth = true;
@@ -747,7 +812,7 @@ function sendOrderConfirmationToCustomer(array $orderData, string $receiptUrl = 
 
     if (defined('PHPMAILER_LOADED') && PHPMAILER_LOADED) {
         try {
-            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+            $mail = new PHPMailer(true);
             $mail->isSMTP();
             $mail->Host = SMTP_HOST;
             $mail->SMTPAuth = true;
@@ -869,7 +934,7 @@ function sendOrderStatusUpdateToCustomer(array $orderData, string $newStatus): b
 
     if (defined('PHPMAILER_LOADED') && PHPMAILER_LOADED) {
         try {
-            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+            $mail = new PHPMailer(true);
             $mail->isSMTP();
             $mail->Host = SMTP_HOST;
             $mail->SMTPAuth = true;
@@ -908,7 +973,7 @@ function sendOrderNotificationToAdmin(array $orderData, string $receiptUrl = '',
 
     if (defined('PHPMAILER_LOADED') && PHPMAILER_LOADED) {
         try {
-            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+            $mail = new PHPMailer(true);
             $mail->isSMTP();
             $mail->Host = SMTP_HOST;
             $mail->SMTPAuth = true;
@@ -1096,7 +1161,7 @@ function sendPendingOrderNotificationToAdmin(array $orderData): bool {
 
     if (defined('PHPMAILER_LOADED') && PHPMAILER_LOADED) {
         try {
-            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+            $mail = new PHPMailer(true);
             $mail->isSMTP();
             $mail->Host = SMTP_HOST;
             $mail->SMTPAuth = true;
@@ -1303,7 +1368,7 @@ function sendPendingOrderConfirmationToCustomer(array $orderData): bool {
 
     if (defined('PHPMAILER_LOADED') && PHPMAILER_LOADED) {
         try {
-            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+            $mail = new PHPMailer(true);
             $mail->isSMTP();
             $mail->Host = SMTP_HOST;
             $mail->SMTPAuth = true;
@@ -1431,7 +1496,7 @@ function sendPaymentConfirmationToAdmin(array $orderData): bool {
 
     if (defined('PHPMAILER_LOADED') && PHPMAILER_LOADED) {
         try {
-            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+            $mail = new PHPMailer(true);
             $mail->isSMTP();
             $mail->Host = SMTP_HOST;
             $mail->SMTPAuth = true;
@@ -1537,7 +1602,7 @@ function sendPaymentStatusUpdateToCustomer(array $orderData, string $newPaymentS
 
     if (defined('PHPMAILER_LOADED') && PHPMAILER_LOADED) {
         try {
-            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+            $mail = new PHPMailer(true);
             $mail->isSMTP();
             $mail->Host = SMTP_HOST;
             $mail->SMTPAuth = true;

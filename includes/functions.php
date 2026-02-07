@@ -28,14 +28,16 @@ function isMySQLBackend(): bool {
     return getStorageBackend() === 'mysql';
 }
 
-// Include repository classes for MySQL backend
+// Include repository classes (always load so IDE resolves types; used only when STORAGE_BACKEND=mysql)
+require_once __DIR__ . '/repositories/ProductRepository.php';
+require_once __DIR__ . '/repositories/CategoryRepository.php';
+require_once __DIR__ . '/repositories/OrderRepository.php';
+require_once __DIR__ . '/repositories/RatingRepository.php';
+require_once __DIR__ . '/repositories/SettingsRepository.php';
 if (isMySQLBackend()) {
-    require_once __DIR__ . '/database.php';
-    require_once __DIR__ . '/repositories/ProductRepository.php';
-    require_once __DIR__ . '/repositories/CategoryRepository.php';
-    require_once __DIR__ . '/repositories/OrderRepository.php';
-    require_once __DIR__ . '/repositories/RatingRepository.php';
-    require_once __DIR__ . '/repositories/SettingsRepository.php';
+    if (file_exists(__DIR__ . '/database.php')) {
+        require_once __DIR__ . '/database.php';
+    }
 }
 
 /**
@@ -1872,6 +1874,148 @@ function getProductsFromCategoryTree($categoryId, $featured = null, $limit = nul
     }
 
     return array_values($products);
+}
+
+// Customer account (passwordless email + code) constants and helpers
+define('CUSTOMER_CODE_EXPIRY_SECONDS', 900);   // 15 minutes
+define('CUSTOMER_INACTIVITY_DAYS', 9);
+define('CUSTOMER_SESSION_COOKIE_DAYS', 30);
+
+/**
+ * Get customer account by email (normalized to lowercase).
+ */
+function getAccountByEmail($email) {
+    $accounts = readJsonFile('accounts.json');
+    $email = strtolower(trim($email));
+    foreach ($accounts as $account) {
+        if (strtolower((string)($account['email'] ?? '')) === $email) {
+            return $account;
+        }
+    }
+    return null;
+}
+
+/**
+ * Create a new customer account. Returns account array or false on failure.
+ */
+function createAccount($email) {
+    $email = strtolower(trim($email));
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return false;
+    }
+    if (getAccountByEmail($email)) {
+        return getAccountByEmail($email);
+    }
+    $accounts = readJsonFile('accounts.json');
+    $newId = 1;
+    if (!empty($accounts)) {
+        $ids = array_column($accounts, 'id');
+        $newId = (is_array($ids) && count($ids) > 0) ? (max(array_map('intval', $ids)) + 1) : 1;
+    }
+    $account = [
+        'id' => $newId,
+        'email' => $email,
+        'created_at' => date('Y-m-d H:i:s'),
+        'last_login_at' => null
+    ];
+    $accounts[] = $account;
+    if (!writeJsonFile('accounts.json', $accounts)) {
+        return false;
+    }
+    return $account;
+}
+
+/**
+ * Update account last_login_at.
+ */
+function updateAccountLastLogin($email) {
+    $email = strtolower(trim($email));
+    $accounts = readJsonFile('accounts.json');
+    foreach ($accounts as $i => $acc) {
+        if (strtolower((string)($acc['email'] ?? '')) === $email) {
+            $accounts[$i]['last_login_at'] = date('Y-m-d H:i:s');
+            return writeJsonFile('accounts.json', $accounts);
+        }
+    }
+    return false;
+}
+
+/**
+ * Create a one-time login code for email. Returns code string or false.
+ */
+function createEmailCode($email) {
+    $email = strtolower(trim($email));
+    $code = sprintf('%06d', random_int(0, 999999));
+    $expiresAt = time() + CUSTOMER_CODE_EXPIRY_SECONDS;
+    $codes = readJsonFile('email_codes.json');
+    // Remove any existing code for this email
+    $codes = array_values(array_filter($codes, function ($row) use ($email) {
+        return strtolower((string)($row['email'] ?? '')) !== $email;
+    }));
+    $codes[] = ['email' => $email, 'code' => $code, 'expires_at' => $expiresAt];
+    if (!writeJsonFile('email_codes.json', $codes)) {
+        return false;
+    }
+    return $code;
+}
+
+/**
+ * Validate code for email and consume it (remove). Returns true if valid.
+ */
+function validateAndConsumeEmailCode($email, $code) {
+    $email = strtolower(trim($email));
+    $code = trim((string)$code);
+    $codes = readJsonFile('email_codes.json');
+    $now = time();
+    $found = false;
+    $remaining = [];
+    foreach ($codes as $row) {
+        if (strtolower((string)($row['email'] ?? '')) === $email && (string)($row['code'] ?? '') === $code) {
+            if (($row['expires_at'] ?? 0) > $now) {
+                $found = true;
+            }
+            continue;
+        }
+        if (($row['expires_at'] ?? 0) > $now) {
+            $remaining[] = $row;
+        }
+    }
+    if ($found) {
+        writeJsonFile('email_codes.json', $remaining);
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Check if customer is logged in (session has customer_id and not expired by inactivity).
+ * Call after session_start(). Inactivity check is done in header.
+ */
+function isCustomerLoggedIn() {
+    if (session_status() === PHP_SESSION_NONE) {
+        return false;
+    }
+    return !empty($_SESSION['customer_id']) && !empty($_SESSION['customer_email']);
+}
+
+/**
+ * Get logged-in customer ID or null.
+ */
+function getLoggedInCustomerId() {
+    if (!isCustomerLoggedIn()) {
+        return null;
+    }
+    return $_SESSION['customer_id'] ?? null;
+}
+
+/**
+ * Get logged-in customer email or null.
+ */
+function getLoggedInCustomerEmail() {
+    if (!isCustomerLoggedIn()) {
+        return null;
+    }
+    return $_SESSION['customer_email'] ?? null;
 }
 
 // Newsletter Functions

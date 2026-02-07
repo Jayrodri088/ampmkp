@@ -11,10 +11,11 @@ if (!headers_sent()) {
 }
 
 if (session_status() == PHP_SESSION_NONE) {
-    // Secure session cookie params
+    // Secure session cookie params (30-day cookie for customer sessions; inactivity enforced below)
     $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
+    $cookieDays = defined('CUSTOMER_SESSION_COOKIE_DAYS') ? CUSTOMER_SESSION_COOKIE_DAYS : 30;
     session_set_cookie_params([
-        'lifetime' => 0,
+        'lifetime' => $cookieDays * 86400,
         'path' => '/',
         'domain' => '',
         'secure' => $isHttps,
@@ -22,10 +23,22 @@ if (session_status() == PHP_SESSION_NONE) {
         'samesite' => 'Lax'
     ]);
     session_start();
+    // Enforce 9-day inactivity for customer login: clear customer session if idle too long
+    $inactivityDays = defined('CUSTOMER_INACTIVITY_DAYS') ? CUSTOMER_INACTIVITY_DAYS : 9;
+    $inactivityThreshold = time() - ($inactivityDays * 86400);
+    if (!empty($_SESSION['customer_id'])) {
+        if (!empty($_SESSION['customer_last_activity']) && (int)$_SESSION['customer_last_activity'] < $inactivityThreshold) {
+            unset($_SESSION['customer_id'], $_SESSION['customer_email'], $_SESSION['customer_last_activity']);
+        } else {
+            $_SESSION['customer_last_activity'] = time();
+        }
+    }
 }
 require_once __DIR__ . '/functions.php';
 
 $settings = getSettings();
+$customerLoggedIn = isCustomerLoggedIn();
+$customerEmail = $customerLoggedIn ? getLoggedInCustomerEmail() : null;
 $cartCount = getCartItemCount();
 $categories = getCategories();
 
@@ -577,6 +590,12 @@ function renderNavCategoryHierarchy($categories, $isMobile = false, $level = 0) 
                             <a href="<?php echo getBaseUrl('angelprints.php'); ?>" class="nav-link-underline px-4 py-2.5 text-sm font-medium text-charcoal-600 hover:text-folly transition-all duration-300 tracking-wide">Angel Prints</a>
                             <a href="<?php echo getBaseUrl('about.php'); ?>" class="nav-link-underline px-4 py-2.5 text-sm font-medium text-charcoal-600 hover:text-folly transition-all duration-300 tracking-wide">About Us</a>
                             <a href="<?php echo getBaseUrl('contact.php'); ?>" class="nav-link-underline px-4 py-2.5 text-sm font-medium text-charcoal-600 hover:text-folly transition-all duration-300 tracking-wide">Contact Us</a>
+                            <?php if ($customerLoggedIn): ?>
+                            <a href="<?php echo getBaseUrl(); ?>" class="nav-link-underline px-4 py-2.5 text-sm font-medium text-charcoal-600 hover:text-folly transition-all duration-300 tracking-wide">My account</a>
+                            <a href="<?php echo getBaseUrl('logout.php'); ?>" class="nav-link-underline px-4 py-2.5 text-sm font-medium text-charcoal-600 hover:text-folly transition-all duration-300 tracking-wide">Log out</a>
+                            <?php else: ?>
+                            <a href="<?php echo getBaseUrl('login.php'); ?>" class="nav-link-underline px-4 py-2.5 text-sm font-medium text-charcoal-600 hover:text-folly transition-all duration-300 tracking-wide">Log in</a>
+                            <?php endif; ?>
                         </div>
 
                         <a href="<?php echo getBaseUrl('shop.php?sort=deals'); ?>" class="px-4 py-2.5 text-sm font-medium text-folly flex items-center gap-1.5 hover:bg-folly/5 rounded-full transition-all duration-300">
@@ -633,6 +652,12 @@ function renderNavCategoryHierarchy($categories, $isMobile = false, $level = 0) 
             <a href="<?php echo getBaseUrl('angelprints.php'); ?>" class="block px-4 py-3 text-[15px] font-medium text-charcoal-700 hover:text-folly hover:bg-folly/5 rounded-xl transition-all duration-200">Angel Prints</a>
             <a href="<?php echo getBaseUrl('about.php'); ?>" class="block px-4 py-3 text-[15px] font-medium text-charcoal-700 hover:text-folly hover:bg-folly/5 rounded-xl transition-all duration-200">About Us</a>
             <a href="<?php echo getBaseUrl('contact.php'); ?>" class="block px-4 py-3 text-[15px] font-medium text-charcoal-700 hover:text-folly hover:bg-folly/5 rounded-xl transition-all duration-200">Contact Us</a>
+            <?php if ($customerLoggedIn): ?>
+            <a href="<?php echo getBaseUrl(); ?>" class="block px-4 py-3 text-[15px] font-medium text-charcoal-700 hover:text-folly hover:bg-folly/5 rounded-xl transition-all duration-200">My account</a>
+            <a href="<?php echo getBaseUrl('logout.php'); ?>" class="block px-4 py-3 text-[15px] font-medium text-charcoal-700 hover:text-folly hover:bg-folly/5 rounded-xl transition-all duration-200">Log out</a>
+            <?php else: ?>
+            <a href="<?php echo getBaseUrl('login.php'); ?>" class="block px-4 py-3 text-[15px] font-medium text-charcoal-700 hover:text-folly hover:bg-folly/5 rounded-xl transition-all duration-200">Log in</a>
+            <?php endif; ?>
         </div>
 
         <div class="p-4 border-t border-gray-100/30">

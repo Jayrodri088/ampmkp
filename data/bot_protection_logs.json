@@ -1,0 +1,50 @@
+[
+    {
+        "timestamp": "2026-02-07 10:45:09",
+        "form_type": "customer_login_request",
+        "ip": "::1",
+        "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/144.0.0.0 Safari\/537.36",
+        "post_data": {
+            "email": "Johnpedro.c.2423233@gmail.com"
+        },
+        "errors": [
+            "Rate limit exceeded"
+        ]
+    },
+    {
+        "timestamp": "2026-02-07 10:45:31",
+        "form_type": "customer_login_request",
+        "ip": "::1",
+        "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/144.0.0.0 Safari\/537.36",
+        "post_data": {
+            "email": "Johnpedro.c.2423233+angel@gmail.com"
+        },
+        "errors": [
+            "Rate limit exceeded"
+        ]
+    },
+    {
+        "timestamp": "2026-02-07 10:50:17",
+        "form_type": "customer_login_request",
+        "ip": "::1",
+        "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/144.0.0.0 Safari\/537.36",
+        "post_data": {
+            "email": "Johnpedro.c.2423233+angel@gmail.com"
+        },
+        "errors": [
+            "Rate limit exceeded"
+        ]
+    },
+    {
+        "timestamp": "2026-02-07 10:50:44",
+        "form_type": "customer_login_request",
+        "ip": "::1",
+        "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/144.0.0.0 Safari\/537.36",
+        "post_data": {
+            "email": "Johnpedro.c.2423233+angel@gmail.com"
+        },
+        "errors": [
+            "Rate limit exceeded"
+        ]
+    }
+]

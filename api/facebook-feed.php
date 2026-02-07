@@ -139,9 +139,9 @@ function cleanFeedText($text) {
     // Remove HTML tags
     $text = strip_tags($text);
     
-    // Convert special characters to HTML entities
-    $text = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
-    
+    // Escape tab characters (TSV delimiter) to prevent column misalignment
+    $text = str_replace("\t", ' ', $text);
+
     // Remove carriage returns and newlines
     $text = preg_replace('/[\r\n]+/', ' ', $text);
     

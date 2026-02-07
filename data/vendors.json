@@ -1,0 +1,126 @@
+[
+    {
+        "id": 1,
+        "status": "pending",
+        "created_at": "2025-08-12 13:48:20",
+        "updated_at": "2025-08-12 13:48:20",
+        "business": {
+            "name": "Angel Marketplace",
+            "type": "wholesale",
+            "description": "asdffdgzrgfhnadsfefred",
+            "website": "",
+            "license": "",
+            "tax_id": ""
+        },
+        "contact": {
+            "name": "Ijeoma Grace Madumere",
+            "email": "Ijeoma.madumeree@gmail.com",
+            "phone": "+44 7876575081"
+        },
+        "consents": {
+            "termsAccepted": 1,
+            "privacyAccepted": 1,
+            "marketingConsent": 0
+        },
+        "products": [
+            {
+                "name": "asdsfew",
+                "category": "gifts",
+                "price": 10,
+                "stock": 2,
+                "description": "asdfdsfdgfnhgfng"
+            }
+        ],
+        "uploads": [
+            "vendors\/vendor_1755006500_7053.jpg"
+        ]
+    },
+    {
+        "id": 2,
+        "status": "approved",
+        "created_at": "2025-08-12 18:27:09",
+        "updated_at": "2025-09-03 17:08:32",
+        "business": {
+            "name": "KIKAMICHAELS",
+            "type": "other",
+            "description": "Bespoke Handmade Formal shoes,Loafers and any kind of Boots for men.\r\nMade-to-order.",
+            "website": "",
+            "license": "BN3238966",
+            "tax_id": ""
+        },
+        "contact": {
+            "name": "Kika Emefiele",
+            "email": "engineerkika@gmail.com",
+            "phone": "+234 8106615237"
+        },
+        "consents": {
+            "termsAccepted": 1,
+            "privacyAccepted": 1,
+            "marketingConsent": 1
+        },
+        "products": [
+            {
+                "name": "The KIKAMICHAELS PREMIUM OXFORD FORMAL SHOES",
+                "category": "footwear",
+                "price": 49.99,
+                "stock": 50,
+                "description": "Made-to-order.\r\nProduction takes 15 business days.\r\nPremium craftsmanship.\r\nDurable and comfortable.\r\nExcellent finishing.\r\nHandcrafted with integrity."
+            },
+            {
+                "name": "THE KIKAMICHAELS PREMIUM CHELSEA BOOTS",
+                "category": "footwear",
+                "price": 69.99,
+                "stock": 50,
+                "description": "Made-to-order.\r\nProduction takes 15-20 business days \r\nPremium craftsmanship.\r\nDurable and comfortable.\r\nExcellent finishing.\r\nHandcrafted with integrity."
+            },
+            {
+                "name": "THE KIKAMICHAELS PREMIUM LOAFERS",
+                "category": "footwear",
+                "price": 39.99,
+                "stock": 50,
+                "description": "Made-to-order.\r\nProduction takes 15 business days.\r\nPremium craftsmanship.\r\nDurable and comfortable.\r\nExcellent finishing.\r\nHandcrafted with integrity."
+            }
+        ],
+        "uploads": [
+            "vendors\/vendor_1755023229_9196.jpg",
+            "vendors\/vendor_1755023229_8619.jpg",
+            "vendors\/vendor_1755023229_2163.jpg"
+        ]
+    },
+    {
+        "id": 3,
+        "status": "pending",
+        "created_at": "2025-08-13 13:00:59",
+        "updated_at": "2025-08-13 13:00:59",
+        "business": {
+            "name": "Anniegold Deluxe Accessories",
+            "type": "retail",
+            "description": "Here at Anniegold Deluxe Accessories, we give you timeless, hypoallergenic jewelries and accessories.\r\nWe sell Necklaces,Bracelets, Fashion rings, Wedding rings, Earrings, Pearls, Bridal Jewelries, Karat Gold and Diamond Jewelries.\r\nOur Exquisite Jewelries are offered at an affordable price.",
+            "website": "",
+            "license": "8547438",
+            "tax_id": "33271296-0001"
+        },
+        "contact": {
+            "name": "Fasakin Aanuoluwapo",
+            "email": "aanufash99@gmail.com",
+            "phone": "+234 8124806098"
+        },
+        "consents": {
+            "termsAccepted": 1,
+            "privacyAccepted": 1,
+            "marketingConsent": 1
+        },
+        "products": [
+            {
+                "name": "Aurora flower design gold jewelry set.",
+                "category": "accessories",
+                "price": 10,
+                "stock": 3,
+                "description": "- This Jewelry Set comes in Necklace, Earrings, Bracelet and Ring.\r\n- Very Durable and Unique \r\n- Perfect for weddings and special occasions."
+            }
+        ],
+        "uploads": [
+            "vendors\/vendor_1755090059_7214.jpeg"
+        ]
+    }
+]

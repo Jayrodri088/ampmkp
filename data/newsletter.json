@@ -2,9 +2,377 @@
     {
         "id": 1,
         "email": "odunoyemayowa@gmail.com",
-        "subscribed_at": "2025-07-21 16:46:38",
-        "ip_address": "::1",
-        "user_agent": "Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/133.0.0.0 Safari\/537.36",
+        "subscribed_at": "2025-07-22 10:01:17",
+        "ip_address": "102.88.110.241",
+        "user_agent": "Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/138.0.0.0 Safari\/537.36 Edg\/138.0.0.0",
+        "active": true
+    },
+    {
+        "id": 2,
+        "email": "bmanisone@yahoo.com",
+        "subscribed_at": "2025-09-10 22:43:40",
+        "ip_address": "216.49.129.12",
+        "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/140.0.0.0 Safari\/537.36",
+        "active": true
+    },
+    {
+        "id": 3,
+        "email": "holmessevard@gmail.com",
+        "subscribed_at": "2025-10-26 22:36:58",
+        "ip_address": "195.2.81.242",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/134.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 4,
+        "email": "copelandrozasharnnp@gmail.com",
+        "subscribed_at": "2025-12-15 18:50:13",
+        "ip_address": "80.85.245.250",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 5,
+        "email": "dchow@baronfunds.com",
+        "subscribed_at": "2025-12-15 21:10:44",
+        "ip_address": "89.110.103.94",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 6,
+        "email": "dafootle@gmail.com",
+        "subscribed_at": "2025-12-15 23:45:36",
+        "ip_address": "80.85.246.214",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 7,
+        "email": "jalamorosas@gmail.com",
+        "subscribed_at": "2025-12-16 06:10:25",
+        "ip_address": "212.34.132.22",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 8,
+        "email": "gayle@creeksidem.com",
+        "subscribed_at": "2025-12-16 08:30:31",
+        "ip_address": "91.84.111.136",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 9,
+        "email": "corporate@sigmalogisticsgrp.com",
+        "subscribed_at": "2025-12-16 17:50:30",
+        "ip_address": "94.103.88.24",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 10,
+        "email": "tdthepain@att.net",
+        "subscribed_at": "2025-12-16 20:30:25",
+        "ip_address": "80.85.247.231",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 11,
+        "email": "karlabagley@gmail.com",
+        "subscribed_at": "2025-12-16 21:33:04",
+        "ip_address": "88.210.10.79",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 12,
+        "email": "pharrison@ilcenter.org",
+        "subscribed_at": "2025-12-16 23:48:23",
+        "ip_address": "195.200.26.27",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 13,
+        "email": "jhennage@keepitsimpletechnology.com",
+        "subscribed_at": "2025-12-17 02:57:50",
+        "ip_address": "185.245.104.75",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 14,
+        "email": "j.macik93@gmail.com",
+        "subscribed_at": "2025-12-17 18:06:40",
+        "ip_address": "195.26.224.235",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 15,
+        "email": "daniele.dp0109@gmail.com",
+        "subscribed_at": "2025-12-17 19:41:49",
+        "ip_address": "89.110.109.74",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 16,
+        "email": "patankotlinska@gmail.com",
+        "subscribed_at": "2025-12-18 00:02:15",
+        "ip_address": "91.84.104.205",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 17,
+        "email": "kennygmaldo@gmail.com",
+        "subscribed_at": "2025-12-18 01:04:51",
+        "ip_address": "195.2.70.209",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 18,
+        "email": "atriaitaly@gmail.com",
+        "subscribed_at": "2025-12-18 03:07:13",
+        "ip_address": "80.85.246.74",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 19,
+        "email": "angeladonoho@yahoo.com",
+        "subscribed_at": "2025-12-18 17:55:35",
+        "ip_address": "80.85.247.161",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 20,
+        "email": "info@naturalretreats.com",
+        "subscribed_at": "2025-12-18 22:16:46",
+        "ip_address": "45.91.9.231",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 21,
+        "email": "marygcarver@yahoo.com",
+        "subscribed_at": "2025-12-19 00:03:52",
+        "ip_address": "188.209.133.78",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 22,
+        "email": "dave@rfsmarketinggroup.com",
+        "subscribed_at": "2025-12-19 00:35:00",
+        "ip_address": "91.147.117.76",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 23,
+        "email": "airbnbwest@naturalretreats.com",
+        "subscribed_at": "2025-12-19 01:23:02",
+        "ip_address": "143.20.44.54",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 24,
+        "email": "bb1nme2@gmail.com",
+        "subscribed_at": "2025-12-19 04:26:34",
+        "ip_address": "92.119.128.24",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 25,
+        "email": "dj_osu@hotmail.com",
+        "subscribed_at": "2025-12-19 08:24:08",
+        "ip_address": "185.227.145.51",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 26,
+        "email": "knharley@hotmail.com",
+        "subscribed_at": "2025-12-19 12:28:31",
+        "ip_address": "45.150.51.7",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 27,
+        "email": "shabnam_aboubakri@yahoo.com",
+        "subscribed_at": "2025-12-19 19:40:27",
+        "ip_address": "93.127.151.65",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 28,
+        "email": "natalie.macneil@gmail.com",
+        "subscribed_at": "2025-12-20 03:11:13",
+        "ip_address": "140.233.186.116",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 29,
+        "email": "thebarondaniel@gmail.com",
+        "subscribed_at": "2025-12-20 04:15:34",
+        "ip_address": "45.141.20.72",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 30,
+        "email": "sv.kirjushechkina@gmail.com",
+        "subscribed_at": "2025-12-20 05:51:30",
+        "ip_address": "84.32.24.100",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 31,
+        "email": "chapin.fowler@gmail.com",
+        "subscribed_at": "2025-12-20 14:18:17",
+        "ip_address": "88.209.192.160",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 32,
+        "email": "kblovesshoes@yahoo.com",
+        "subscribed_at": "2025-12-20 16:52:58",
+        "ip_address": "216.185.39.217",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 33,
+        "email": "klbennefield@yahoo.com",
+        "subscribed_at": "2025-12-20 18:19:41",
+        "ip_address": "77.93.150.87",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 34,
+        "email": "hannagraifman@gmail.com",
+        "subscribed_at": "2025-12-20 22:58:34",
+        "ip_address": "2.56.243.3",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 35,
+        "email": "babequah@yahoo.com",
+        "subscribed_at": "2025-12-21 03:19:32",
+        "ip_address": "91.103.126.64",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 36,
+        "email": "hupe@hupeswelt.de",
+        "subscribed_at": "2025-12-21 09:46:42",
+        "ip_address": "45.150.51.5",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 37,
+        "email": "info@mamsystem.com",
+        "subscribed_at": "2025-12-21 20:11:25",
+        "ip_address": "185.210.136.30",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 38,
+        "email": "jeanne_chuang@yahoo.com",
+        "subscribed_at": "2025-12-21 22:28:43",
+        "ip_address": "102.129.183.127",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 39,
+        "email": "harolds@mandarichlaw.com",
+        "subscribed_at": "2025-12-22 06:31:59",
+        "ip_address": "109.196.108.105",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 40,
+        "email": "rainernotes@gmail.com",
+        "subscribed_at": "2025-12-22 16:36:20",
+        "ip_address": "46.183.28.168",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 41,
+        "email": "k.storr-stronach@quadient.com",
+        "subscribed_at": "2025-12-22 17:42:20",
+        "ip_address": "45.150.48.213",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 42,
+        "email": "skylertyler@ameritech.net",
+        "subscribed_at": "2025-12-22 20:33:11",
+        "ip_address": "45.150.49.146",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 43,
+        "email": "geruc.eb.i.b.85@gmail.com",
+        "subscribed_at": "2026-01-07 11:35:12",
+        "ip_address": "124.198.131.29",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 44,
+        "email": "sar.bl.an.ks59@gmail.com",
+        "subscribed_at": "2026-01-08 18:05:02",
+        "ip_address": "45.138.16.230",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 45,
+        "email": "g.o.ld.en.m.om5.6.7.8@gmail.com",
+        "subscribed_at": "2026-01-08 19:08:59",
+        "ip_address": "5.255.125.196",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 46,
+        "email": "nikki@ticokc.com",
+        "subscribed_at": "2026-01-12 18:40:53",
+        "ip_address": "204.76.203.19",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
+        "active": true
+    },
+    {
+        "id": 47,
+        "email": "s.he.li.t.i.g.ate.s@gmail.com",
+        "subscribed_at": "2026-01-13 20:01:59",
+        "ip_address": "104.244.77.208",
+        "user_agent": "\"Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36\"",
         "active": true
     }
 ]

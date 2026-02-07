@@ -12,19 +12,61 @@
 
 use PHPMailer\PHPMailer\PHPMailer;
 
-// Email server settings
-define('SMTP_HOST', 'smtp.hostinger.com');
-define('SMTP_PORT', 465);
-define('SMTP_USERNAME', 'admin@angelmarketplace.org'); // Updated per request
-define('SMTP_PASSWORD', 'Angelmp@2025'); // Updated per request
-define('SMTP_ENCRYPTION', 'ssl');
+/**
+ * Read env values with support for .env file and process environment.
+ */
+function getMailEnv(string $key, ?string $default = null): ?string {
+    static $env = null;
+    if ($env === null) {
+        $env = [];
+        $envFile = __DIR__ . '/../.env';
+        if (file_exists($envFile)) {
+            $lines = @file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            if (is_array($lines)) {
+                foreach ($lines as $line) {
+                    $line = trim((string)$line);
+                    if ($line === '' || strpos($line, '#') === 0) {
+                        continue;
+                    }
+                    $eq = strpos($line, '=');
+                    if ($eq === false) {
+                        continue;
+                    }
+                    $k = trim(substr($line, 0, $eq));
+                    $v = trim(substr($line, $eq + 1));
+                    if ($k !== '') {
+                        $env[$k] = $v;
+                    }
+                }
+            }
+        }
+    }
 
-// Email addresses
-define('ADMIN_EMAIL', 'admin@angelmarketplace.org'); // retained for other flows
-define('SALES_EMAIL', 'sales@angelmarketplace.org'); // primary recipient for order notifications
-// Using the authenticated email as the from address to comply with SMTP server requirements
-define('NOREPLY_EMAIL', 'admin@angelmarketplace.org');
-define('ADMIN_ORDERS_URL', 'https://angelmarketplace.org/admin/orders.php');
+    if (array_key_exists($key, $env) && $env[$key] !== '') {
+        return $env[$key];
+    }
+
+    $runtime = getenv($key);
+    if ($runtime !== false && $runtime !== '') {
+        return $runtime;
+    }
+
+    return $default;
+}
+
+// Email server settings (env-driven)
+define('SMTP_HOST', (string)getMailEnv('MAIL_SMTP_HOST', 'smtp.hostinger.com'));
+define('SMTP_PORT', (int)getMailEnv('MAIL_SMTP_PORT', '465'));
+define('SMTP_USERNAME', (string)getMailEnv('MAIL_SMTP_USERNAME', ''));
+define('SMTP_PASSWORD', (string)getMailEnv('MAIL_SMTP_PASSWORD', ''));
+define('SMTP_ENCRYPTION', (string)getMailEnv('MAIL_SMTP_ENCRYPTION', 'ssl'));
+
+// Email addresses (env-driven)
+define('ADMIN_EMAIL', (string)getMailEnv('MAIL_ADMIN_EMAIL', 'admin@angelmarketplace.org'));
+define('SALES_EMAIL', (string)getMailEnv('MAIL_SALES_EMAIL', ADMIN_EMAIL));
+define('NOREPLY_EMAIL', (string)getMailEnv('MAIL_NOREPLY_EMAIL', ADMIN_EMAIL));
+define('MAIL_FROM_NAME', (string)getMailEnv('MAIL_FROM_NAME', 'Angel Marketplace'));
+define('ADMIN_ORDERS_URL', (string)getMailEnv('MAIL_ADMIN_ORDERS_URL', 'https://angelmarketplace.org/admin/orders.php'));
 
 // Check if PHPMailer is installed via Composer
 if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
@@ -134,7 +176,7 @@ function sendContactEmailToAdmin($name, $email, $phone, $message) {
             $mail->Port = SMTP_PORT;
             
             // Recipients
-            $mail->setFrom(NOREPLY_EMAIL, 'Angel Marketplace');
+            $mail->setFrom(NOREPLY_EMAIL, MAIL_FROM_NAME);
             if (property_exists($mail, 'Sender')) { $mail->Sender = NOREPLY_EMAIL; }
             $mail->addAddress(ADMIN_EMAIL);
             $mail->addReplyTo($email, $name);
@@ -215,7 +257,7 @@ function sendContactConfirmationToSender($name, $email) {
             $mail->Port = SMTP_PORT;
             
             // Recipients
-            $mail->setFrom(NOREPLY_EMAIL, 'Angel Marketplace');
+            $mail->setFrom(NOREPLY_EMAIL, MAIL_FROM_NAME);
             if (property_exists($mail, 'Sender')) { $mail->Sender = NOREPLY_EMAIL; }
             $mail->addAddress($email, $name);
             
@@ -374,11 +416,11 @@ function sendNewsletterEmailToSubscriber($email) {
             $mail->Port = SMTP_PORT;
             
             // Recipients
-            $mail->setFrom(NOREPLY_EMAIL, 'Angel Marketplace');
+            $mail->setFrom(NOREPLY_EMAIL, MAIL_FROM_NAME);
             $mail->addAddress($email);
             
             // Set Reply-To header to the same as From to avoid SPF/DKIM issues
-            $mail->addReplyTo(NOREPLY_EMAIL, 'Angel Marketplace');
+            $mail->addReplyTo(NOREPLY_EMAIL, MAIL_FROM_NAME);
             
             // Content
             $mail->isHTML(true);
@@ -450,7 +492,7 @@ function sendNewsletterNotificationToAdmin($email) {
             $mail->Port = SMTP_PORT;
             
             // Recipients
-            $mail->setFrom(NOREPLY_EMAIL, 'Angel Marketplace');
+            $mail->setFrom(NOREPLY_EMAIL, MAIL_FROM_NAME);
             $mail->addAddress(ADMIN_EMAIL);
             
             // Content
@@ -509,7 +551,7 @@ function sendMailFallback($to, $subject, $body, $replyTo = '', $replyToName = ''
  * @return bool
  */
 function sendFestivalLeadEmail($name, $email, $phone) {
-    $targetInbox = 'admin@angelmarketplace.org';
+    $targetInbox = ADMIN_EMAIL;
     // Admin notification
     $subjectAdmin = 'New Big Church Festival Lead: ' . $name;
     $bodyAdmin = "
@@ -550,7 +592,7 @@ function sendFestivalLeadEmail($name, $email, $phone) {
             $mail->SMTPSecure = SMTP_ENCRYPTION;
             $mail->Port = SMTP_PORT;
 
-            $mail->setFrom(NOREPLY_EMAIL, 'Angel Marketplace');
+            $mail->setFrom(NOREPLY_EMAIL, MAIL_FROM_NAME);
             $mail->addAddress($targetInbox);
             if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $mail->addReplyTo($email, $name);
@@ -612,7 +654,7 @@ function sendFestivalLeadEmail($name, $email, $phone) {
                 $mail2->SMTPSecure = SMTP_ENCRYPTION;
                 $mail2->Port = SMTP_PORT;
 
-                $mail2->setFrom(NOREPLY_EMAIL, 'Angel Marketplace');
+                $mail2->setFrom(NOREPLY_EMAIL, MAIL_FROM_NAME);
                 $mail2->addAddress($email, $name);
                 $mail2->isHTML(true);
                 $mail2->Subject = $subjectSender;
@@ -821,10 +863,10 @@ function sendOrderConfirmationToCustomer(array $orderData, string $receiptUrl = 
             $mail->SMTPSecure = SMTP_ENCRYPTION;
             $mail->Port = SMTP_PORT;
 
-            $mail->setFrom(NOREPLY_EMAIL, 'Angel Marketplace');
+            $mail->setFrom(NOREPLY_EMAIL, MAIL_FROM_NAME);
             if (property_exists($mail, 'Sender')) { $mail->Sender = NOREPLY_EMAIL; }
             $mail->addAddress($customerEmail, $customerName);
-            $mail->addReplyTo(NOREPLY_EMAIL, 'Angel Marketplace');
+            $mail->addReplyTo(NOREPLY_EMAIL, MAIL_FROM_NAME);
 
             $mail->isHTML(true);
             $mail->Subject = $subject;
@@ -943,10 +985,10 @@ function sendOrderStatusUpdateToCustomer(array $orderData, string $newStatus): b
             $mail->SMTPSecure = SMTP_ENCRYPTION;
             $mail->Port = SMTP_PORT;
 
-            $mail->setFrom(NOREPLY_EMAIL, 'Angel Marketplace');
+            $mail->setFrom(NOREPLY_EMAIL, MAIL_FROM_NAME);
             if (property_exists($mail, 'Sender')) { $mail->Sender = NOREPLY_EMAIL; }
             $mail->addAddress($customerEmail, $customerName);
-            $mail->addReplyTo(NOREPLY_EMAIL, 'Angel Marketplace');
+            $mail->addReplyTo(NOREPLY_EMAIL, MAIL_FROM_NAME);
 
             $mail->isHTML(true);
             $mail->Subject = $subject;
@@ -982,7 +1024,7 @@ function sendOrderNotificationToAdmin(array $orderData, string $receiptUrl = '',
             $mail->SMTPSecure = SMTP_ENCRYPTION;
             $mail->Port = SMTP_PORT;
 
-            $mail->setFrom(NOREPLY_EMAIL, 'Angel Marketplace');
+            $mail->setFrom(NOREPLY_EMAIL, MAIL_FROM_NAME);
             if (!empty(SALES_EMAIL)) {
                 $mail->addAddress(SALES_EMAIL);
             } else {
@@ -1170,7 +1212,7 @@ function sendPendingOrderNotificationToAdmin(array $orderData): bool {
             $mail->SMTPSecure = SMTP_ENCRYPTION;
             $mail->Port = SMTP_PORT;
 
-            $mail->setFrom(NOREPLY_EMAIL, 'Angel Marketplace');
+            $mail->setFrom(NOREPLY_EMAIL, MAIL_FROM_NAME);
             if (!empty(SALES_EMAIL)) {
                 $mail->addAddress(SALES_EMAIL);
             } else {
@@ -1377,10 +1419,10 @@ function sendPendingOrderConfirmationToCustomer(array $orderData): bool {
             $mail->SMTPSecure = SMTP_ENCRYPTION;
             $mail->Port = SMTP_PORT;
 
-            $mail->setFrom(NOREPLY_EMAIL, 'Angel Marketplace');
+            $mail->setFrom(NOREPLY_EMAIL, MAIL_FROM_NAME);
             if (property_exists($mail, 'Sender')) { $mail->Sender = NOREPLY_EMAIL; }
             $mail->addAddress($customerEmail, $customerName);
-            $mail->addReplyTo(NOREPLY_EMAIL, 'Angel Marketplace');
+            $mail->addReplyTo(NOREPLY_EMAIL, MAIL_FROM_NAME);
 
             $mail->isHTML(true);
             $mail->Subject = $subject;
@@ -1505,7 +1547,7 @@ function sendPaymentConfirmationToAdmin(array $orderData): bool {
             $mail->SMTPSecure = SMTP_ENCRYPTION;
             $mail->Port = SMTP_PORT;
 
-            $mail->setFrom(NOREPLY_EMAIL, 'Angel Marketplace');
+            $mail->setFrom(NOREPLY_EMAIL, MAIL_FROM_NAME);
             if (!empty(SALES_EMAIL)) {
                 $mail->addAddress(SALES_EMAIL);
             } else {
@@ -1611,10 +1653,10 @@ function sendPaymentStatusUpdateToCustomer(array $orderData, string $newPaymentS
             $mail->SMTPSecure = SMTP_ENCRYPTION;
             $mail->Port = SMTP_PORT;
 
-            $mail->setFrom(NOREPLY_EMAIL, 'Angel Marketplace');
+            $mail->setFrom(NOREPLY_EMAIL, MAIL_FROM_NAME);
             if (property_exists($mail, 'Sender')) { $mail->Sender = NOREPLY_EMAIL; }
             $mail->addAddress($customerEmail, $customerName);
-            $mail->addReplyTo(NOREPLY_EMAIL, 'Angel Marketplace');
+            $mail->addReplyTo(NOREPLY_EMAIL, MAIL_FROM_NAME);
 
             $mail->isHTML(true);
             $mail->Subject = $subject;

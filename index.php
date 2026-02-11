@@ -369,21 +369,21 @@ include 'includes/header.php';
 
 <!-- Advertisement Section -->
 <?php if (!empty($activeAds)): ?>
-<section class="py-10 md:py-14">
+<section class="py-6 md:py-8">
     <div class="container mx-auto px-4">
-        <div class="rounded-2xl overflow-hidden">
+        <div class="max-w-5xl mx-auto rounded-2xl overflow-hidden shadow-lg">
             <?php if (count($activeAds) === 1): ?>
                 <?php $ad = $activeAds[0]; $destinationUrl = getAdDestinationUrl($ad); ?>
-                <a href="<?php echo $destinationUrl; ?>" class="block relative group bg-gray-100 rounded-2xl overflow-hidden">
+                <a href="<?php echo $destinationUrl; ?>" class="block relative group bg-gray-50 rounded-2xl overflow-hidden">
                     <img src="<?php echo getAssetUrl('images/ads/' . $ad['image']); ?>"
                          alt="<?php echo htmlspecialchars($ad['title']); ?>"
                          loading="lazy"
-                         class="w-full h-auto object-cover transition-all duration-500 opacity-0 group-hover:scale-[1.02]"
+                         class="w-full h-auto max-h-64 md:max-h-80 object-cover transition-all duration-500 opacity-0 group-hover:scale-[1.02]"
                          onload="this.classList.remove('opacity-0')">
                 </a>
             <?php else: ?>
                 <div class="relative" x-data="{ activeSlide: 0, slides: <?php echo count($activeAds); ?> }" x-init="setInterval(() => activeSlide = (activeSlide + 1) % slides, 5000)">
-                    <div class="overflow-hidden relative bg-gray-100 rounded-2xl">
+                    <div class="overflow-hidden relative bg-gray-50 rounded-2xl">
                         <div class="flex transition-transform duration-700 ease-in-out" :style="{ transform: `translateX(-${activeSlide * 100}%)` }">
                             <?php foreach ($activeAds as $ad): ?>
                             <div class="w-full flex-shrink-0">
@@ -391,7 +391,7 @@ include 'includes/header.php';
                                     <img src="<?php echo getAssetUrl('images/ads/' . $ad['image']); ?>"
                                          alt="<?php echo htmlspecialchars($ad['title']); ?>"
                                          loading="lazy"
-                                         class="w-full h-auto object-cover transition-opacity duration-500 opacity-0"
+                                         class="w-full h-auto max-h-64 md:max-h-80 object-cover transition-opacity duration-500 opacity-0"
                                          onload="this.classList.remove('opacity-0')">
                                 </a>
                             </div>

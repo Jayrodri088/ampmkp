@@ -444,6 +444,17 @@ if (function_exists('isCustomerLoggedIn') && isCustomerLoggedIn() && function_ex
     }
 }
 $selectedProfileId = trim((string)($customerData['profile_id'] ?? ''));
+if (!empty($savedCheckoutProfiles)) {
+    $savedProfileIds = array_values(array_filter(array_map(function ($profile) {
+        return trim((string)($profile['id'] ?? ''));
+    }, $savedCheckoutProfiles)));
+    if (empty($savedProfileIds)) {
+        $selectedProfileId = '';
+    } elseif ($selectedProfileId === '' || !in_array($selectedProfileId, $savedProfileIds, true)) {
+        $selectedProfileId = (string)$savedProfileIds[0];
+        $customerData['profile_id'] = $selectedProfileId;
+    }
+}
 
 include 'includes/header.php';
 ?>
@@ -855,8 +866,8 @@ include 'includes/header.php';
             </div>
 
             <!-- Right Column: Order Summary -->
-            <div class="lg:col-span-1 lg:self-start">
-                <div class="glass-strong rounded-3xl p-6 md:p-8 lg:sticky md:sticky top-6 lg:top-8">
+            <div class="lg:col-span-1 lg:col-start-3 lg:row-start-1 lg:self-start lg:sticky lg:top-28">
+                <div class="glass-strong rounded-3xl p-6 md:p-8">
                     <h2 class="text-xl font-bold text-charcoal-900 mb-6">Order Summary</h2>
                     
                     <div class="space-y-4 mb-6 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
@@ -1064,11 +1075,16 @@ function setFieldValue(fieldName, value) {
 }
 
 function clearAddressEntryFields() {
+    setFieldValue('first_name', '');
+    setFieldValue('last_name', '');
+    setFieldValue('countryCode', '+44');
+    setFieldValue('phone', '');
     setFieldValue('address', '');
     setFieldValue('city', '');
     setFieldValue('postal_code', '');
     setFieldValue('country', '');
     setFieldValue('profile_id', '');
+    updatePhonePlaceholder();
 }
 
 function applySavedProfile(profileId) {
@@ -1195,6 +1211,9 @@ document.addEventListener('DOMContentLoaded', () => {
         savedProfileSelect.addEventListener('change', function () {
             applySavedProfile(this.value || '');
         });
+        if (!savedProfileSelect.value && savedCheckoutProfiles.length > 0 && savedCheckoutProfiles[0]?.id) {
+            savedProfileSelect.value = String(savedCheckoutProfiles[0].id);
+        }
         applySavedProfile(savedProfileSelect.value || '');
     }
 

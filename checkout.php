@@ -155,6 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'last_name' => sanitizeInput($requestData['customer']['last_name'] ?? ''),
             'phone' => sanitizeInput($requestData['customer']['phone'] ?? ''),
             'countryCode' => sanitizeInput($requestData['customer']['countryCode'] ?? '+44'),
+            'profile_id' => sanitizeInput($requestData['customer']['profile_id'] ?? ''),
             'address' => sanitizeInput($requestData['shipping']['address'] ?? ''),
             'city' => sanitizeInput($requestData['shipping']['city'] ?? ''),
             'postal_code' => sanitizeInput($requestData['shipping']['postal_code'] ?? ''),
@@ -214,6 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'last_name' => sanitizeInput($_POST['last_name'] ?? ''),
                 'phone' => sanitizeInput($_POST['phone'] ?? ''),
                 'countryCode' => sanitizeInput($_POST['countryCode'] ?? '+44'),
+                'profile_id' => sanitizeInput($_POST['profile_id'] ?? ''),
                 'address' => sanitizeInput($_POST['address'] ?? ''),
                 'city' => sanitizeInput($_POST['city'] ?? ''),
                 'postal_code' => sanitizeInput($_POST['postal_code'] ?? ''),
@@ -318,11 +320,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
-            // Save order
-            $orders = readJsonFile('orders.json');
-            $orders[] = $orderData;
-            
-            if (writeJsonFile('orders.json', $orders)) {
+            // Save order to active storage backend
+            if (saveOrderRecord($orderData)) {
+                // Persist checkout profile for reuse in future checkouts
+                if (!empty($customerData['email'])) {
+                    saveCheckoutProfileForEmail($customerData['email'], $customerData);
+                }
+
                 // Send admin notification for pending payment orders
                 try {
                     if (function_exists('sendPendingOrderNotificationToAdmin')) {
@@ -401,6 +405,7 @@ if (!isset($customerData)) {
         'last_name' => '',
         'phone' => '',
         'countryCode' => '+44',
+        'profile_id' => '',
         'address' => '',
         'city' => '',
         'postal_code' => '',
@@ -418,6 +423,9 @@ if (!isset($customerData)) {
             $customerData['email'] = $prefill['email'] ?? $customerData['email'];
             $customerData['first_name'] = $prefill['first_name'] ?? '';
             $customerData['last_name'] = $prefill['last_name'] ?? '';
+            $customerData['phone'] = $prefill['phone'] ?? '';
+            $customerData['countryCode'] = $prefill['countryCode'] ?? '+44';
+            $customerData['profile_id'] = $prefill['profile_id'] ?? '';
             $customerData['address'] = $prefill['address'] ?? '';
             $customerData['city'] = $prefill['city'] ?? '';
             $customerData['postal_code'] = $prefill['postal_code'] ?? '';
@@ -427,6 +435,15 @@ if (!isset($customerData)) {
         }
     }
 }
+
+$savedCheckoutProfiles = [];
+if (function_exists('isCustomerLoggedIn') && isCustomerLoggedIn() && function_exists('getLoggedInCustomerEmail') && function_exists('getSavedCheckoutProfiles')) {
+    $savedProfilesEmail = getLoggedInCustomerEmail();
+    if ($savedProfilesEmail) {
+        $savedCheckoutProfiles = getSavedCheckoutProfiles($savedProfilesEmail);
+    }
+}
+$selectedProfileId = trim((string)($customerData['profile_id'] ?? ''));
 
 include 'includes/header.php';
 ?>
@@ -471,6 +488,7 @@ include 'includes/header.php';
 
         <form method="POST" id="checkout-form" class="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
             <input type="hidden" name="checkout_token" value="<?php echo htmlspecialchars($_SESSION['checkout_token']); ?>">
+            <input type="hidden" name="profile_id" id="profile_id" value="<?php echo htmlspecialchars($customerData['profile_id'] ?? ''); ?>">
             
             <!-- Left Column: Customer Info & Shipping -->
             <div class="lg:col-span-2 space-y-8">
@@ -481,6 +499,30 @@ include 'includes/header.php';
                         <span class="step-number w-8 h-8 rounded-full bg-folly/10 text-folly flex items-center justify-center text-sm font-bold">1</span>
                         Customer Information
                     </h2>
+
+                    <?php if (!empty($savedCheckoutProfiles)): ?>
+                    <div class="mb-6 p-4 rounded-2xl border border-gray-200 bg-gradient-to-r from-white to-gray-50">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                            <label for="saved-checkout-profile" class="block text-xs font-bold text-gray-500 uppercase tracking-wider">Delivery Address</label>
+                            <a href="<?php echo getBaseUrl('account/'); ?>" class="text-xs font-semibold text-folly hover:text-folly-600">Manage in My Account</a>
+                        </div>
+                        <select id="saved-checkout-profile" class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-folly focus:border-folly transition-all outline-none appearance-none cursor-pointer">
+                            <option value="" <?php echo $selectedProfileId === '' ? 'selected' : ''; ?>>Add new address</option>
+                            <?php foreach ($savedCheckoutProfiles as $profile): ?>
+                                <?php
+                                    $profileLabel = trim((string)($profile['label'] ?? 'Saved address'));
+                                    $cityLine = trim((string)($profile['city'] ?? ''));
+                                    $countryLine = trim((string)($profile['country'] ?? ''));
+                                    $suffix = trim($cityLine . ($countryLine !== '' ? ', ' . $countryLine : ''));
+                                ?>
+                                <option value="<?php echo htmlspecialchars($profile['id']); ?>" <?php echo $selectedProfileId === ($profile['id'] ?? '') ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($profileLabel . ($suffix !== '' ? ' - ' . $suffix : '')); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <p id="address-mode-hint" class="text-xs text-gray-500 mt-2">Choose a saved address or select "Add new address" to enter another one.</p>
+                    </div>
+                    <?php endif; ?>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
@@ -521,72 +563,6 @@ include 'includes/header.php';
                                     <option value="+1" data-format="(XXX) XXX-XXXX">🇺🇸 +1</option>
                                     <option value="+1" data-format="(XXX) XXX-XXXX">🇨🇦 +1</option>
                                     <option value="+234" data-format="XXX XXX XXXX">🇳🇬 +234</option>
-                                    <option value="+353" data-format="XX XXX XXXX">🇮🇪 +353</option>
-                                    <option value="+49" data-format="XXX XXXXXXXX">🇩🇪 +49</option>
-                                    <option value="+33" data-format="X XX XX XX XX">🇫🇷 +33</option>
-                                    <option value="+39" data-format="XXX XXX XXXX">🇮🇹 +39</option>
-                                    <option value="+34" data-format="XXX XXX XXX">🇪🇸 +34</option>
-                                    <option value="+31" data-format="X XXXXXXXX">🇳🇱 +31</option>
-                                    <option value="+32" data-format="XXX XX XX XX">🇧🇪 +32</option>
-                                    <option value="+41" data-format="XX XXX XX XX">🇨🇭 +41</option>
-                                    <option value="+43" data-format="XXX XXXXXX">🇦🇹 +43</option>
-                                    <option value="+46" data-format="XX XXX XX XX">🇸🇪 +46</option>
-                                    <option value="+47" data-format="XXX XX XXX">🇳🇴 +47</option>
-                                    <option value="+45" data-format="XX XX XX XX">🇩🇰 +45</option>
-                                    <option value="+358" data-format="XX XXX XXXX">🇫🇮 +358</option>
-                                    <option value="+48" data-format="XXX XXX XXX">🇵🇱 +48</option>
-                                    <option value="+351" data-format="XXX XXX XXX">🇵🇹 +351</option>
-                                    <option value="+30" data-format="XXX XXX XXXX">🇬🇷 +30</option>
-                                    <option value="+61" data-format="XXX XXX XXX">🇦🇺 +61</option>
-                                    <option value="+64" data-format="XX XXX XXXX">🇳🇿 +64</option>
-                                    <option value="+27" data-format="XX XXX XXXX">🇿🇦 +27</option>
-                                    <option value="+233" data-format="XX XXX XXXX">🇬🇭 +233</option>
-                                    <option value="+254" data-format="XXX XXXXXX">🇰🇪 +254</option>
-                                    <option value="+256" data-format="XXX XXXXXX">🇺🇬 +256</option>
-                                    <option value="+255" data-format="XXX XXX XXX">🇹🇿 +255</option>
-                                    <option value="+91" data-format="XXXXX XXXXX">🇮🇳 +91</option>
-                                    <option value="+92" data-format="XXX XXXXXXX">🇵🇰 +92</option>
-                                    <option value="+880" data-format="XXXX XXXXXX">🇧🇩 +880</option>
-                                    <option value="+86" data-format="XXX XXXX XXXX">🇨🇳 +86</option>
-                                    <option value="+81" data-format="XX XXXX XXXX">🇯🇵 +81</option>
-                                    <option value="+82" data-format="XX XXXX XXXX">🇰🇷 +82</option>
-                                    <option value="+65" data-format="XXXX XXXX">🇸🇬 +65</option>
-                                    <option value="+60" data-format="XX XXX XXXX">🇲🇾 +60</option>
-                                    <option value="+63" data-format="XXX XXX XXXX">🇵🇭 +63</option>
-                                    <option value="+66" data-format="XX XXX XXXX">🇹🇭 +66</option>
-                                    <option value="+84" data-format="XX XXX XXXX">🇻🇳 +84</option>
-                                    <option value="+62" data-format="XXX XXX XXXX">🇮🇩 +62</option>
-                                    <option value="+971" data-format="XX XXX XXXX">🇦🇪 +971</option>
-                                    <option value="+966" data-format="XX XXX XXXX">🇸🇦 +966</option>
-                                    <option value="+974" data-format="XXXX XXXX">🇶🇦 +974</option>
-                                    <option value="+973" data-format="XXXX XXXX">🇧🇭 +973</option>
-                                    <option value="+968" data-format="XXXX XXXX">🇴🇲 +968</option>
-                                    <option value="+965" data-format="XXXX XXXX">🇰🇼 +965</option>
-                                    <option value="+972" data-format="XX XXX XXXX">🇮🇱 +972</option>
-                                    <option value="+90" data-format="XXX XXX XXXX">🇹🇷 +90</option>
-                                    <option value="+20" data-format="XX XXXX XXXX">🇪🇬 +20</option>
-                                    <option value="+212" data-format="XX XXX XXXX">🇲🇦 +212</option>
-                                    <option value="+55" data-format="XX XXXXX XXXX">🇧🇷 +55</option>
-                                    <option value="+52" data-format="XX XXXX XXXX">🇲🇽 +52</option>
-                                    <option value="+54" data-format="XX XXXX XXXX">🇦🇷 +54</option>
-                                    <option value="+57" data-format="XXX XXX XXXX">🇨🇴 +57</option>
-                                    <option value="+56" data-format="X XXXX XXXX">🇨🇱 +56</option>
-                                    <option value="+51" data-format="XXX XXX XXX">🇵🇪 +51</option>
-                                    <option value="+58" data-format="XXX XXX XXXX">🇻🇪 +58</option>
-                                    <option value="+7" data-format="XXX XXX XX XX">🇷🇺 +7</option>
-                                    <option value="+380" data-format="XX XXX XXXX">🇺🇦 +380</option>
-                                    <option value="+375" data-format="XX XXX XX XX">🇧🇾 +375</option>
-                                    <option value="+40" data-format="XXX XXX XXX">🇷🇴 +40</option>
-                                    <option value="+36" data-format="XX XXX XXXX">🇭🇺 +36</option>
-                                    <option value="+420" data-format="XXX XXX XXX">🇨🇿 +420</option>
-                                    <option value="+421" data-format="XXX XXX XXX">🇸🇰 +421</option>
-                                    <option value="+385" data-format="XX XXX XXXX">🇭🇷 +385</option>
-                                    <option value="+386" data-format="XX XXX XXX">🇸🇮 +386</option>
-                                    <option value="+381" data-format="XX XXX XXXX">🇷🇸 +381</option>
-                                    <option value="+359" data-format="XX XXX XXXX">🇧🇬 +359</option>
-                                    <option value="+370" data-format="XXX XXXXX">🇱🇹 +370</option>
-                                    <option value="+371" data-format="XXXX XXXX">🇱🇻 +371</option>
-                                    <option value="+372" data-format="XXXX XXXX">🇪🇪 +372</option>
                                 </select>
                                 <input 
                                     type="tel" 
@@ -705,8 +681,8 @@ include 'includes/header.php';
                                     <option value="">Select Country</option>
                                     <option value="US" <?php echo ($customerData['country'] ?? '') === 'US' ? 'selected' : ''; ?>>🇺🇸 United States</option>
                                     <option value="GB" <?php echo ($customerData['country'] ?? '') === 'GB' ? 'selected' : ''; ?>>🇬🇧 United Kingdom</option>
+                                    <option value="CA" <?php echo ($customerData['country'] ?? '') === 'CA' ? 'selected' : ''; ?>>🇨🇦 Canada</option>
                                     <option value="NG" <?php echo ($customerData['country'] ?? '') === 'NG' ? 'selected' : ''; ?>>🇳🇬 Nigeria</option>
-                                    <!-- Add more countries as needed -->
                                 </select>
                             </div>
                         </div>
@@ -1075,6 +1051,49 @@ function updatePhonePlaceholder() {
     input.placeholder = format.replace(/X/g, '0');
 }
 
+const savedCheckoutProfiles = <?php echo json_encode(array_values($savedCheckoutProfiles), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+const savedCheckoutProfileMap = savedCheckoutProfiles.reduce((acc, profile) => {
+    if (profile && profile.id) acc[String(profile.id)] = profile;
+    return acc;
+}, {});
+
+function setFieldValue(fieldName, value) {
+    const field = document.querySelector(`[name="${fieldName}"]`);
+    if (!field) return;
+    field.value = value || '';
+}
+
+function clearAddressEntryFields() {
+    setFieldValue('address', '');
+    setFieldValue('city', '');
+    setFieldValue('postal_code', '');
+    setFieldValue('country', '');
+    setFieldValue('profile_id', '');
+}
+
+function applySavedProfile(profileId) {
+    const hint = document.getElementById('address-mode-hint');
+    const profile = savedCheckoutProfileMap[String(profileId || '')];
+    if (!profile) {
+        clearAddressEntryFields();
+        if (hint) hint.textContent = 'Adding a new address for this order.';
+        return;
+    }
+
+    setFieldValue('profile_id', profile.id || '');
+    setFieldValue('first_name', profile.first_name || '');
+    setFieldValue('last_name', profile.last_name || '');
+    setFieldValue('countryCode', profile.countryCode || '+44');
+    setFieldValue('phone', profile.phone || '');
+    setFieldValue('address', profile.address || '');
+    setFieldValue('city', profile.city || '');
+    setFieldValue('postal_code', profile.postal_code || '');
+    setFieldValue('country', profile.country || '');
+    updatePhonePlaceholder();
+
+    if (hint) hint.textContent = 'Using saved address: ' + (profile.label || 'Saved address') + '.';
+}
+
 // Form Submission
 document.getElementById('checkout-form').addEventListener('submit', async function(e) {
     const paymentMethod = document.querySelector('input[name="payment_method"]:checked')?.value;
@@ -1092,7 +1111,19 @@ document.getElementById('checkout-form').addEventListener('submit', async functi
             // Note: This requires a backend endpoint to create the intent
             const customerData = {
                 email: document.querySelector('input[name="email"]').value,
-                name: document.getElementById('cardholder_name').value
+                first_name: document.querySelector('input[name="first_name"]')?.value || '',
+                last_name: document.querySelector('input[name="last_name"]')?.value || '',
+                phone: document.querySelector('input[name="phone"]')?.value || '',
+                countryCode: document.querySelector('select[name="countryCode"]')?.value || '+44',
+                address: document.querySelector('input[name="address"]')?.value || '',
+                city: document.querySelector('input[name="city"]')?.value || '',
+                postal_code: document.querySelector('input[name="postal_code"]')?.value || '',
+                country: document.querySelector('select[name="country"]')?.value || '',
+                profile_id: document.querySelector('input[name="profile_id"]')?.value || '',
+                special_instructions: document.querySelector('textarea[name="special_instructions"]')?.value || '',
+                account_holder: document.querySelector('input[name="account_holder"]')?.value || '',
+                shipping_method: document.querySelector('input[name="shipping_method"]:checked')?.value || 'delivery',
+                selected_currency: document.querySelector('input[name="selected_currency"]')?.value || ''
             };
             
             const response = await fetch(`${getBasePath()}/api/stripe-payment.php`, {
@@ -1152,6 +1183,21 @@ document.getElementById('checkout-form').addEventListener('submit', async functi
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+    const prefilledCountryCode = <?php echo json_encode((string)($customerData['countryCode'] ?? '+44')); ?>;
+    const countryCodeSelect = document.getElementById('countryCode');
+    if (countryCodeSelect && prefilledCountryCode) {
+        const exists = Array.from(countryCodeSelect.options).some(opt => opt.value === prefilledCountryCode);
+        if (exists) countryCodeSelect.value = prefilledCountryCode;
+    }
+
+    const savedProfileSelect = document.getElementById('saved-checkout-profile');
+    if (savedProfileSelect) {
+        savedProfileSelect.addEventListener('change', function () {
+            applySavedProfile(this.value || '');
+        });
+        applySavedProfile(savedProfileSelect.value || '');
+    }
+
     const checkedPayment = document.querySelector('input[name="payment_method"]:checked');
     if (checkedPayment) showPaymentForm(checkedPayment.value);
     updatePhonePlaceholder();

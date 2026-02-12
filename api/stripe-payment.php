@@ -19,6 +19,9 @@ try {
             throw new Exception('Cart is empty');
         }
 
+        if (session_status() == PHP_SESSION_NONE) { session_start(); }
+        $selectedCurrency = getSelectedCurrency();
+
         // Get cart details and calculate totals
         $cartItems = [];
         $cartItemsForMetadata = []; // Simplified version for Stripe metadata
@@ -27,12 +30,14 @@ try {
         foreach ($cart as $item) {
             $product = getProductById($item['product_id']);
             if ($product) {
-                $itemTotal = $product['price'] * $item['quantity'];
+                $unitPrice = getProductPrice($product, $selectedCurrency);
+                $itemTotal = $unitPrice * $item['quantity'];
                 
                 // Full cart items for order processing
                 $cartItems[] = [
                     'product' => $product,
                     'quantity' => $item['quantity'],
+                    'unit_price' => $unitPrice,
                     'item_total' => $itemTotal
                 ];
                 
@@ -40,7 +45,7 @@ try {
                 $cartItemsForMetadata[] = [
                     'id' => $product['id'],
                     'name' => $product['name'],
-                    'price' => $product['price'],
+                    'price' => $unitPrice,
                     'quantity' => $item['quantity'],
                     'total' => $itemTotal
                 ];
@@ -57,8 +62,6 @@ try {
         $settings = getSettings();
         $shippingSettings = getShippingSettings();
         // Use session-selected method if present (fallback to default)
-        if (session_status() == PHP_SESSION_NONE) { session_start(); }
-        $selectedCurrency = getSelectedCurrency();
         $selectedMethod = $_SESSION['shipping_method'] ?? getDefaultShippingMethod($shippingSettings);
         $selectedMethod = validateShippingMethod($selectedMethod, $shippingSettings);
         $shippingCost = computeShippingCost($subtotal, $selectedCurrency, $selectedMethod, $shippingSettings);
@@ -74,13 +77,14 @@ try {
         // Create PaymentIntent
         $paymentIntent = \Stripe\PaymentIntent::create([
             'amount' => round($total * 100), // Convert to cents/pence
-            'currency' => strtolower($settings['currency_code']),
+            'currency' => strtolower($selectedCurrency),
             'metadata' => [
                 'cart_items' => json_encode($cartItemsForMetadata), // Use simplified version
                 'subtotal' => (string)$subtotal,
                 'shipping_cost' => (string)$shippingCost,
                 'total' => (string)$total,
-                'item_count' => (string)count($cartItems)
+                'item_count' => (string)count($cartItems),
+                'currency_code' => strtoupper((string)$selectedCurrency)
             ],
             'automatic_payment_methods' => [
                 'enabled' => true,
@@ -92,6 +96,8 @@ try {
         $paymentData = [
             'cart_items' => $cartItems,
             'customer_data' => $customerData,
+            'selected_currency' => strtoupper((string)$selectedCurrency),
+            'shipping_method' => $selectedMethod,
             'created_at' => time()
         ];
         
@@ -133,7 +139,10 @@ try {
         
         $paymentData = json_decode(file_get_contents($tempPaymentFile), true);
         $cartItems = $paymentData['cart_items'];
-        $customerData = $paymentData['customer_data'];
+        $customerData = is_array($paymentData['customer_data'] ?? null) ? $paymentData['customer_data'] : [];
+        if (session_status() == PHP_SESSION_NONE) { session_start(); }
+        $selectedCurrency = strtoupper((string)($paymentData['selected_currency'] ?? ($paymentIntent->metadata->currency_code ?? getSelectedCurrency())));
+        $shippingMethod = $paymentData['shipping_method'] ?? ($_SESSION['shipping_method'] ?? 'delivery');
         
         // Get totals from metadata (these are simplified and safe)
         $subtotal = floatval($paymentIntent->metadata->subtotal);
@@ -150,7 +159,7 @@ try {
                 'product_id' => $item['product']['id'],
                 'product_name' => $item['product']['name'],
                 'quantity' => $item['quantity'],
-                'price' => $item['product']['price'],
+                'price' => (float)($item['unit_price'] ?? getProductPrice($item['product'], $selectedCurrency)),
                 'subtotal' => $item['item_total']
             ];
         }
@@ -161,6 +170,7 @@ try {
             'customer_name' => ($customerData['first_name'] ?? '') . ' ' . ($customerData['last_name'] ?? ''),
             'customer_email' => $customerData['email'] ?? '',
             'customer_phone' => $customerData['phone'] ?? '',
+            'customer_country_code' => $customerData['countryCode'] ?? null,
             'shipping_address' => [
                 'line1' => $customerData['address'] ?? '',
                 'line2' => '',
@@ -180,19 +190,36 @@ try {
             'shipping_cost' => $shippingCost,
             'tax' => 0,
             'total' => $total,
+            'currency_code' => $selectedCurrency,
             'status' => 'processing',
             'payment_method' => 'card',
             'payment_status' => 'completed',
             'date' => date('Y-m-d H:i:s'),
             'notes' => $customerData['special_instructions'] ?? '',
+            'special_instructions' => $customerData['special_instructions'] ?? '',
+            'shipping_method' => $shippingMethod,
+            'account_holder' => $customerData['account_holder'] ?? null,
             'stripe_payment_intent' => $paymentIntentId
         ];
 
-        // Save order
-        $orders = readJsonFile('orders.json');
-        $orders[] = $orderData;
-        
-        if (writeJsonFile('orders.json', $orders)) {
+        // Save order to active storage backend
+        if (saveOrderRecord($orderData)) {
+            // Persist checkout address/profile for logged-in returning checkout UX.
+            if (!empty($customerData['email']) && function_exists('saveCheckoutProfileForEmail')) {
+                @saveCheckoutProfileForEmail($customerData['email'], [
+                    'first_name' => $customerData['first_name'] ?? '',
+                    'last_name' => $customerData['last_name'] ?? '',
+                    'countryCode' => $customerData['countryCode'] ?? '+44',
+                    'phone' => $customerData['phone'] ?? '',
+                    'address' => $customerData['address'] ?? '',
+                    'city' => $customerData['city'] ?? '',
+                    'postal_code' => $customerData['postal_code'] ?? '',
+                    'country' => $customerData['country'] ?? '',
+                    'profile_id' => $customerData['profile_id'] ?? '',
+                    'set_default_profile' => 0
+                ]);
+            }
+
             // Clear cart after successful payment
             clearCart();
             

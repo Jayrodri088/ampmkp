@@ -168,6 +168,12 @@ class ProductRepository {
      */
     public static function create(array $data): int {
         return Database::transaction(function() use ($data) {
+            // Prepare images as JSON for the products.images column
+            $imagesJson = '[]';
+            if (!empty($data['images']) && is_array($data['images'])) {
+                $imagesJson = json_encode($data['images']);
+            }
+            
             // Insert main product
             $productData = [
                 'name' => $data['name'],
@@ -182,6 +188,7 @@ class ProductRepository {
                 'has_sizes' => isset($data['has_sizes']) ? ($data['has_sizes'] ? 1 : 0) : 0,
                 'has_colors' => isset($data['has_colors']) ? ($data['has_colors'] ? 1 : 0) : 0,
                 'sort_order' => $data['sort_order'] ?? 0,
+                'images' => $imagesJson,
             ];
 
             $productId = (int)Database::insert('products', $productData);
@@ -233,6 +240,15 @@ class ProductRepository {
                     }
                     $updateData[$field] = $value;
                 }
+            }
+            
+            // Handle images JSON column
+            if (array_key_exists('images', $data)) {
+                $imagesJson = '[]';
+                if (!empty($data['images']) && is_array($data['images'])) {
+                    $imagesJson = json_encode($data['images']);
+                }
+                $updateData['images'] = $imagesJson;
             }
 
             if (!empty($updateData)) {

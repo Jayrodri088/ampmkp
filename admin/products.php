@@ -204,13 +204,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 
-                $max_id = 0;
-                foreach ($products as $product) {
-                    if ($product['id'] > $max_id) {
-                        $max_id = $product['id'];
-                    }
-                }
-                
                 // Handle multi-currency pricing
                 $prices = array();
                 $default_price = 0;
@@ -265,15 +258,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 
                 $new_product = array(
-                    'id' => $max_id + 1,
                     'name' => $_POST['name'],
                     'slug' => generateSlug($_POST['name']),
-                    'price' => $default_price, // Keep for backward compatibility
+                    'price' => $default_price,
                     'prices' => $prices,
                     'category_id' => (int)$_POST['category_id'],
                     'description' => $_POST['description'],
                     'image' => $image_path,
-                    'images' => $additional_images, // Additional images array
+                    'images' => $additional_images,
                     'stock' => (int)$_POST['stock'],
                     'featured' => isset($_POST['featured']),
                     'active' => isset($_POST['active']),
@@ -283,13 +275,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'available_colors' => $available_colors,
                     'features' => $features
                 );
-                $products[] = $new_product;
                 
-                if (!$message) {
-                    $message = 'Product added successfully!';
-                    $message_type = 'success';
+                try {
+                    $newId = adminSaveProduct($new_product, true);
+                    if ($newId) {
+                        if (!$message) {
+                            $message = 'Product added successfully!';
+                            $message_type = 'success';
+                        }
+                    } else {
+                        $message = 'Failed to save product!';
+                        $message_type = 'error';
+                    }
+                } catch (Exception $e) {
+                    $message = 'Error saving product: ' . $e->getMessage();
+                    $message_type = 'error';
                 }
-                break;
+                
+                header('Location: products.php?message=' . urlencode($message) . '&type=' . $message_type);
+                exit;
                 
             case 'edit':
                 $id = (int)$_POST['id'];
@@ -434,114 +438,181 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             }
                         }
                         
-                        $product['name'] = $_POST['name'];
-                        $product['slug'] = generateSlug($_POST['name']);
-                        $product['price'] = $default_price; // Keep for backward compatibility
-                        $product['prices'] = $prices;
-                        $product['category_id'] = (int)$_POST['category_id'];
-                        $product['description'] = $_POST['description'];
-                        $product['image'] = $image_path;
-                        $product['images'] = $additional_images; // Additional images array
-                        $product['stock'] = (int)$_POST['stock'];
-                        $product['featured'] = isset($_POST['featured']);
-                        $product['active'] = isset($_POST['active']);
-                        $product['has_sizes'] = $has_sizes;
-                        $product['available_sizes'] = $available_sizes;
-                        $product['has_colors'] = $has_colors;
-                        $product['available_colors'] = $available_colors;
-                        $product['features'] = $features;
-                        break;
+                        $updated_product = array(
+                            'id' => $id,
+                            'name' => $_POST['name'],
+                            'slug' => generateSlug($_POST['name']),
+                            'price' => $default_price,
+                            'prices' => $prices,
+                            'category_id' => (int)$_POST['category_id'],
+                            'description' => $_POST['description'],
+                            'image' => $image_path,
+                            'images' => $additional_images,
+                            'stock' => (int)$_POST['stock'],
+                            'featured' => isset($_POST['featured']),
+                            'active' => isset($_POST['active']),
+                            'has_sizes' => $has_sizes,
+                            'available_sizes' => $available_sizes,
+                            'has_colors' => $has_colors,
+                            'available_colors' => $available_colors,
+                            'features' => $features
+                        );
+                        
+                        try {
+                            $result = adminSaveProduct($updated_product, false);
+                            if ($result) {
+                                if (!$message) {
+                                    $message = 'Product updated successfully!';
+                                    $message_type = 'success';
+                                }
+                            } else {
+                                $message = 'Failed to update product!';
+                                $message_type = 'error';
+                            }
+                        } catch (Exception $e) {
+                            $message = 'Error updating product: ' . $e->getMessage();
+                            $message_type = 'error';
+                        }
+                        
+                        header('Location: products.php?message=' . urlencode($message) . '&type=' . $message_type);
+                        exit;
                     }
                 }
                 
-                if (!$message) {
-                    $message = 'Product updated successfully!';
-                    $message_type = 'success';
-                }
-                break;
+                $message = 'Product not found!';
+                $message_type = 'error';
+                header('Location: products.php?message=' . urlencode($message) . '&type=' . $message_type);
+                exit;
                 
             case 'delete':
                 $id = (int)$_POST['id'];
-                $new_products = array();
-                foreach ($products as $product) {
-                    if ($product['id'] !== $id) {
-                        $new_products[] = $product;
-                    } else {
-                        // Delete associated image files
-                        if ($product['image'] !== 'products/placeholder.jpg' && file_exists('../assets/images/' . $product['image'])) {
-                            unlink('../assets/images/' . $product['image']);
-                        }
-                        
-                        // Delete additional images
-                        if (isset($product['images']) && is_array($product['images'])) {
-                            foreach ($product['images'] as $image_path) {
-                                if (file_exists('../assets/images/' . $image_path)) {
-                                    unlink('../assets/images/' . $image_path);
-                                }
+                $productToDelete = adminGetProductById($id);
+                
+                if ($productToDelete) {
+                    // Delete associated image files
+                    if (isset($productToDelete['image']) && $productToDelete['image'] !== 'products/placeholder.jpg' && file_exists('../assets/images/' . $productToDelete['image'])) {
+                        unlink('../assets/images/' . $productToDelete['image']);
+                    }
+                    
+                    // Delete additional images
+                    if (isset($productToDelete['images']) && is_array($productToDelete['images'])) {
+                        foreach ($productToDelete['images'] as $img_path) {
+                            if (file_exists('../assets/images/' . $img_path)) {
+                                unlink('../assets/images/' . $img_path);
                             }
                         }
                     }
+                    
+                    try {
+                        if (adminDeleteProduct($id)) {
+                            $message = 'Product deleted successfully!';
+                            $message_type = 'success';
+                        } else {
+                            $message = 'Failed to delete product!';
+                            $message_type = 'error';
+                        }
+                    } catch (Exception $e) {
+                        $message = 'Error deleting product: ' . $e->getMessage();
+                        $message_type = 'error';
+                    }
+                } else {
+                    $message = 'Product not found!';
+                    $message_type = 'error';
                 }
-                $products = $new_products;
-                $message = 'Product deleted successfully!';
-                $message_type = 'success';
-                break;
+                
+                header('Location: products.php?message=' . urlencode($message) . '&type=' . $message_type);
+                exit;
                 
             case 'bulk_action':
                 $selected_ids = isset($_POST['selected_products']) ? $_POST['selected_products'] : array();
                 $bulk_action = $_POST['bulk_action'];
+                $success_count = 0;
+                $error_count = 0;
                 
                 if (!empty($selected_ids)) {
-                    foreach ($products as &$product) {
-                        if (in_array($product['id'], $selected_ids)) {
+                    try {
+                        foreach ($selected_ids as $product_id) {
+                            $product_id = (int)$product_id;
+                            $product = adminGetProductById($product_id);
+                            
+                            if (!$product) {
+                                $error_count++;
+                                continue;
+                            }
+                            
                             switch ($bulk_action) {
                                 case 'activate':
                                     $product['active'] = true;
+                                    if (adminSaveProduct($product, false)) {
+                                        $success_count++;
+                                    } else {
+                                        $error_count++;
+                                    }
                                     break;
                                 case 'deactivate':
                                     $product['active'] = false;
+                                    if (adminSaveProduct($product, false)) {
+                                        $success_count++;
+                                    } else {
+                                        $error_count++;
+                                    }
                                     break;
                                 case 'feature':
                                     $product['featured'] = true;
+                                    if (adminSaveProduct($product, false)) {
+                                        $success_count++;
+                                    } else {
+                                        $error_count++;
+                                    }
                                     break;
                                 case 'unfeature':
                                     $product['featured'] = false;
+                                    if (adminSaveProduct($product, false)) {
+                                        $success_count++;
+                                    } else {
+                                        $error_count++;
+                                    }
                                     break;
                                 case 'delete':
-                                    // Mark for deletion
-                                    $product['_delete'] = true;
+                                    // Delete associated image files
+                                    if (isset($product['image']) && $product['image'] !== 'products/placeholder.jpg' && file_exists('../assets/images/' . $product['image'])) {
+                                        unlink('../assets/images/' . $product['image']);
+                                    }
+                                    if (isset($product['images']) && is_array($product['images'])) {
+                                        foreach ($product['images'] as $img_path) {
+                                            if (file_exists('../assets/images/' . $img_path)) {
+                                                unlink('../assets/images/' . $img_path);
+                                            }
+                                        }
+                                    }
+                                    if (adminDeleteProduct($product_id)) {
+                                        $success_count++;
+                                    } else {
+                                        $error_count++;
+                                    }
                                     break;
                             }
                         }
-                    }
-                    
-                    if ($bulk_action === 'delete') {
-                        $delete_products = array();
-                        foreach ($products as $p) {
-                            if (!isset($p['_delete'])) {
-                                $delete_products[] = $p;
-                            }
+                        
+                        if ($error_count === 0) {
+                            $message = "Bulk action completed successfully! ($success_count items updated)";
+                            $message_type = 'success';
+                        } else {
+                            $message = "Bulk action partially completed: $success_count succeeded, $error_count failed.";
+                            $message_type = 'warning';
                         }
-                        $products = $delete_products;
+                    } catch (Exception $e) {
+                        $message = 'Error during bulk action: ' . $e->getMessage();
+                        $message_type = 'error';
                     }
-                    
-                    $message = 'Bulk action completed successfully!';
-                    $message_type = 'success';
+                } else {
+                    $message = 'No products selected for bulk action.';
+                    $message_type = 'warning';
                 }
-                break;
+                
+                header('Location: products.php?message=' . urlencode($message) . '&type=' . $message_type);
+                exit;
         }
-        
-        // Save changes
-        $save_result = file_put_contents('../data/products.json', json_encode($products, JSON_PRETTY_PRINT));
-        
-        if ($save_result === false) {
-            $message = 'Failed to save changes to products file!';
-            $message_type = 'error';
-        }
-        
-        // Redirect to prevent form resubmission
-        header('Location: products.php?message=' . urlencode($message) . '&type=' . $message_type);
-        exit;
     }
     // End CSRF else block
 }
@@ -550,40 +621,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Handle GET actions (like individual delete)
 if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
     $id = (int)$_GET['id'];
-    $new_products = array();
-    foreach ($products as $product) {
-        if ($product['id'] !== $id) {
-            $new_products[] = $product;
-        } else {
-            // Delete associated image files
-            if ($product['image'] !== 'products/placeholder.jpg' && file_exists('../assets/images/' . $product['image'])) {
-                unlink('../assets/images/' . $product['image']);
-            }
-            
-            // Delete additional images
-            if (isset($product['images']) && is_array($product['images'])) {
-                foreach ($product['images'] as $image_path) {
-                    if (file_exists('../assets/images/' . $image_path)) {
-                        unlink('../assets/images/' . $image_path);
-                    }
+    $productToDelete = adminGetProductById($id);
+    
+    if ($productToDelete) {
+        // Delete associated image files
+        if (isset($productToDelete['image']) && $productToDelete['image'] !== 'products/placeholder.jpg' && file_exists('../assets/images/' . $productToDelete['image'])) {
+            unlink('../assets/images/' . $productToDelete['image']);
+        }
+        
+        // Delete additional images
+        if (isset($productToDelete['images']) && is_array($productToDelete['images'])) {
+            foreach ($productToDelete['images'] as $image_path) {
+                if (file_exists('../assets/images/' . $image_path)) {
+                    unlink('../assets/images/' . $image_path);
                 }
             }
         }
-    }
-    $products = $new_products;
-    
-    // Attempt to save the updated products list
-    $save_result = file_put_contents('../data/products.json', json_encode($products, JSON_PRETTY_PRINT));
-    
-    if ($save_result === false) {
-        // Redirect with error message if save failed
-        header('Location: products.php?message=' . urlencode('Failed to delete product - could not save changes!') . '&type=error');
+        
+        try {
+            if (adminDeleteProduct($id)) {
+                header('Location: products.php?message=' . urlencode('Product deleted successfully!') . '&type=success');
+                exit;
+            } else {
+                header('Location: products.php?message=' . urlencode('Failed to delete product!') . '&type=error');
+                exit;
+            }
+        } catch (Exception $e) {
+            header('Location: products.php?message=' . urlencode('Error deleting product: ' . $e->getMessage()) . '&type=error');
+            exit;
+        }
+    } else {
+        header('Location: products.php?message=' . urlencode('Product not found!') . '&type=error');
         exit;
     }
-    
-    // Redirect to prevent form resubmission
-    header('Location: products.php?message=' . urlencode('Product deleted successfully!') . '&type=success');
-    exit;
 }
 
 // Filtering and sorting

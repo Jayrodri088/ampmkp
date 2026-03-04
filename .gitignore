@@ -35,3 +35,6 @@ logs/security/
 .vercel/
 .kilocode/
 .claude/
+
+# Some irrelevant folders
+backend/

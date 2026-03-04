@@ -130,7 +130,7 @@ $low_stock_products = array_filter($products, fn($p) => $p['stock'] <= 10);
                     Admin Panel
                 </h2>
                 <p class="text-charcoal-200 text-sm mt-2">
-                    Welcome, <?= htmlspecialchars($_SESSION['admin_user']) ?>
+                    Welcome, <?= htmlspecialchars($_SESSION['admin_name'] ?? $_SESSION['admin_user'] ?? 'Admin') ?>
                 </p>
             </div>
             
@@ -157,7 +157,7 @@ $low_stock_products = array_filter($products, fn($p) => $p['stock'] <= 10);
                     </button>
                 </div>
                 <p class="text-charcoal-200 text-xs sm:text-sm mt-2">
-                    Welcome, <?= htmlspecialchars($_SESSION['admin_user']) ?>
+                    Welcome, <?= htmlspecialchars($_SESSION['admin_name'] ?? $_SESSION['admin_user'] ?? 'Admin') ?>
                 </p>
             </div>
             

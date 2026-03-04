@@ -1,12 +1,12 @@
 <?php
-// Dedicated authentication handler
+// Dedicated authentication handler with RBAC support
 // Start session with secure settings that work in both development and production
 ini_set('session.cookie_httponly', 1);
 ini_set('session.use_only_cookies', 1);
 
-// Use server's default session save path (avoid per-file overrides that break session sharing)
-
 require_once __DIR__ . '/includes/admin_functions.php';
+require_once __DIR__ . '/includes/rbac.php';
+
 // Only require secure cookies if we're using HTTPS (robust detection)
 ini_set('session.cookie_secure', isRequestHttps() ? 1 : 0);
 
@@ -20,62 +20,121 @@ if (!isRequestHttps() && !isLocalhost()) {
     exit;
 }
 
-
-
 $login_error = '';
 $login_success = false;
+$login_mode = 'email'; // 'email' for new RBAC system, 'password' for legacy
 
 // CSRF token setup for login
 if (!isset($_SESSION['admin_csrf_token'])) {
     $_SESSION['admin_csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Handle login form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_password'])) {
-    $postedToken = $_POST['csrf_token'] ?? '';
-    if (empty($postedToken) || !hash_equals($_SESSION['admin_csrf_token'], $postedToken)) {
-        $login_error = 'Invalid request.';
-    } else {
-    // Hashed password for 'amp@2025' - change this to your desired password hash
-    // To generate a new hash, use: password_hash('your_password', PASSWORD_DEFAULT)
-    $stored_password_hash = '$2y$12$Tv9s1kNlEIuRxGMOUZctlezrIEy9PTQdcjK6ZaTsa/RBC7SoSDXyS'; //
-    
-    $submitted_password = $_POST['admin_password'];
-    
-    // Debug information (only if debug requested)
-    if (isset($_GET['debug'])) {
-        echo "<div style='background: #f0f0f0; padding: 10px; margin: 10px; border: 1px solid #ccc;'>";
-        echo "<h3>Debug Info:</h3>";
-        echo "<p>Password submitted: " . (strlen($submitted_password) > 0 ? "***PROVIDED*** (length: " . strlen($submitted_password) . ")" : "NOT PROVIDED") . "</p>";
-        echo "<p>Hash verification: " . (password_verify($submitted_password, $stored_password_hash) ? 'VALID' : 'INVALID') . "</p>";
-        echo "<p>HTTPS detected: " . ($is_https ? 'YES' : 'NO') . "</p>";
-        echo "<p>Session ID: " . session_id() . "</p>";
-        echo "<p>Session save path: " . session_save_path() . "</p>";
-        echo "<p>Session save path writable: " . (is_writable(session_save_path()) ? 'YES' : 'NO') . "</p>";
-        echo "</div>";
+// Check if RBAC system is available (MySQL enabled with admins table)
+$rbac_enabled = Database::isMySQLEnabled();
+$has_admins_table = false;
+
+if ($rbac_enabled) {
+    try {
+        $has_admins_table = Database::fetchOne("SHOW TABLES LIKE 'admins'") !== null;
+    } catch (Exception $e) {
+        $has_admins_table = false;
     }
 }
-    
-    if (password_verify($submitted_password, $stored_password_hash)) {
-        // Regenerate session ID for security
-        session_regenerate_id(true);
-        $_SESSION['admin_logged_in'] = true;
-        $_SESSION['admin_user'] = 'Administrator';
-        $_SESSION['login_time'] = time();
-        
-        $login_success = true;
-        
-        // Redirect to dashboard after successful login
-        header('Location: ' . getAdminAbsoluteUrl('index.php?login=success'), true, 302);
-        echo '<script>window.location.href = ' . json_encode(getAdminUrl('index.php?login=success')) . ';</script>';
-        exit;
+
+// Handle login form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $postedToken = $_POST['csrf_token'] ?? '';
+    if (empty($postedToken) || !hash_equals($_SESSION['admin_csrf_token'], $postedToken)) {
+        $login_error = 'Invalid request. Please try again.';
     } else {
-        $login_error = 'Invalid password. Please check your password and try again.';
+        // RBAC Login (email + password)
+        if ($has_admins_table && isset($_POST['email']) && isset($_POST['password'])) {
+            $email = trim($_POST['email'] ?? '');
+            $password = $_POST['password'] ?? '';
+
+            if (empty($email) || empty($password)) {
+                $login_error = 'Please enter both email and password.';
+            } else {
+                $admin = verifyAdminCredentials($email, $password);
+
+                if ($admin) {
+                    // Regenerate session ID for security
+                    session_regenerate_id(true);
+
+                    // Set session variables
+                    $_SESSION['admin_logged_in'] = true;
+                    $_SESSION['admin_id'] = $admin['id'];
+                    $_SESSION['admin_name'] = $admin['name'];
+                    $_SESSION['admin_email'] = $admin['email'];
+                    $_SESSION['admin_role'] = $admin['role_name'];
+                    $_SESSION['admin_role_slug'] = $admin['role_slug'];
+
+                    // Parse permissions
+                    $permissions = is_string($admin['permissions'])
+                        ? json_decode($admin['permissions'], true)
+                        : $admin['permissions'];
+
+                    // Add is_super flag for convenience
+                    if ($admin['role_slug'] === 'super_admin') {
+                        $permissions['is_super'] = true;
+                    } else {
+                        $permissions['is_super'] = false;
+                    }
+
+                    $_SESSION['admin_permissions'] = $permissions;
+                    $_SESSION['login_time'] = time();
+
+                    // Update last login
+                    updateAdminLastLogin($admin['id']);
+
+                    // Log the login
+                    logAdminActivity('login', null, null, null, 'web');
+
+                    $login_success = true;
+
+                    // Redirect to dashboard after successful login
+                    header('Location: ' . getAdminAbsoluteUrl('index.php?login=success'), true, 302);
+                    echo '<script>window.location.href = ' . json_encode(getAdminUrl('index.php?login=success')) . ';</script>';
+                    exit;
+                } else {
+                    $login_error = 'Invalid email or password, or account is inactive.';
+                }
+            }
+        }
+        // Legacy password-only login (fallback)
+        elseif (!$has_admins_table && isset($_POST['admin_password'])) {
+            $stored_password_hash = '$2y$12$Tv9s1kNlEIuRxGMOUZctlezrIEy9PTQdcjK6ZaTsa/RBC7SoSDXyS';
+            $submitted_password = $_POST['admin_password'];
+
+            if (password_verify($submitted_password, $stored_password_hash)) {
+                // Regenerate session ID for security
+                session_regenerate_id(true);
+                $_SESSION['admin_logged_in'] = true;
+                $_SESSION['admin_user'] = 'Administrator';
+                $_SESSION['admin_role_slug'] = 'super_admin'; // Legacy admins are super admins
+                $_SESSION['admin_permissions'] = ['is_super' => true];
+                $_SESSION['login_time'] = time();
+
+                $login_success = true;
+
+                // Redirect to dashboard after successful login
+                header('Location: ' . getAdminAbsoluteUrl('index.php?login=success'), true, 302);
+                echo '<script>window.location.href = ' . json_encode(getAdminUrl('index.php?login=success')) . ';</script>';
+                exit;
+            } else {
+                $login_error = 'Invalid password. Please check your password and try again.';
+            }
+        }
     }
 }
 
 // Handle logout
 if (isset($_GET['logout'])) {
+    // Log the logout before destroying session
+    if (isset($_SESSION['admin_id'])) {
+        logAdminActivity('logout', null, null, null, 'web');
+    }
+
     session_destroy();
     session_start();
     header('Location: ' . getAdminAbsoluteUrl('auth.php?message=logged_out'), true, 302);
@@ -90,14 +149,13 @@ if (isset($_SESSION['admin_logged_in'])) {
     exit;
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login - Angel Marketplace</title>
-    
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -149,7 +207,7 @@ if (isset($_SESSION['admin_logged_in'])) {
             }
         }
     </script>
-    
+
     <!-- Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
 </head>
@@ -175,7 +233,7 @@ if (isset($_SESSION['admin_logged_in'])) {
                     <h1 class="text-xl lg:text-2xl font-bold mb-1 lg:mb-2">Admin Login</h1>
                     <p class="text-charcoal-200 text-xs lg:text-sm">Angel Marketplace Administration</p>
                 </div>
-                
+
                 <!-- Form Body -->
                 <div class="p-6 lg:p-8">
                     <!-- Success Message -->
@@ -207,28 +265,64 @@ if (isset($_SESSION['admin_logged_in'])) {
                         </div>
                     </div>
                     <?php endif; ?>
-                    
+
+                    <!-- RBAC Login Form (Email + Password) -->
+                    <?php if ($has_admins_table): ?>
+                    <form method="POST" action="<?= htmlspecialchars(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH)) ?>" class="space-y-5 lg:space-y-6">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['admin_csrf_token']) ?>">
+                        <div>
+                            <label for="email" class="block text-xs lg:text-sm font-medium text-charcoal-700 mb-2">
+                                <i class="bi bi-envelope mr-2 text-folly"></i>Email Address
+                            </label>
+                            <input type="email"
+                                   class="w-full px-3 lg:px-4 py-3 text-sm lg:text-base border border-gray-300 rounded-lg lg:rounded-xl focus:border-folly focus:ring-2 focus:ring-folly/20 transition-all duration-200 touch-manipulation"
+                                   id="email"
+                                   name="email"
+                                   placeholder="admin@example.com"
+                                   required
+                                   autofocus>
+                        </div>
+                        <div>
+                            <label for="password" class="block text-xs lg:text-sm font-medium text-charcoal-700 mb-2">
+                                <i class="bi bi-key mr-2 text-folly"></i>Password
+                            </label>
+                            <input type="password"
+                                   class="w-full px-3 lg:px-4 py-3 text-sm lg:text-base border border-gray-300 rounded-lg lg:rounded-xl focus:border-folly focus:ring-2 focus:ring-folly/20 transition-all duration-200 touch-manipulation"
+                                   id="password"
+                                   name="password"
+                                   placeholder="Enter your password"
+                                   required>
+                        </div>
+
+                        <button type="submit" class="w-full bg-gradient-to-r from-folly to-folly-600 hover:from-folly-600 hover:to-folly-700 text-white py-3 px-6 rounded-lg lg:rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-xl touch-manipulation text-sm lg:text-base">
+                            <i class="bi bi-box-arrow-in-right mr-2"></i>
+                            Login to Admin Panel
+                        </button>
+                    </form>
+                    <?php else: ?>
+                    <!-- Legacy Login Form (Password Only) -->
                     <form method="POST" action="<?= htmlspecialchars(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH)) ?>" class="space-y-5 lg:space-y-6">
                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['admin_csrf_token']) ?>">
                         <div>
                             <label for="admin_password" class="block text-xs lg:text-sm font-medium text-charcoal-700 mb-2">
                                 <i class="bi bi-key mr-2 text-folly"></i>Admin Password
                             </label>
-                            <input type="password" 
-                                   class="w-full px-3 lg:px-4 py-3 text-sm lg:text-base border border-gray-300 rounded-lg lg:rounded-xl focus:border-folly focus:ring-2 focus:ring-folly/20 transition-all duration-200 touch-manipulation" 
-                                   id="admin_password" 
-                                   name="admin_password" 
+                            <input type="password"
+                                   class="w-full px-3 lg:px-4 py-3 text-sm lg:text-base border border-gray-300 rounded-lg lg:rounded-xl focus:border-folly focus:ring-2 focus:ring-folly/20 transition-all duration-200 touch-manipulation"
+                                   id="admin_password"
+                                   name="admin_password"
                                    placeholder="Enter your admin password"
-                                   required 
+                                   required
                                    autofocus>
                         </div>
-                        
+
                         <button type="submit" class="w-full bg-gradient-to-r from-folly to-folly-600 hover:from-folly-600 hover:to-folly-700 text-white py-3 px-6 rounded-lg lg:rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-xl touch-manipulation text-sm lg:text-base">
                             <i class="bi bi-box-arrow-in-right mr-2"></i>
                             Login to Admin Panel
                         </button>
                     </form>
-                    
+                    <?php endif; ?>
+
                     <!-- Divider -->
                     <div class="relative my-5 lg:my-6">
                         <div class="absolute inset-0 flex items-center">
@@ -238,7 +332,7 @@ if (isset($_SESSION['admin_logged_in'])) {
                             <span class="px-3 lg:px-4 bg-white text-gray-500">or</span>
                         </div>
                     </div>
-                    
+
                     <!-- Back to Site -->
                     <div class="text-center">
                         <a href="../" class="inline-flex items-center text-charcoal-600 hover:text-folly transition-colors duration-200 text-xs lg:text-sm font-medium touch-manipulation py-2 px-1">
@@ -247,7 +341,7 @@ if (isset($_SESSION['admin_logged_in'])) {
                         </a>
                     </div>
                 </div>
-                
+
                 <!-- Footer -->
                 <div class="bg-gray-50 px-6 lg:px-8 py-3 lg:py-4 border-t border-gray-100">
                     <div class="text-center">
@@ -255,11 +349,10 @@ if (isset($_SESSION['admin_logged_in'])) {
                             <i class="bi bi-shield-lock mr-1"></i>
                             Secure admin authentication system
                         </p>
-
                     </div>
                 </div>
             </div>
-            
+
             <!-- Additional Info -->
             <div class="text-center mt-4 lg:mt-6">
                 <p class="text-charcoal-400 text-xs lg:text-sm">
@@ -273,50 +366,50 @@ if (isset($_SESSION['admin_logged_in'])) {
         .touch-manipulation {
             touch-action: manipulation;
         }
-        
+
         .animation-delay-2000 {
             animation-delay: 2s;
         }
         .animation-delay-4000 {
             animation-delay: 4s;
         }
-        
+
         /* Custom focus styles */
         input:focus {
             outline: none;
         }
-        
+
         /* Button hover effect */
         button:hover {
             box-shadow: 0 10px 25px rgba(255, 0, 85, 0.3);
         }
-        
+
         /* Touch-friendly interactions */
         @media (max-width: 768px) {
             .touch-manipulation:active {
                 transform: scale(0.98);
             }
-            
+
             /* Optimize for small screens */
             .bg-gradient-to-br {
                 background-attachment: fixed;
             }
         }
-        
+
         /* Enhanced mobile interactions */
         @media (hover: none) and (pointer: coarse) {
             button:hover {
                 transform: none;
                 box-shadow: 0 4px 15px rgba(255, 0, 85, 0.2);
             }
-            
+
             button:active {
                 transform: scale(0.98);
                 box-shadow: 0 2px 8px rgba(255, 0, 85, 0.4);
             }
         }
     </style>
-    
+
     <script>
         // Enhanced mobile experience
         document.addEventListener('DOMContentLoaded', function() {
@@ -327,7 +420,7 @@ if (isset($_SESSION['admin_logged_in'])) {
                     element.addEventListener('touchstart', function() {
                         this.style.transform = 'scale(0.98)';
                     }, { passive: true });
-                    
+
                     element.addEventListener('touchend', function() {
                         setTimeout(() => {
                             this.style.transform = '';
@@ -335,25 +428,27 @@ if (isset($_SESSION['admin_logged_in'])) {
                     }, { passive: true });
                 });
             }
-            
-            // Auto-focus password field on larger screens
+
+            // Auto-focus email field on larger screens
             if (window.innerWidth >= 768) {
-                const passwordInput = document.getElementById('admin_password');
-                if (passwordInput) {
-                    passwordInput.focus();
+                const firstInput = document.querySelector('input[type="email"], input[type="password"]');
+                if (firstInput) {
+                    firstInput.focus();
                 }
             }
-            
+
             // Handle form submission with better UX
             const form = document.querySelector('form');
             const submitButton = document.querySelector('button[type="submit"]');
-            
-            form.addEventListener('submit', function() {
-                submitButton.disabled = true;
-                submitButton.innerHTML = '<i class="bi bi-hourglass-split mr-2"></i>Logging in...';
-                submitButton.classList.add('opacity-75');
-            });
+
+            if (form && submitButton) {
+                form.addEventListener('submit', function() {
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = '<i class="bi bi-hourglass-split mr-2"></i>Logging in...';
+                    submitButton.classList.add('opacity-75');
+                });
+            }
         });
     </script>
 </body>
-</html> 
+</html>

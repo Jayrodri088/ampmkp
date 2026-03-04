@@ -87,7 +87,7 @@ $stats = [
             <h2 class="text-xl font-bold flex items-center">
                 <i class="bi bi-shield-check mr-3 text-folly"></i> Admin Panel
             </h2>
-            <p class="text-charcoal-200 text-sm mt-2">Welcome, <?= htmlspecialchars($_SESSION['admin_user']) ?></p>
+            <p class="text-charcoal-200 text-sm mt-2">Welcome, <?= htmlspecialchars($_SESSION['admin_name'] ?? $_SESSION['admin_user'] ?? 'Admin') ?></p>
         </div>
         <nav class="p-4 space-y-1">
             <?php $activePage = 'vendors'; include __DIR__ . '/partials/nav_links_desktop.php'; ?>

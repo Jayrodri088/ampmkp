@@ -793,7 +793,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) 
                     <span class="hidden lg:inline">Admin Panel</span>
                 </h2>
                 <p class="text-charcoal-200 text-xs lg:text-sm mt-1 lg:mt-2">
-                    Welcome, <?= htmlspecialchars($_SESSION['admin_user']) ?>
+                    Welcome, <?= htmlspecialchars($_SESSION['admin_name'] ?? $_SESSION['admin_user'] ?? 'Admin') ?>
                 </p>
             </div>
             
@@ -820,7 +820,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) 
                     </button>
                 </div>
                 <p class="text-charcoal-200 text-sm mt-1">
-                    Welcome, <?= htmlspecialchars($_SESSION['admin_user']) ?>
+                    Welcome, <?= htmlspecialchars($_SESSION['admin_name'] ?? $_SESSION['admin_user'] ?? 'Admin') ?>
                 </p>
             </div>
             

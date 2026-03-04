@@ -8,6 +8,7 @@ if (!isset($_SESSION['admin_logged_in'])) {
 }
 
 require_once '../includes/functions.php';
+require_once __DIR__ . '/includes/rbac.php';
 require_once '../includes/admin_helpers.php';
 require_once '../includes/mail_config.php';
 
@@ -16,11 +17,23 @@ if (!isset($_SESSION['admin_csrf_token'])) {
     $_SESSION['admin_csrf_token'] = bin2hex(random_bytes(32));
 }
 
+// Permission: only some roles can see and manage mobile app orders (Node backend data)
+$can_manage_mobile_orders = (isset($_SESSION['admin_permissions']['is_super']) && $_SESSION['admin_permissions']['is_super']) ||
+    (isset($_SESSION['admin_permissions']['mobile']['orders']) && $_SESSION['admin_permissions']['mobile']['orders']);
+
 // Load orders data
 $orders = adminGetAllOrders();
 
+// Load mobile orders (from Node backend table) when available
+$mobile_orders = function_exists('adminGetAllMobileOrders') ? adminGetAllMobileOrders() : [];
+
 // Load products to enrich order item details (name, image, slug)
-$products = json_decode(file_get_contents('../data/products.json'), true) ?? [];
+if (function_exists('adminGetAllProducts') && isMySQLBackend()) {
+	$products = adminGetAllProducts();
+} else {
+	$products = file_exists('../data/products.json') ? json_decode(file_get_contents('../data/products.json'), true) : [];
+}
+$products = $products ?? [];
 $productById = [];
 foreach ($products as $p) {
 	if (isset($p['id'])) {
@@ -119,16 +132,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 break;
+
+            case 'update_mobile_order_status':
+                if (!$can_manage_mobile_orders) {
+                    $message = 'You do not have permission to update mobile app orders.';
+                    $message_type = 'danger';
+                } else {
+                    $orderId = $_POST['order_id'] ?? '';
+                    $newStatus = $_POST['status'] ?? '';
+                    if ($orderId && $newStatus && function_exists('adminUpdateMobileOrderStatus')) {
+                        if (adminUpdateMobileOrderStatus($orderId, $newStatus)) {
+                            $message = 'Mobile order status updated successfully';
+                            $message_type = 'success';
+                            $mobile_orders = adminGetAllMobileOrders();
+                        } else {
+                            $message = 'Failed to update mobile order status';
+                            $message_type = 'danger';
+                        }
+                    }
+                }
+                break;
         }
     }
 }
 }
+
+// Orders tab: website | mobile (force website if no permission for mobile)
+$orders_tab = ($_GET['tab'] ?? 'website') === 'mobile' && $can_manage_mobile_orders ? 'mobile' : 'website';
 
 // Filtering and sorting
 $filter_status = $_GET['status'] ?? 'all';
 $filter_payment = $_GET['payment'] ?? 'all';
 $search = $_GET['search'] ?? '';
 $sort = $_GET['sort'] ?? 'date_desc';
+
+// Mobile orders filtering
+$mobile_filter_status = $_GET['mobile_status'] ?? 'all';
+$mobile_search = $_GET['mobile_search'] ?? '';
+$filtered_mobile_orders = $mobile_orders;
+if ($mobile_filter_status !== 'all') {
+    $filtered_mobile_orders = array_filter($filtered_mobile_orders, fn($o) => ($o['status'] ?? '') === $mobile_filter_status);
+}
+if ($mobile_search !== '') {
+    $ms = strtolower($mobile_search);
+    $filtered_mobile_orders = array_filter($filtered_mobile_orders, function($o) use ($ms) {
+        return strpos(strtolower($o['id'] ?? ''), $ms) !== false
+            || strpos(strtolower($o['customer_email'] ?? ''), $ms) !== false
+            || strpos(strtolower($o['customer_name'] ?? ''), $ms) !== false;
+    });
+}
+$filtered_mobile_orders = array_values($filtered_mobile_orders);
+$mobile_per_page = 10;
+$mobile_page = max(1, (int)($_GET['mobile_page'] ?? 1));
+$mobile_total = count($filtered_mobile_orders);
+$mobile_total_pages = ceil($mobile_total / $mobile_per_page);
+$mobile_offset = ($mobile_page - 1) * $mobile_per_page;
+$paged_mobile_orders = array_slice($filtered_mobile_orders, $mobile_offset, $mobile_per_page);
 
 // Apply filters
 $filtered_orders = $orders;
@@ -331,7 +390,7 @@ $stats = [
                     <span class="hidden lg:inline">Admin Panel</span>
                 </h2>
                 <p class="text-charcoal-200 text-xs lg:text-sm mt-1 lg:mt-2">
-                    Welcome, <?= htmlspecialchars($_SESSION['admin_user']) ?>
+                    Welcome, <?= htmlspecialchars($_SESSION['admin_name'] ?? $_SESSION['admin_user'] ?? 'Admin') ?>
                 </p>
             </div>
             
@@ -358,7 +417,7 @@ $stats = [
                     </button>
                 </div>
                 <p class="text-charcoal-200 text-sm mt-1">
-                    Welcome, <?= htmlspecialchars($_SESSION['admin_user']) ?>
+                    Welcome, <?= htmlspecialchars($_SESSION['admin_name'] ?? $_SESSION['admin_user'] ?? 'Admin') ?>
                 </p>
             </div>
             
@@ -389,8 +448,18 @@ $stats = [
             
             <!-- Content Area -->
             <div class="flex-1 p-3 sm:p-4 lg:p-6 overflow-auto">
+                <!-- Orders source tabs -->
+                <?php if (!empty($mobile_orders) || !empty($orders)): ?>
+                <div class="flex border-b border-gray-200 mb-4 lg:mb-6">
+                    <a href="?tab=website" class="px-4 py-3 text-sm font-medium border-b-2 <?= $orders_tab === 'website' ? 'border-folly text-folly' : 'border-transparent text-charcoal-500 hover:text-charcoal' ?>">Website orders (<?= count($orders) ?>)</a>
+                    <?php if ($can_manage_mobile_orders && (!empty($mobile_orders) || function_exists('adminMobileOrdersTableExists') && adminMobileOrdersTableExists())): ?>
+                    <a href="?tab=mobile" class="px-4 py-3 text-sm font-medium border-b-2 <?= $orders_tab === 'mobile' ? 'border-folly text-folly' : 'border-transparent text-charcoal-500 hover:text-charcoal' ?>">Mobile app orders (<?= count($mobile_orders) ?>)</a>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+
                 <!-- Quick Start Guide for Empty State -->
-                <?php if (empty($orders)): ?>
+                <?php if (empty($orders) && empty($mobile_orders)): ?>
                 <div class="bg-blue-50 border border-blue-200 p-4 lg:p-6 mb-4 lg:mb-6 rounded-lg">
                     <div class="flex flex-col lg:flex-row lg:items-start">
                         <div class="flex-1">
@@ -534,13 +603,15 @@ $stats = [
                 </div>
                 <?php endif; ?>
 
+                <?php if ($orders_tab === 'website'): ?>
                 <!-- Filters and Search -->
                 <div class="bg-white border border-gray-200 mb-4 lg:mb-6 rounded-lg">
                     <div class="px-4 lg:px-6 py-3 lg:py-4 border-b border-gray-200">
-                        <h3 class="text-sm lg:text-base font-semibold text-charcoal">Filter & Search Orders</h3>
+                        <h3 class="text-sm lg:text-base font-semibold text-charcoal">Filter & Search Website Orders</h3>
                     </div>
                     <div class="p-4 lg:p-6">
                         <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-4">
+                            <input type="hidden" name="tab" value="website">
                             <div>
                                 <label class="block text-xs lg:text-sm font-medium text-charcoal-600 mb-2">Order Status</label>
                                 <select name="status" class="w-full px-3 py-2 text-sm lg:text-base border border-gray-300 bg-white text-charcoal focus:border-folly focus:ring-1 focus:ring-folly touch-manipulation" onchange="this.form.submit()">
@@ -1014,7 +1085,7 @@ $stats = [
                         <div class="flex justify-center sm:justify-end">
                             <div class="flex space-x-1 lg:space-x-2">
                                 <?php if ($page > 1): ?>
-                                    <a href="?page=<?= $page - 1 ?>&status=<?= $filter_status ?>&payment=<?= $filter_payment ?>&search=<?= urlencode($search) ?>&sort=<?= $sort ?>" 
+                                    <a href="?tab=website&page=<?= $page - 1 ?>&status=<?= $filter_status ?>&payment=<?= $filter_payment ?>&search=<?= urlencode($search) ?>&sort=<?= $sort ?>" 
                                        class="px-2 lg:px-3 py-2 border border-gray-300 text-xs lg:text-sm text-charcoal hover:bg-gray-50 rounded touch-manipulation">
                                         <i class="bi bi-chevron-left sm:hidden"></i>
                                         <span class="hidden sm:inline">Previous</span>
@@ -1029,13 +1100,13 @@ $stats = [
                                 <!-- Desktop: Show page numbers -->
                                 <div class="hidden sm:flex space-x-1 lg:space-x-2">
                                     <?php for ($i = max(1, $page - 2); $i <= min($total_pages, $page + 2); $i++): ?>
-                                        <a href="?page=<?= $i ?>&status=<?= $filter_status ?>&payment=<?= $filter_payment ?>&search=<?= urlencode($search) ?>&sort=<?= $sort ?>" 
+                                        <a href="?tab=website&page=<?= $i ?>&status=<?= $filter_status ?>&payment=<?= $filter_payment ?>&search=<?= urlencode($search) ?>&sort=<?= $sort ?>" 
                                            class="px-2 lg:px-3 py-2 border border-gray-300 text-xs lg:text-sm <?= $i === $page ? 'bg-folly text-white border-folly' : 'text-charcoal hover:bg-gray-50' ?> rounded touch-manipulation"><?= $i ?></a>
                                     <?php endfor; ?>
                                 </div>
                                 
                                 <?php if ($page < $total_pages): ?>
-                                    <a href="?page=<?= $page + 1 ?>&status=<?= $filter_status ?>&payment=<?= $filter_payment ?>&search=<?= urlencode($search) ?>&sort=<?= $sort ?>" 
+                                    <a href="?tab=website&page=<?= $page + 1 ?>&status=<?= $filter_status ?>&payment=<?= $filter_payment ?>&search=<?= urlencode($search) ?>&sort=<?= $sort ?>" 
                                        class="px-2 lg:px-3 py-2 border border-gray-300 text-xs lg:text-sm text-charcoal hover:bg-gray-50 rounded touch-manipulation">
                                         <i class="bi bi-chevron-right sm:hidden"></i>
                                         <span class="hidden sm:inline">Next</span>
@@ -1047,6 +1118,111 @@ $stats = [
                 </div>
                 <?php endif; ?>
                 </div>
+                <?php endif; ?>
+
+                <?php if ($orders_tab === 'mobile'): ?>
+                <!-- Mobile app orders -->
+                <div class="bg-white border border-gray-200 mb-4 lg:mb-6 rounded-lg">
+                    <div class="px-4 lg:px-6 py-3 lg:py-4 border-b border-gray-200">
+                        <h3 class="text-sm lg:text-base font-semibold text-charcoal">Filter Mobile Orders</h3>
+                    </div>
+                    <div class="p-4 lg:p-6">
+                        <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+                            <input type="hidden" name="tab" value="mobile">
+                            <div>
+                                <label class="block text-xs lg:text-sm font-medium text-charcoal-600 mb-2">Status</label>
+                                <select name="mobile_status" class="w-full px-3 py-2 text-sm border border-gray-300 bg-white rounded" onchange="this.form.submit()">
+                                    <option value="all" <?= $mobile_filter_status === 'all' ? 'selected' : '' ?>>All</option>
+                                    <option value="pending" <?= $mobile_filter_status === 'pending' ? 'selected' : '' ?>>Pending</option>
+                                    <option value="processing" <?= $mobile_filter_status === 'processing' ? 'selected' : '' ?>>Processing</option>
+                                    <option value="completed" <?= $mobile_filter_status === 'completed' ? 'selected' : '' ?>>Completed</option>
+                                    <option value="cancelled" <?= $mobile_filter_status === 'cancelled' ? 'selected' : '' ?>>Cancelled</option>
+                                </select>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <label class="block text-xs lg:text-sm font-medium text-charcoal-600 mb-2">Search</label>
+                                <div class="flex">
+                                    <input type="text" name="mobile_search" class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded" placeholder="Order ID, customer" value="<?= htmlspecialchars($mobile_search) ?>">
+                                    <button type="submit" class="ml-2 px-4 py-2 bg-folly text-white text-sm rounded">Search</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="bg-white border border-gray-200 rounded-lg">
+                    <div class="px-4 lg:px-6 py-3 border-b border-gray-200 flex justify-between items-center">
+                        <h3 class="text-sm lg:text-base font-semibold text-charcoal">Mobile app orders</h3>
+                        <span class="text-xs text-charcoal-500"><?= $mobile_total ?> order(s)</span>
+                    </div>
+                    <?php if (empty($paged_mobile_orders)): ?>
+                    <div class="px-6 py-8 text-center text-charcoal-400">
+                        <i class="bi bi-phone text-3xl mb-3 block"></i>
+                        <p class="text-sm">No mobile orders match your filters.</p>
+                    </div>
+                    <?php else: ?>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th class="px-4 py-3 text-left font-medium text-charcoal-600">Order ID</th>
+                                    <th class="px-4 py-3 text-left font-medium text-charcoal-600">Customer</th>
+                                    <th class="px-4 py-3 text-left font-medium text-charcoal-600">Total</th>
+                                    <th class="px-4 py-3 text-left font-medium text-charcoal-600">Status</th>
+                                    <th class="px-4 py-3 text-left font-medium text-charcoal-600">Date</th>
+                                    <th class="px-4 py-3 text-left font-medium text-charcoal-600">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <?php foreach ($paged_mobile_orders as $mo): ?>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 font-mono text-xs"><?= htmlspecialchars(substr($mo['id'], 0, 8)) ?>…</td>
+                                    <td class="px-4 py-3">
+                                        <div><?= htmlspecialchars($mo['customer_name'] ?? '—') ?></div>
+                                        <div class="text-charcoal-400 text-xs"><?= htmlspecialchars($mo['customer_email'] ?? '') ?></div>
+                                    </td>
+                                    <td class="px-4 py-3">£<?= number_format((float)($mo['total'] ?? 0), 2) ?></td>
+                                    <td class="px-4 py-3">
+                                        <?php
+                                        $st = $mo['status'] ?? 'pending';
+                                        $stClass = ['pending' => 'bg-yellow-100 text-yellow-800', 'processing' => 'bg-blue-100 text-blue-800', 'completed' => 'bg-green-100 text-green-800', 'cancelled' => 'bg-red-100 text-red-800'][$st] ?? 'bg-gray-100 text-gray-800';
+                                        ?>
+                                        <span class="px-2 py-1 text-xs font-medium <?= $stClass ?> rounded-full"><?= ucfirst($st) ?></span>
+                                    </td>
+                                    <td class="px-4 py-3 text-charcoal-500"><?= date('M j, Y g:i A', strtotime($mo['created_at'] ?? 'now')) ?></td>
+                                    <td class="px-4 py-3">
+                                        <form method="POST" class="inline-flex items-center gap-1">
+                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['admin_csrf_token']) ?>">
+                                            <input type="hidden" name="action" value="update_mobile_order_status">
+                                            <input type="hidden" name="order_id" value="<?= htmlspecialchars($mo['id']) ?>">
+                                            <select name="status" class="text-xs border border-gray-300 rounded px-2 py-1" onchange="this.form.submit()">
+                                                <option value="pending" <?= ($mo['status'] ?? '') === 'pending' ? 'selected' : '' ?>>Pending</option>
+                                                <option value="processing" <?= ($mo['status'] ?? '') === 'processing' ? 'selected' : '' ?>>Processing</option>
+                                                <option value="completed" <?= ($mo['status'] ?? '') === 'completed' ? 'selected' : '' ?>>Completed</option>
+                                                <option value="cancelled" <?= ($mo['status'] ?? '') === 'cancelled' ? 'selected' : '' ?>>Cancelled</option>
+                                            </select>
+                                        </form>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <?php if ($mobile_total_pages > 1): ?>
+                    <div class="px-4 py-3 border-t border-gray-200 flex justify-between items-center">
+                        <span class="text-xs text-charcoal-500">Page <?= $mobile_page ?> of <?= $mobile_total_pages ?></span>
+                        <div class="flex gap-2">
+                            <?php if ($mobile_page > 1): ?>
+                            <a href="?tab=mobile&mobile_page=<?= $mobile_page - 1 ?>&mobile_status=<?= urlencode($mobile_filter_status) ?>&mobile_search=<?= urlencode($mobile_search) ?>" class="px-3 py-1 text-sm border border-gray-300 rounded">Previous</a>
+                            <?php endif; ?>
+                            <?php if ($mobile_page < $mobile_total_pages): ?>
+                            <a href="?tab=mobile&mobile_page=<?= $mobile_page + 1 ?>&mobile_status=<?= urlencode($mobile_filter_status) ?>&mobile_search=<?= urlencode($mobile_search) ?>" class="px-3 py-1 text-sm border border-gray-300 rounded">Next</a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>

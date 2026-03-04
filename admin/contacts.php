@@ -466,7 +466,7 @@ $stats = [
                     <span class="hidden lg:inline">Admin Panel</span>
                 </h2>
                 <p class="text-charcoal-200 text-xs lg:text-sm mt-1 lg:mt-2">
-                    Welcome, <?= htmlspecialchars($_SESSION['admin_user']) ?>
+                    Welcome, <?= htmlspecialchars($_SESSION['admin_name'] ?? $_SESSION['admin_user'] ?? 'Admin') ?>
                 </p>
             </div>
             
@@ -493,7 +493,7 @@ $stats = [
                     </button>
                 </div>
                 <p class="text-charcoal-200 text-sm mt-1">
-                    Welcome, <?= htmlspecialchars($_SESSION['admin_user']) ?>
+                    Welcome, <?= htmlspecialchars($_SESSION['admin_name'] ?? $_SESSION['admin_user'] ?? 'Admin') ?>
                 </p>
             </div>
             
@@ -1102,7 +1102,7 @@ $stats = [
                     orders: { icon: '🧾', label: 'Orders', color: 'bg-purple-100 text-purple-800' }
                 }[source] || { icon: '❓', label: source, color: 'bg-gray-100 text-gray-800' };
                 
-                return \`<span class="px-2 py-1 text-xs font-medium \${sourceInfo.color} rounded-full">\${sourceInfo.icon} \${sourceInfo.label}</span>\`;
+                return `<span class="px-2 py-1 text-xs font-medium ${sourceInfo.color} rounded-full">${sourceInfo.icon} ${sourceInfo.label}</span>`;
             }).join(' ');
             
             // Generate source details
@@ -1111,18 +1111,18 @@ $stats = [
                 sourceDetailsHtml = '<div class="mt-4"><h5 class="text-sm font-semibold text-charcoal mb-2">📊 Source Details</h5><div class="space-y-2 text-xs">';
                 
                 if (contact.source_details.contact_form) {
-                    sourceDetailsHtml += \`<div class="p-2 bg-blue-50 rounded"><strong>Contact Form:</strong> Submitted \${new Date(contact.source_details.contact_form.submitted_at).toLocaleDateString()}</div>\`;
+                    sourceDetailsHtml += `<div class="p-2 bg-blue-50 rounded"><strong>Contact Form:</strong> Submitted ${new Date(contact.source_details.contact_form.submitted_at).toLocaleDateString()}</div>`;
                 }
                 
                 if (contact.source_details.newsletter) {
                     const active = contact.source_details.newsletter.active ? 'Active' : 'Inactive';
-                    sourceDetailsHtml += \`<div class="p-2 bg-green-50 rounded"><strong>Newsletter:</strong> Subscribed \${new Date(contact.source_details.newsletter.subscribed_at).toLocaleDateString()} - \${active}</div>\`;
+                    sourceDetailsHtml += `<div class="p-2 bg-green-50 rounded"><strong>Newsletter:</strong> Subscribed ${new Date(contact.source_details.newsletter.subscribed_at).toLocaleDateString()} - ${active}</div>`;
                 }
                 
                 if (contact.source_details.orders && contact.source_details.orders.length > 0) {
                     sourceDetailsHtml += '<div class="p-2 bg-purple-50 rounded"><strong>Orders:</strong>';
                     contact.source_details.orders.forEach(order => {
-                        sourceDetailsHtml += \`<div class="ml-2">• Order \${order.order_id} - \${order.status} (\${new Date(order.ordered_at).toLocaleDateString()})</div>\`;
+                        sourceDetailsHtml += `<div class="ml-2">• Order ${order.order_id} - ${order.status} (${new Date(order.ordered_at).toLocaleDateString()})</div>`;
                     });
                     sourceDetailsHtml += '</div>';
                 }
@@ -1157,9 +1157,7 @@ $stats = [
                                 <a href="mailto:${escHtml(contact.email)}" class="block w-full px-3 py-2 bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors text-center text-sm rounded touch-manipulation">
                                     <i class="bi bi-envelope mr-1"></i> Send Email
                                 </a>
-                                ${contact.phone ? `<a href="tel:${escHtml(contact.phone)}" class="block w-full px-3 py-2 bg-green-100 text-green-700 hover:bg-green-200 transition-colors text-center text-sm rounded touch-manipulation">
-                                    <i class="bi bi-telephone mr-1"></i> Call Phone
-                                </a>` : ''}
+                                ${contact.phone ? '<a href="tel:' + escHtml(contact.phone) + '" class="block w-full px-3 py-2 bg-green-100 text-green-700 hover:bg-green-200 transition-colors text-center text-sm rounded touch-manipulation"><i class="bi bi-telephone mr-1"></i> Call Phone</a>' : ''}
                                 <button onclick="editContact('${contactJson.replace(/'/g, "\\'")}')" class="block w-full px-3 py-2 bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition-colors text-center text-sm rounded touch-manipulation">
                                     <i class="bi bi-pencil mr-1"></i> Update Status
                                 </button>

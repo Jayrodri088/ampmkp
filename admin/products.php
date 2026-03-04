@@ -276,22 +276,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'features' => $features
                 );
                 
-                try {
-                    $newId = adminSaveProduct($new_product, true);
-                    if ($newId) {
-                        if (!$message) {
-                            $message = 'Product added successfully!';
-                            $message_type = 'success';
-                        }
-                    } else {
-                        $message = 'Failed to save product!';
-                        $message_type = 'error';
-                    }
-                } catch (Exception $e) {
-                    $message = 'Error saving product: ' . $e->getMessage();
+                // Save using the helper function (works with both JSON and MySQL)
+                $save_result = adminSaveProduct($new_product, true);
+                if ($save_result === false) {
+                    $message = 'Failed to save product to database!';
                     $message_type = 'error';
+                } elseif (!$message) {
+                    $message = 'Product added successfully!';
+                    $message_type = 'success';
                 }
                 
+                // Redirect immediately after add
                 header('Location: products.php?message=' . urlencode($message) . '&type=' . $message_type);
                 exit;
                 
@@ -438,16 +433,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             }
                         }
                         
+                        // Build updated product data
                         $updated_product = array(
                             'id' => $id,
                             'name' => $_POST['name'],
                             'slug' => generateSlug($_POST['name']),
-                            'price' => $default_price,
+                            'price' => $default_price, // Keep for backward compatibility
                             'prices' => $prices,
                             'category_id' => (int)$_POST['category_id'],
                             'description' => $_POST['description'],
                             'image' => $image_path,
-                            'images' => $additional_images,
+                            'images' => $additional_images, // Additional images array
                             'stock' => (int)$_POST['stock'],
                             'featured' => isset($_POST['featured']),
                             'active' => isset($_POST['active']),
@@ -458,27 +454,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'features' => $features
                         );
                         
-                        try {
-                            $result = adminSaveProduct($updated_product, false);
-                            if ($result) {
-                                if (!$message) {
-                                    $message = 'Product updated successfully!';
-                                    $message_type = 'success';
-                                }
-                            } else {
-                                $message = 'Failed to update product!';
-                                $message_type = 'error';
-                            }
-                        } catch (Exception $e) {
-                            $message = 'Error updating product: ' . $e->getMessage();
+                        // Save using the helper function (works with both JSON and MySQL)
+                        $save_result = adminSaveProduct($updated_product, false);
+                        if ($save_result === false) {
+                            $message = 'Failed to update product in database!';
                             $message_type = 'error';
+                        } elseif (!$message) {
+                            $message = 'Product updated successfully!';
+                            $message_type = 'success';
                         }
                         
+                        // Redirect immediately after edit
                         header('Location: products.php?message=' . urlencode($message) . '&type=' . $message_type);
                         exit;
                     }
                 }
                 
+                // If product not found
                 $message = 'Product not found!';
                 $message_type = 'error';
                 header('Location: products.php?message=' . urlencode($message) . '&type=' . $message_type);
@@ -486,40 +478,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
             case 'delete':
                 $id = (int)$_POST['id'];
-                $productToDelete = adminGetProductById($id);
                 
-                if ($productToDelete) {
+                // Get product to delete its images
+                $product_to_delete = adminGetProductById($id);
+                if ($product_to_delete) {
                     // Delete associated image files
-                    if (isset($productToDelete['image']) && $productToDelete['image'] !== 'products/placeholder.jpg' && file_exists('../assets/images/' . $productToDelete['image'])) {
-                        unlink('../assets/images/' . $productToDelete['image']);
+                    if (isset($product_to_delete['image']) && $product_to_delete['image'] !== 'products/placeholder.jpg' && file_exists('../assets/images/' . $product_to_delete['image'])) {
+                        unlink('../assets/images/' . $product_to_delete['image']);
                     }
                     
                     // Delete additional images
-                    if (isset($productToDelete['images']) && is_array($productToDelete['images'])) {
-                        foreach ($productToDelete['images'] as $img_path) {
+                    if (isset($product_to_delete['images']) && is_array($product_to_delete['images'])) {
+                        foreach ($product_to_delete['images'] as $img_path) {
                             if (file_exists('../assets/images/' . $img_path)) {
                                 unlink('../assets/images/' . $img_path);
                             }
                         }
                     }
                     
-                    try {
-                        if (adminDeleteProduct($id)) {
-                            $message = 'Product deleted successfully!';
-                            $message_type = 'success';
-                        } else {
-                            $message = 'Failed to delete product!';
-                            $message_type = 'error';
-                        }
-                    } catch (Exception $e) {
-                        $message = 'Error deleting product: ' . $e->getMessage();
+                    // Delete using the helper function (works with both JSON and MySQL)
+                    $delete_result = adminDeleteProduct($id);
+                    if ($delete_result === false) {
+                        $message = 'Failed to delete product from database!';
                         $message_type = 'error';
+                    } else {
+                        $message = 'Product deleted successfully!';
+                        $message_type = 'success';
                     }
                 } else {
                     $message = 'Product not found!';
                     $message_type = 'error';
                 }
                 
+                // Redirect immediately after delete
                 header('Location: products.php?message=' . urlencode($message) . '&type=' . $message_type);
                 exit;
                 
@@ -530,86 +521,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error_count = 0;
                 
                 if (!empty($selected_ids)) {
-                    try {
-                        foreach ($selected_ids as $product_id) {
-                            $product_id = (int)$product_id;
-                            $product = adminGetProductById($product_id);
-                            
-                            if (!$product) {
-                                $error_count++;
-                                continue;
-                            }
-                            
-                            switch ($bulk_action) {
-                                case 'activate':
-                                    $product['active'] = true;
-                                    if (adminSaveProduct($product, false)) {
-                                        $success_count++;
-                                    } else {
-                                        $error_count++;
-                                    }
-                                    break;
-                                case 'deactivate':
-                                    $product['active'] = false;
-                                    if (adminSaveProduct($product, false)) {
-                                        $success_count++;
-                                    } else {
-                                        $error_count++;
-                                    }
-                                    break;
-                                case 'feature':
-                                    $product['featured'] = true;
-                                    if (adminSaveProduct($product, false)) {
-                                        $success_count++;
-                                    } else {
-                                        $error_count++;
-                                    }
-                                    break;
-                                case 'unfeature':
-                                    $product['featured'] = false;
-                                    if (adminSaveProduct($product, false)) {
-                                        $success_count++;
-                                    } else {
-                                        $error_count++;
-                                    }
-                                    break;
-                                case 'delete':
-                                    // Delete associated image files
-                                    if (isset($product['image']) && $product['image'] !== 'products/placeholder.jpg' && file_exists('../assets/images/' . $product['image'])) {
-                                        unlink('../assets/images/' . $product['image']);
-                                    }
-                                    if (isset($product['images']) && is_array($product['images'])) {
-                                        foreach ($product['images'] as $img_path) {
-                                            if (file_exists('../assets/images/' . $img_path)) {
-                                                unlink('../assets/images/' . $img_path);
-                                            }
+                    foreach ($selected_ids as $product_id) {
+                        $product = adminGetProductById((int)$product_id);
+                        if (!$product) continue;
+                        
+                        switch ($bulk_action) {
+                            case 'activate':
+                                $product['active'] = true;
+                                if (adminSaveProduct($product, false)) {
+                                    $success_count++;
+                                } else {
+                                    $error_count++;
+                                }
+                                break;
+                            case 'deactivate':
+                                $product['active'] = false;
+                                if (adminSaveProduct($product, false)) {
+                                    $success_count++;
+                                } else {
+                                    $error_count++;
+                                }
+                                break;
+                            case 'feature':
+                                $product['featured'] = true;
+                                if (adminSaveProduct($product, false)) {
+                                    $success_count++;
+                                } else {
+                                    $error_count++;
+                                }
+                                break;
+                            case 'unfeature':
+                                $product['featured'] = false;
+                                if (adminSaveProduct($product, false)) {
+                                    $success_count++;
+                                } else {
+                                    $error_count++;
+                                }
+                                break;
+                            case 'delete':
+                                // Delete associated image files
+                                if (isset($product['image']) && $product['image'] !== 'products/placeholder.jpg' && file_exists('../assets/images/' . $product['image'])) {
+                                    unlink('../assets/images/' . $product['image']);
+                                }
+                                if (isset($product['images']) && is_array($product['images'])) {
+                                    foreach ($product['images'] as $img_path) {
+                                        if (file_exists('../assets/images/' . $img_path)) {
+                                            unlink('../assets/images/' . $img_path);
                                         }
                                     }
-                                    if (adminDeleteProduct($product_id)) {
-                                        $success_count++;
-                                    } else {
-                                        $error_count++;
-                                    }
-                                    break;
-                            }
+                                }
+                                if (adminDeleteProduct((int)$product_id)) {
+                                    $success_count++;
+                                } else {
+                                    $error_count++;
+                                }
+                                break;
                         }
-                        
-                        if ($error_count === 0) {
-                            $message = "Bulk action completed successfully! ($success_count items updated)";
-                            $message_type = 'success';
-                        } else {
-                            $message = "Bulk action partially completed: $success_count succeeded, $error_count failed.";
-                            $message_type = 'warning';
-                        }
-                    } catch (Exception $e) {
-                        $message = 'Error during bulk action: ' . $e->getMessage();
-                        $message_type = 'error';
+                    }
+                    
+                    if ($error_count > 0) {
+                        $message = "Bulk action completed with errors: $success_count succeeded, $error_count failed.";
+                        $message_type = 'warning';
+                    } else {
+                        $message = "Bulk action completed successfully! $success_count products updated.";
+                        $message_type = 'success';
                     }
                 } else {
-                    $message = 'No products selected for bulk action.';
+                    $message = 'No products selected.';
                     $message_type = 'warning';
                 }
                 
+                // Redirect after bulk action
                 header('Location: products.php?message=' . urlencode($message) . '&type=' . $message_type);
                 exit;
         }
@@ -621,35 +603,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Handle GET actions (like individual delete)
 if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
     $id = (int)$_GET['id'];
-    $productToDelete = adminGetProductById($id);
     
-    if ($productToDelete) {
+    // Get product to delete its images
+    $product_to_delete = adminGetProductById($id);
+    if ($product_to_delete) {
         // Delete associated image files
-        if (isset($productToDelete['image']) && $productToDelete['image'] !== 'products/placeholder.jpg' && file_exists('../assets/images/' . $productToDelete['image'])) {
-            unlink('../assets/images/' . $productToDelete['image']);
+        if (isset($product_to_delete['image']) && $product_to_delete['image'] !== 'products/placeholder.jpg' && file_exists('../assets/images/' . $product_to_delete['image'])) {
+            unlink('../assets/images/' . $product_to_delete['image']);
         }
         
         // Delete additional images
-        if (isset($productToDelete['images']) && is_array($productToDelete['images'])) {
-            foreach ($productToDelete['images'] as $image_path) {
-                if (file_exists('../assets/images/' . $image_path)) {
-                    unlink('../assets/images/' . $image_path);
+        if (isset($product_to_delete['images']) && is_array($product_to_delete['images'])) {
+            foreach ($product_to_delete['images'] as $img_path) {
+                if (file_exists('../assets/images/' . $img_path)) {
+                    unlink('../assets/images/' . $img_path);
                 }
             }
         }
         
-        try {
-            if (adminDeleteProduct($id)) {
-                header('Location: products.php?message=' . urlencode('Product deleted successfully!') . '&type=success');
-                exit;
-            } else {
-                header('Location: products.php?message=' . urlencode('Failed to delete product!') . '&type=error');
-                exit;
-            }
-        } catch (Exception $e) {
-            header('Location: products.php?message=' . urlencode('Error deleting product: ' . $e->getMessage()) . '&type=error');
+        // Delete using the helper function (works with both JSON and MySQL)
+        $delete_result = adminDeleteProduct($id);
+        if ($delete_result === false) {
+            header('Location: products.php?message=' . urlencode('Failed to delete product from database!') . '&type=error');
             exit;
         }
+        
+        header('Location: products.php?message=' . urlencode('Product deleted successfully!') . '&type=success');
+        exit;
     } else {
         header('Location: products.php?message=' . urlencode('Product not found!') . '&type=error');
         exit;

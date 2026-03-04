@@ -189,7 +189,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) 
                         <i class="bi bi-shield-check"></i> Admin Panel
                     </h4>
                     <div class="text-white-50 mb-4">
-                        Welcome, <?php echo htmlspecialchars($_SESSION['admin_user']); ?>
+                        Welcome, <?php echo htmlspecialchars($_SESSION['admin_name'] ?? $_SESSION['admin_user'] ?? 'Admin'); ?>
                     </div>
                 </div>
                 

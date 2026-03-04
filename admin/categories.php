@@ -40,7 +40,7 @@ function isDescendantOf($categoryId, $potentialAncestorId, $categories) {
 $categories = adminGetAllCategories();
 $products = adminGetAllProducts();
 
-// Add parent_id to existing categories if not present
+// Add parent_id to existing categories if not present (migration for JSON backend)
 $updated = false;
 foreach ($categories as &$category) {
     if (!isset($category['parent_id'])) {
@@ -48,8 +48,9 @@ foreach ($categories as &$category) {
         $updated = true;
     }
 }
-if ($updated) {
-    file_put_contents('../data/categories.json', json_encode($categories, JSON_PRETTY_PRINT));
+unset($category);
+if ($updated && !isMySQLBackend()) {
+    writeJsonFile('categories.json', $categories);
 }
 
 // Handle form submissions
@@ -151,13 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $image_path = $_POST['image_path'];
                 }
                 
-                $max_id = 0;
-                if (!empty($categories)) {
-                    $max_id = max(array_column($categories, 'id'));
-                }
-                
                 $new_category = [
-                    'id' => $max_id + 1,
                     'name' => $_POST['name'],
                     'slug' => generateSlug($_POST['name']),
                     'description' => $_POST['description'],
@@ -166,16 +161,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'active' => isset($_POST['active']),
                     'featured' => isset($_POST['featured'])
                 ];
-                $categories[] = $new_category;
-                if (empty($message)) {
-                    // Save data first
-                    file_put_contents('../data/categories.json', json_encode($categories, JSON_PRETTY_PRINT));
-                    
-                    // Redirect to prevent duplicate submission
-                    header('Location: categories.php?success=added&cache=' . time());
-                    exit;
+                
+                // Save using the helper function (works with both JSON and MySQL)
+                $save_result = adminSaveCategory($new_category, true);
+                if ($save_result === false) {
+                    $message = 'Failed to save category to database!';
+                    $message_type = 'error';
+                } elseif (empty($message)) {
+                    $message = 'Category added successfully!';
+                    $message_type = 'success';
                 }
-                break;
+                
+                // Redirect after add (even with warnings, the category was saved)
+                header('Location: categories.php?message=' . urlencode($message) . '&type=' . $message_type . '&cache=' . time());
+                exit;
                 
             case 'edit':
                 $id = (int)$_POST['id'];
@@ -246,88 +245,95 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $image_path = $_POST['image_path'];
                 }
                 
-                foreach ($categories as &$category) {
-                    if ($category['id'] === $id) {
-                        // Delete old image if new one is uploaded
-                        if ($image_path && $category['image'] !== 'categories/default.jpg') {
-                            $old_image_path = '../assets/images/' . $category['image'];
-                            if (file_exists($old_image_path)) {
-                                unlink($old_image_path);
-                            }
+                // Get existing category
+                $existing_category = adminGetCategoryById($id);
+                if ($existing_category) {
+                    // Delete old image if new one is uploaded
+                    if ($image_path && isset($existing_category['image']) && $existing_category['image'] !== 'categories/default.jpg') {
+                        $old_image_path = '../assets/images/' . $existing_category['image'];
+                        if (file_exists($old_image_path)) {
+                            unlink($old_image_path);
                         }
-                        
-                        $category['name'] = $_POST['name'];
-                        $category['slug'] = generateSlug($_POST['name']);
-                        $category['description'] = $_POST['description'];
-                        if ($image_path) {
-                            $category['image'] = $image_path;
-                        }
-                        $category['parent_id'] = (int)$_POST['parent_id'];
-                        $category['active'] = isset($_POST['active']);
-                        $category['featured'] = isset($_POST['featured']);
-                        break;
                     }
-                }
-                if (empty($message)) {
-                    // Save data first
-                    file_put_contents('../data/categories.json', json_encode($categories, JSON_PRETTY_PRINT));
                     
-                    // Redirect to prevent duplicate submission
-                    header('Location: categories.php?success=updated&cache=' . time());
+                    // Build updated category data
+                    $updated_category = [
+                        'id' => $id,
+                        'name' => $_POST['name'],
+                        'slug' => generateSlug($_POST['name']),
+                        'description' => $_POST['description'],
+                        'image' => $image_path ? $image_path : ($existing_category['image'] ?? 'categories/default.jpg'),
+                        'parent_id' => (int)$_POST['parent_id'],
+                        'active' => isset($_POST['active']),
+                        'featured' => isset($_POST['featured'])
+                    ];
+                    
+                    // Save using the helper function (works with both JSON and MySQL)
+                    $save_result = adminSaveCategory($updated_category, false);
+                    if ($save_result === false) {
+                        $message = 'Failed to update category in database!';
+                        $message_type = 'error';
+                    } elseif (empty($message)) {
+                        $message = 'Category updated successfully!';
+                        $message_type = 'success';
+                    }
+                    
+                    // Redirect after edit (even with warnings, the category was saved)
+                    header('Location: categories.php?message=' . urlencode($message) . '&type=' . $message_type . '&cache=' . time());
+                    exit;
+                } else {
+                    $message = 'Category not found!';
+                    $message_type = 'error';
+                    header('Location: categories.php?message=' . urlencode($message) . '&type=' . $message_type);
                     exit;
                 }
-                break;
                 
             case 'delete':
                 $id = (int)$_POST['id'];
                 
-                // Check if category has products
-                $products_in_category = array_filter($products, fn($p) => $p['category_id'] == $id);
-                
-                // Check if category has sub-categories
-                $sub_categories = array_filter($categories, fn($c) => ($c['parent_id'] ?? 0) == $id);
-                
-                if (!empty($products_in_category)) {
+                // Check if category has products using helper function
+                if (adminCategoryHasProducts($id)) {
                     $message = 'Cannot delete category with existing products! Please move or delete products first.';
                     $message_type = 'danger';
-                } elseif (!empty($sub_categories)) {
+                    header('Location: categories.php?message=' . urlencode($message) . '&type=' . $message_type);
+                    exit;
+                }
+                
+                // Check if category has sub-categories using helper function
+                if (adminCategoryHasSubcategories($id)) {
                     $message = 'Cannot delete category with sub-categories! Please move or delete sub-categories first.';
                     $message_type = 'danger';
-                } else {
-                    // Find the category to delete its image
-                    $category_to_delete = null;
-                    foreach ($categories as $category) {
-                        if ($category['id'] === $id) {
-                            $category_to_delete = $category;
-                            break;
-                        }
-                    }
-                    
-                    // Delete the image file if it's not the default
-                    if ($category_to_delete && $category_to_delete['image'] !== 'categories/default.jpg') {
-                        $image_path = '../assets/images/' . $category_to_delete['image'];
-                        if (file_exists($image_path)) {
-                            unlink($image_path);
-                        }
-                    }
-                    
-                    $categories = array_filter($categories, fn($c) => $c['id'] !== $id);
-                    $categories = array_values($categories);
-                    $message = 'Category deleted successfully!';
-                    $message_type = 'success';
+                    header('Location: categories.php?message=' . urlencode($message) . '&type=' . $message_type);
+                    exit;
                 }
-                break;
-        }
-        
-        // Save changes and redirect
-        if ($message_type === 'success') {
-            file_put_contents('../data/categories.json', json_encode($categories, JSON_PRETTY_PRINT));
-            header('Location: categories.php?message=' . urlencode($message) . '&type=' . $message_type);
-            exit;
-        } else {
-            // If there's an error, redirect with error message
-            header('Location: categories.php?message=' . urlencode($message) . '&type=' . $message_type);
-            exit;
+                
+                // Get category to delete its image
+                $category_to_delete = adminGetCategoryById($id);
+                if ($category_to_delete) {
+                    // Delete the image file if it's not the default
+                    if (isset($category_to_delete['image']) && $category_to_delete['image'] !== 'categories/default.jpg') {
+                        $img_path = '../assets/images/' . $category_to_delete['image'];
+                        if (file_exists($img_path)) {
+                            unlink($img_path);
+                        }
+                    }
+                    
+                    // Delete using the helper function (works with both JSON and MySQL)
+                    $delete_result = adminDeleteCategory($id);
+                    if ($delete_result === false) {
+                        $message = 'Failed to delete category from database!';
+                        $message_type = 'error';
+                    } else {
+                        $message = 'Category deleted successfully!';
+                        $message_type = 'success';
+                    }
+                } else {
+                    $message = 'Category not found!';
+                    $message_type = 'error';
+                }
+                
+                header('Location: categories.php?message=' . urlencode($message) . '&type=' . $message_type);
+                exit;
         }
     }
 }
@@ -337,44 +343,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
     $id = (int)$_GET['id'];
     
-    // Check if category has products
-    $products_in_category = array_filter($products, fn($p) => $p['category_id'] == $id);
-    
-    // Check if category has sub-categories
-    $sub_categories = array_filter($categories, fn($c) => ($c['parent_id'] ?? 0) == $id);
-    
-    if (!empty($products_in_category)) {
-        // Redirect with error message
+    // Check if category has products using helper function
+    if (adminCategoryHasProducts($id)) {
         header('Location: categories.php?message=' . urlencode('Cannot delete category with existing products! Please move or delete products first.') . '&type=danger');
         exit;
-    } elseif (!empty($sub_categories)) {
-        // Redirect with error message
+    }
+    
+    // Check if category has sub-categories using helper function
+    if (adminCategoryHasSubcategories($id)) {
         header('Location: categories.php?message=' . urlencode('Cannot delete category with sub-categories! Please move or delete sub-categories first.') . '&type=danger');
         exit;
-    } else {
-        // Find the category to delete its image
-        $category_to_delete = null;
-        foreach ($categories as $category) {
-            if ($category['id'] === $id) {
-                $category_to_delete = $category;
-                break;
-            }
-        }
-        
+    }
+    
+    // Get category to delete its image
+    $category_to_delete = adminGetCategoryById($id);
+    if ($category_to_delete) {
         // Delete the image file if it's not the default
-        if ($category_to_delete && $category_to_delete['image'] !== 'categories/default.jpg') {
-            $image_path = '../assets/images/' . $category_to_delete['image'];
-            if (file_exists($image_path)) {
-                unlink($image_path);
+        if (isset($category_to_delete['image']) && $category_to_delete['image'] !== 'categories/default.jpg') {
+            $img_path = '../assets/images/' . $category_to_delete['image'];
+            if (file_exists($img_path)) {
+                unlink($img_path);
             }
         }
         
-        $categories = array_filter($categories, fn($c) => $c['id'] !== $id);
-        $categories = array_values($categories);
-        file_put_contents('../data/categories.json', json_encode($categories, JSON_PRETTY_PRINT));
+        // Delete using the helper function (works with both JSON and MySQL)
+        $delete_result = adminDeleteCategory($id);
+        if ($delete_result === false) {
+            header('Location: categories.php?message=' . urlencode('Failed to delete category from database!') . '&type=error');
+            exit;
+        }
         
-        // Redirect to prevent form resubmission
         header('Location: categories.php?message=' . urlencode('Category deleted successfully!') . '&type=success');
+        exit;
+    } else {
+        header('Location: categories.php?message=' . urlencode('Category not found!') . '&type=error');
         exit;
     }
 }
@@ -488,7 +490,7 @@ foreach ($categories as $category) {
                     <span class="hidden lg:inline">Admin Panel</span>
                 </h2>
                 <p class="text-charcoal-200 text-xs lg:text-sm mt-1 lg:mt-2">
-                    Welcome, <?= htmlspecialchars($_SESSION['admin_user']) ?>
+                    Welcome, <?= htmlspecialchars($_SESSION['admin_name'] ?? $_SESSION['admin_user'] ?? 'Admin') ?>
                 </p>
             </div>
             
@@ -515,7 +517,7 @@ foreach ($categories as $category) {
                     </button>
                 </div>
                 <p class="text-charcoal-200 text-sm mt-1">
-                    Welcome, <?= htmlspecialchars($_SESSION['admin_user']) ?>
+                    Welcome, <?= htmlspecialchars($_SESSION['admin_name'] ?? $_SESSION['admin_user'] ?? 'Admin') ?>
                 </p>
             </div>
             

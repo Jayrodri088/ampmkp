@@ -25,17 +25,48 @@ function getStorageBackend(): string {
 }
 
 function isMySQLBackend(): bool {
-    return getStorageBackend() === 'mysql';
+    if (getStorageBackend() !== 'mysql') {
+        return false;
+    }
+
+    static $mysqlAvailable = null;
+    if ($mysqlAvailable !== null) {
+        return $mysqlAvailable;
+    }
+
+    $dbFile = __DIR__ . '/database.php';
+    if (!file_exists($dbFile)) {
+        $mysqlAvailable = false;
+        return false;
+    }
+
+    require_once $dbFile;
+    if (!class_exists('Database')) {
+        $mysqlAvailable = false;
+        return false;
+    }
+
+    try {
+        Database::getInstance();
+        $mysqlAvailable = true;
+    } catch (Throwable $e) {
+        $mysqlAvailable = false;
+        error_log('MySQL backend unavailable, falling back to JSON: ' . $e->getMessage());
+    }
+
+    return $mysqlAvailable;
 }
 
-// Include repository classes for MySQL backend
+// Include repository classes (always load so IDE resolves types; used only when STORAGE_BACKEND=mysql)
+require_once __DIR__ . '/repositories/ProductRepository.php';
+require_once __DIR__ . '/repositories/CategoryRepository.php';
+require_once __DIR__ . '/repositories/OrderRepository.php';
+require_once __DIR__ . '/repositories/RatingRepository.php';
+require_once __DIR__ . '/repositories/SettingsRepository.php';
 if (isMySQLBackend()) {
-    require_once __DIR__ . '/database.php';
-    require_once __DIR__ . '/repositories/ProductRepository.php';
-    require_once __DIR__ . '/repositories/CategoryRepository.php';
-    require_once __DIR__ . '/repositories/OrderRepository.php';
-    require_once __DIR__ . '/repositories/RatingRepository.php';
-    require_once __DIR__ . '/repositories/SettingsRepository.php';
+    if (file_exists(__DIR__ . '/database.php')) {
+        require_once __DIR__ . '/database.php';
+    }
 }
 
 /**
@@ -1872,6 +1903,645 @@ function getProductsFromCategoryTree($categoryId, $featured = null, $limit = nul
     }
 
     return array_values($products);
+}
+
+// Customer account (passwordless email + code) constants and helpers
+define('CUSTOMER_CODE_EXPIRY_SECONDS', 900);   // 15 minutes
+define('CUSTOMER_INACTIVITY_DAYS', 9);
+define('CUSTOMER_SESSION_COOKIE_DAYS', 30);
+
+/**
+ * Get customer account by email (normalized to lowercase).
+ */
+function getAccountByEmail($email) {
+    $accounts = readJsonFile('accounts.json');
+    $email = strtolower(trim($email));
+    foreach ($accounts as $account) {
+        if (strtolower((string)($account['email'] ?? '')) === $email) {
+            return $account;
+        }
+    }
+    return null;
+}
+
+/**
+ * Create a new customer account. Returns account array or false on failure.
+ */
+function createAccount($email) {
+    $email = strtolower(trim($email));
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return false;
+    }
+    if (getAccountByEmail($email)) {
+        return getAccountByEmail($email);
+    }
+    $accounts = readJsonFile('accounts.json');
+    $newId = 1;
+    if (!empty($accounts)) {
+        $ids = array_column($accounts, 'id');
+        $newId = (is_array($ids) && count($ids) > 0) ? (max(array_map('intval', $ids)) + 1) : 1;
+    }
+    $account = [
+        'id' => $newId,
+        'email' => $email,
+        'name' => '',
+        'phone' => '',
+        'country_code' => '+44',
+        'addresses' => [],
+        'created_at' => date('Y-m-d H:i:s'),
+        'last_login_at' => null
+    ];
+    $accounts[] = $account;
+    if (!writeJsonFile('accounts.json', $accounts)) {
+        return false;
+    }
+    return $account;
+}
+
+/**
+ * Update account last_login_at.
+ */
+function updateAccountLastLogin($email) {
+    $email = strtolower(trim($email));
+    $accounts = readJsonFile('accounts.json');
+    foreach ($accounts as $i => $acc) {
+        if (strtolower((string)($acc['email'] ?? '')) === $email) {
+            $accounts[$i]['last_login_at'] = date('Y-m-d H:i:s');
+            return writeJsonFile('accounts.json', $accounts);
+        }
+    }
+    return false;
+}
+
+/**
+ * Create a one-time login code for email. Returns code string or false.
+ */
+function createEmailCode($email) {
+    $email = strtolower(trim($email));
+    $code = sprintf('%06d', random_int(0, 999999));
+    $expiresAt = time() + CUSTOMER_CODE_EXPIRY_SECONDS;
+    $codes = readJsonFile('email_codes.json');
+    // Remove any existing code for this email
+    $codes = array_values(array_filter($codes, function ($row) use ($email) {
+        return strtolower((string)($row['email'] ?? '')) !== $email;
+    }));
+    $codes[] = ['email' => $email, 'code' => $code, 'expires_at' => $expiresAt];
+    if (!writeJsonFile('email_codes.json', $codes)) {
+        return false;
+    }
+    return $code;
+}
+
+/**
+ * Validate code for email and consume it (remove). Returns true if valid.
+ */
+function validateAndConsumeEmailCode($email, $code) {
+    $email = strtolower(trim($email));
+    $code = trim((string)$code);
+    $codes = readJsonFile('email_codes.json');
+    $now = time();
+    $found = false;
+    $remaining = [];
+    foreach ($codes as $row) {
+        if (strtolower((string)($row['email'] ?? '')) === $email && (string)($row['code'] ?? '') === $code) {
+            if (($row['expires_at'] ?? 0) > $now) {
+                $found = true;
+            }
+            continue;
+        }
+        if (($row['expires_at'] ?? 0) > $now) {
+            $remaining[] = $row;
+        }
+    }
+    if ($found) {
+        writeJsonFile('email_codes.json', $remaining);
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Check if customer is logged in (session has customer_id and not expired by inactivity).
+ * Call after session_start(). Inactivity check is done in header.
+ */
+function isCustomerLoggedIn() {
+    if (session_status() === PHP_SESSION_NONE) {
+        return false;
+    }
+    return !empty($_SESSION['customer_id']) && !empty($_SESSION['customer_email']);
+}
+
+/**
+ * Get logged-in customer ID or null.
+ */
+function getLoggedInCustomerId() {
+    if (!isCustomerLoggedIn()) {
+        return null;
+    }
+    return $_SESSION['customer_id'] ?? null;
+}
+
+/**
+ * Get logged-in customer email or null.
+ */
+function getLoggedInCustomerEmail() {
+    if (!isCustomerLoggedIn()) {
+        return null;
+    }
+    return $_SESSION['customer_email'] ?? null;
+}
+
+/**
+ * Normalize order payload to repository shape used by MySQL backend.
+ */
+function normalizeOrderForStorage(array $orderData): array {
+    $customer = is_array($orderData['customer'] ?? null) ? $orderData['customer'] : [];
+    $currencyCode = $orderData['currency_code'] ?? $orderData['currency'] ?? getSelectedCurrency();
+    $date = $orderData['date'] ?? $orderData['created_at'] ?? date('Y-m-d H:i:s');
+
+    return [
+        'id' => $orderData['id'] ?? null,
+        'customer_name' => $orderData['customer_name'] ?? trim(($customer['first_name'] ?? '') . ' ' . ($customer['last_name'] ?? '')),
+        'customer_email' => $orderData['customer_email'] ?? ($customer['email'] ?? ''),
+        'customer_phone' => $orderData['customer_phone'] ?? ($customer['phone'] ?? ''),
+        'customer_country_code' => $customer['countryCode'] ?? null,
+        'subtotal' => (float)($orderData['subtotal'] ?? 0),
+        'shipping_cost' => (float)($orderData['shipping_cost'] ?? 0),
+        'tax' => (float)($orderData['tax'] ?? 0),
+        'total' => (float)($orderData['total'] ?? 0),
+        'currency_code' => strtoupper((string)$currencyCode),
+        'status' => $orderData['status'] ?? 'pending',
+        'payment_method' => $orderData['payment_method'] ?? null,
+        'payment_status' => $orderData['payment_status'] ?? 'pending',
+        'stripe_payment_intent' => $orderData['stripe_payment_intent'] ?? null,
+        'shipping_method' => $orderData['shipping_method'] ?? 'delivery',
+        'notes' => $orderData['notes'] ?? null,
+        'special_instructions' => $orderData['special_instructions'] ?? ($customer['special_instructions'] ?? null),
+        'payment_confirmed_by_customer' => !empty($orderData['payment_confirmed_by_customer']) ? 1 : 0,
+        'account_holder' => $orderData['account_holder'] ?? ($customer['account_holder'] ?? null),
+        'date' => $date,
+        'shipping_address' => $orderData['shipping_address'] ?? null,
+        'billing_address' => $orderData['billing_address'] ?? null,
+        'items' => $orderData['items'] ?? [],
+    ];
+}
+
+/**
+ * Persist an order to whichever backend is active.
+ */
+function saveOrderRecord(array $orderData): bool {
+    if (isMySQLBackend() && class_exists('OrderRepository')) {
+        try {
+            OrderRepository::create(normalizeOrderForStorage($orderData));
+            return true;
+        } catch (Throwable $e) {
+            if (function_exists('logError')) {
+                logError('Failed saving order to MySQL: ' . $e->getMessage() . ' | order_id=' . ($orderData['id'] ?? ''));
+            }
+            return false;
+        }
+    }
+
+    $orders = readJsonFile('orders.json');
+    $orders[] = $orderData;
+    return writeJsonFile('orders.json', $orders);
+}
+
+/**
+ * Get a single order by ID (JSON or MySQL backend).
+ * @return array|null Order array or null if not found.
+ */
+function getOrderById($id) {
+    if (empty($id)) {
+        return null;
+    }
+    if (isMySQLBackend() && class_exists('OrderRepository')) {
+        return OrderRepository::getById((string)$id);
+    }
+    $orders = readJsonFile('orders.json');
+    foreach ($orders as $o) {
+        if (($o['id'] ?? '') === (string)$id) {
+            return $o;
+        }
+    }
+    return null;
+}
+
+/**
+ * Get orders for a customer by email (JSON or MySQL backend).
+ * @return array List of orders, newest first.
+ */
+function getOrdersForCustomer($email) {
+    $email = strtolower(trim($email));
+    if ($email === '') {
+        return [];
+    }
+    if (isMySQLBackend() && class_exists('OrderRepository')) {
+        return OrderRepository::getByEmail($email);
+    }
+    $orders = readJsonFile('orders.json');
+    $out = [];
+    foreach ($orders as $o) {
+        if (strtolower(trim((string)($o['customer_email'] ?? ''))) === $email) {
+            $out[] = $o;
+        }
+    }
+    usort($out, function ($a, $b) {
+        $da = strtotime($a['date'] ?? $a['created_at'] ?? '0');
+        $db = strtotime($b['date'] ?? $b['created_at'] ?? '0');
+        return $db <=> $da;
+    });
+    return $out;
+}
+
+/**
+ * Update account fields (name, phone, country_code, addresses). Merges into existing account.
+ * @param string $email Account email
+ * @param array $data Keys: name, phone, country_code, addresses (array of address arrays)
+ * @return bool
+ */
+function updateAccount($email, array $data) {
+    $email = strtolower(trim($email));
+    $accounts = readJsonFile('accounts.json');
+    foreach ($accounts as $i => $acc) {
+        if (strtolower((string)($acc['email'] ?? '')) === $email) {
+            if (array_key_exists('name', $data)) {
+                $accounts[$i]['name'] = trim((string)$data['name']);
+            }
+            if (array_key_exists('phone', $data)) {
+                $accounts[$i]['phone'] = trim((string)$data['phone']);
+            }
+            if (array_key_exists('country_code', $data)) {
+                $accounts[$i]['country_code'] = trim((string)$data['country_code']);
+            }
+            if (array_key_exists('addresses', $data) && is_array($data['addresses'])) {
+                $accounts[$i]['addresses'] = $data['addresses'];
+            }
+            return writeJsonFile('accounts.json', $accounts);
+        }
+    }
+    return false;
+}
+
+/**
+ * Get default or first saved address for an account.
+ * @return array|null Address with keys line1, line2, city, postcode, country, or null.
+ */
+function getDefaultAddressForAccount($email) {
+    $account = getAccountByEmail($email);
+    if (!$account || empty($account['addresses']) || !is_array($account['addresses'])) {
+        return null;
+    }
+    foreach ($account['addresses'] as $addr) {
+        if (!empty($addr['is_default'])) {
+            return $addr;
+        }
+    }
+    return $account['addresses'][0] ?? null;
+}
+
+/**
+ * Get customer data for checkout prefill (email, name, default address).
+ * Returns array with email, first_name, last_name, phone, countryCode, address, city, postal_code, country.
+ */
+function getCheckoutPrefillForCustomer($email) {
+    $prefill = [
+        'email' => $email,
+        'first_name' => '',
+        'last_name' => '',
+        'phone' => '',
+        'countryCode' => '+44',
+        'address' => '',
+        'city' => '',
+        'postal_code' => '',
+        'country' => ''
+    ];
+    $account = getAccountByEmail($email);
+    if (!$account) {
+        return $prefill;
+    }
+    $name = trim((string)($account['name'] ?? ''));
+    if ($name !== '') {
+        $parts = explode(' ', $name, 2);
+        $prefill['first_name'] = $parts[0] ?? '';
+        $prefill['last_name'] = $parts[1] ?? '';
+    }
+    $prefill['phone'] = trim((string)($account['phone'] ?? ''));
+    $prefill['countryCode'] = trim((string)($account['country_code'] ?? '+44')) ?: '+44';
+    $addr = getDefaultAddressForAccount($email);
+    if ($addr) {
+        $prefill['profile_id'] = trim((string)($addr['id'] ?? ''));
+        $prefill['first_name'] = trim((string)($addr['first_name'] ?? $prefill['first_name']));
+        $prefill['last_name'] = trim((string)($addr['last_name'] ?? $prefill['last_name']));
+        $prefill['phone'] = trim((string)($addr['phone'] ?? $prefill['phone']));
+        $prefill['countryCode'] = trim((string)($addr['country_code'] ?? $prefill['countryCode'])) ?: $prefill['countryCode'];
+        $prefill['address'] = trim((string)($addr['line1'] ?? ''));
+        $prefill['city'] = trim((string)($addr['city'] ?? ''));
+        $prefill['postal_code'] = trim((string)($addr['postcode'] ?? ''));
+        $prefill['country'] = trim((string)($addr['country'] ?? ''));
+    }
+    return $prefill;
+}
+
+/**
+ * Return saved checkout profiles for account (stored inside addresses).
+ */
+function getSavedCheckoutProfiles($email) {
+    $account = getAccountByEmail($email);
+    if (!$account || empty($account['addresses']) || !is_array($account['addresses'])) {
+        return [];
+    }
+
+    $profiles = [];
+    foreach ($account['addresses'] as $addr) {
+        $line1 = trim((string)($addr['line1'] ?? ''));
+        $city = trim((string)($addr['city'] ?? ''));
+        $postcode = trim((string)($addr['postcode'] ?? ''));
+        $country = trim((string)($addr['country'] ?? ''));
+        if ($line1 === '' && $city === '' && $postcode === '' && $country === '') {
+            continue;
+        }
+
+        $profileId = trim((string)($addr['id'] ?? ''));
+        if ($profileId === '') {
+            $profileId = 'p_' . substr(sha1(strtolower(trim((string)$email)) . '|' . $line1 . '|' . $postcode . '|' . $country), 0, 10);
+            $addr['id'] = $profileId;
+        }
+
+        $addrFirstName = trim((string)($addr['first_name'] ?? ''));
+        $addrLastName = trim((string)($addr['last_name'] ?? ''));
+        if ($addrFirstName === '' && $addrLastName === '') {
+            $accountName = trim((string)($account['name'] ?? ''));
+            if ($accountName !== '') {
+                $parts = preg_split('/\s+/', $accountName, 2);
+                $addrFirstName = trim((string)($parts[0] ?? ''));
+                $addrLastName = trim((string)($parts[1] ?? ''));
+            }
+        }
+
+        $name = trim($addrFirstName . ' ' . $addrLastName);
+        if ($name === '') {
+            $name = trim((string)($account['name'] ?? ''));
+        }
+        $label = trim((string)($addr['label'] ?? ''));
+        if ($label === '') {
+            $label = trim($name . ' - ' . $line1);
+        }
+
+        $profiles[] = [
+            'id' => $profileId,
+            'label' => $label,
+            'first_name' => $addrFirstName,
+            'last_name' => $addrLastName,
+            'countryCode' => trim((string)($addr['country_code'] ?? ($account['country_code'] ?? '+44'))) ?: '+44',
+            'phone' => trim((string)($addr['phone'] ?? ($account['phone'] ?? ''))),
+            'address' => $line1,
+            'city' => $city,
+            'postal_code' => $postcode,
+            'country' => $country,
+            'is_default' => !empty($addr['is_default']),
+        ];
+    }
+
+    usort($profiles, function ($a, $b) {
+        return ((int)!empty($b['is_default'])) <=> ((int)!empty($a['is_default']));
+    });
+
+    return $profiles;
+}
+
+/**
+ * Save checkout details to account as reusable profile.
+ * Deduplicates by address + name + phone + country code and updates existing profile when matched.
+ */
+function saveCheckoutProfileForEmail($email, array $customerData) {
+    $email = strtolower(trim((string)$email));
+    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return false;
+    }
+
+    $account = getAccountByEmail($email);
+    if (!$account) {
+        $account = createAccount($email);
+    }
+    if (!$account) {
+        return false;
+    }
+
+    $firstName = trim((string)($customerData['first_name'] ?? ''));
+    $lastName = trim((string)($customerData['last_name'] ?? ''));
+    $phone = trim((string)($customerData['phone'] ?? ''));
+    $countryCode = trim((string)($customerData['countryCode'] ?? '+44')) ?: '+44';
+    $line1 = trim((string)($customerData['address'] ?? ''));
+    $city = trim((string)($customerData['city'] ?? ''));
+    $postcode = trim((string)($customerData['postal_code'] ?? ''));
+    $country = trim((string)($customerData['country'] ?? ''));
+
+    if ($line1 === '' && $city === '' && $postcode === '' && $country === '') {
+        return true;
+    }
+
+    $profileId = trim((string)($customerData['profile_id'] ?? ''));
+    if ($profileId === '') {
+        $profileId = 'p_' . substr(sha1($email . '|' . $line1 . '|' . $postcode . '|' . $country), 0, 10);
+    }
+
+    $name = trim($firstName . ' ' . $lastName);
+    $label = trim((string)($customerData['profile_label'] ?? ''));
+    if ($label === '') {
+        $label = trim(($name !== '' ? $name : $email) . ' - ' . $line1);
+    }
+
+    $newProfile = [
+        'id' => $profileId,
+        'label' => $label,
+        'first_name' => $firstName,
+        'last_name' => $lastName,
+        'phone' => $phone,
+        'country_code' => $countryCode,
+        'line1' => $line1,
+        'line2' => '',
+        'city' => $city,
+        'postcode' => $postcode,
+        'country' => $country,
+        'is_default' => !empty($customerData['set_default_profile']),
+    ];
+
+    $accounts = readJsonFile('accounts.json');
+    foreach ($accounts as $i => $acc) {
+        if (strtolower((string)($acc['email'] ?? '')) !== $email) {
+            continue;
+        }
+
+        $existingAddresses = is_array($acc['addresses'] ?? null) ? $acc['addresses'] : [];
+        $matchedIndex = null;
+        foreach ($existingAddresses as $k => $addr) {
+            $addrId = trim((string)($addr['id'] ?? ''));
+            if ($addrId !== '' && $addrId === $profileId) {
+                $matchedIndex = $k;
+                break;
+            }
+            $same = trim((string)($addr['line1'] ?? '')) === $line1
+                && trim((string)($addr['city'] ?? '')) === $city
+                && trim((string)($addr['postcode'] ?? '')) === $postcode
+                && trim((string)($addr['country'] ?? '')) === $country
+                && trim((string)($addr['phone'] ?? ($acc['phone'] ?? ''))) === $phone
+                && trim((string)($addr['country_code'] ?? ($acc['country_code'] ?? '+44'))) === $countryCode
+                && trim((string)($addr['first_name'] ?? '')) === $firstName
+                && trim((string)($addr['last_name'] ?? '')) === $lastName;
+            if ($same) {
+                $matchedIndex = $k;
+                break;
+            }
+        }
+
+        if ($matchedIndex !== null) {
+            $existingAddresses[$matchedIndex] = array_merge($existingAddresses[$matchedIndex], $newProfile);
+        } else {
+            $existingAddresses[] = $newProfile;
+        }
+
+        $hasDefault = false;
+        foreach ($existingAddresses as $k => $addr) {
+            if (!empty($addr['is_default'])) {
+                $hasDefault = true;
+                if ($matchedIndex !== null || !empty($customerData['set_default_profile'])) {
+                    $existingAddresses[$k]['is_default'] = ($k === ($matchedIndex ?? (count($existingAddresses) - 1)));
+                }
+            }
+        }
+        if (!$hasDefault && !empty($existingAddresses)) {
+            $existingAddresses[0]['is_default'] = true;
+        }
+
+        $accounts[$i]['addresses'] = array_values($existingAddresses);
+        if ($name !== '') {
+            $accounts[$i]['name'] = $name;
+        }
+        if ($phone !== '') {
+            $accounts[$i]['phone'] = $phone;
+        }
+        if ($countryCode !== '') {
+            $accounts[$i]['country_code'] = $countryCode;
+        }
+
+        return writeJsonFile('accounts.json', $accounts);
+    }
+
+    return false;
+}
+
+/**
+ * Mark one saved checkout profile as default for an account.
+ */
+function setDefaultCheckoutProfileForEmail($email, $profileId) {
+    $email = strtolower(trim((string)$email));
+    $profileId = trim((string)$profileId);
+    if ($email === '' || $profileId === '') {
+        return false;
+    }
+
+    $accounts = readJsonFile('accounts.json');
+    foreach ($accounts as $i => $acc) {
+        if (strtolower((string)($acc['email'] ?? '')) !== $email) {
+            continue;
+        }
+
+        $addresses = is_array($acc['addresses'] ?? null) ? $acc['addresses'] : [];
+        if (empty($addresses)) {
+            return false;
+        }
+
+        $found = false;
+        foreach ($addresses as $k => $addr) {
+            $addrId = trim((string)($addr['id'] ?? ''));
+            if ($addrId === '') {
+                $line1 = trim((string)($addr['line1'] ?? ''));
+                $postcode = trim((string)($addr['postcode'] ?? ''));
+                $country = trim((string)($addr['country'] ?? ''));
+                $addrId = 'p_' . substr(sha1($email . '|' . $line1 . '|' . $postcode . '|' . $country), 0, 10);
+                $addresses[$k]['id'] = $addrId;
+            }
+
+            $isTarget = ($addrId === $profileId);
+            $addresses[$k]['is_default'] = $isTarget;
+            if ($isTarget) {
+                $found = true;
+            }
+        }
+
+        if (!$found) {
+            return false;
+        }
+
+        $accounts[$i]['addresses'] = array_values($addresses);
+        return writeJsonFile('accounts.json', $accounts);
+    }
+
+    return false;
+}
+
+/**
+ * Delete a saved checkout profile for an account.
+ */
+function deleteCheckoutProfileForEmail($email, $profileId) {
+    $email = strtolower(trim((string)$email));
+    $profileId = trim((string)$profileId);
+    if ($email === '' || $profileId === '') {
+        return false;
+    }
+
+    $accounts = readJsonFile('accounts.json');
+    foreach ($accounts as $i => $acc) {
+        if (strtolower((string)($acc['email'] ?? '')) !== $email) {
+            continue;
+        }
+
+        $addresses = is_array($acc['addresses'] ?? null) ? $acc['addresses'] : [];
+        if (empty($addresses)) {
+            return false;
+        }
+
+        $filtered = [];
+        $removed = false;
+        foreach ($addresses as $addr) {
+            $addrId = trim((string)($addr['id'] ?? ''));
+            if ($addrId === '') {
+                $line1 = trim((string)($addr['line1'] ?? ''));
+                $postcode = trim((string)($addr['postcode'] ?? ''));
+                $country = trim((string)($addr['country'] ?? ''));
+                $addrId = 'p_' . substr(sha1($email . '|' . $line1 . '|' . $postcode . '|' . $country), 0, 10);
+                $addr['id'] = $addrId;
+            }
+
+            if ($addrId === $profileId) {
+                $removed = true;
+                continue;
+            }
+
+            $filtered[] = $addr;
+        }
+
+        if (!$removed) {
+            return false;
+        }
+
+        $hasDefault = false;
+        foreach ($filtered as $addr) {
+            if (!empty($addr['is_default'])) {
+                $hasDefault = true;
+                break;
+            }
+        }
+        if (!$hasDefault && !empty($filtered)) {
+            $filtered[0]['is_default'] = true;
+        }
+
+        $accounts[$i]['addresses'] = array_values($filtered);
+        return writeJsonFile('accounts.json', $accounts);
+    }
+
+    return false;
 }
 
 // Newsletter Functions

@@ -12,16 +12,8 @@ if (empty($orderId)) {
     exit;
 }
 
-// Find the order
-$orders = readJsonFile('orders.json');
-$order = null;
-
-foreach ($orders as $o) {
-    if ($o['id'] === $orderId) {
-        $order = $o;
-        break;
-    }
-}
+// Find the order (JSON or MySQL backend)
+$order = getOrderById($orderId);
 
 if (!$order) {
     header('Location: ' . getBaseUrl());

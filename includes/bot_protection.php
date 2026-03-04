@@ -93,8 +93,8 @@ class BotProtection {
         $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
         $email = $postData['email'] ?? '';
         
-        // Check rate limiting
-        if (!$this->checkRateLimit($email, $clientIP)) {
+        // Check rate limiting (per form type: login allows more attempts)
+        if (!$this->checkRateLimit($email, $clientIP, $formType)) {
             $errors[] = 'Rate limit exceeded';
         }
         
@@ -133,22 +133,25 @@ class BotProtection {
     }
     
     /**
-     * Check rate limiting - max 2 submissions per day per email/IP
+     * Check rate limiting per form type. Default max 2/day per email or IP.
+     * Customer login gets a higher limit (10/day per email) so users can request codes a few times.
      */
-    private function checkRateLimit($email, $ip) {
+    private function checkRateLimit($email, $ip, $formType = '') {
         $submissions = $this->getSubmissions();
         $today = date('Y-m-d');
         $count = 0;
-        
+        $maxAllowed = ($formType === 'customer_login') ? 10 : $this->maxSubmissionsPerDay;
+
         foreach ($submissions as $submission) {
-            if (date('Y-m-d', strtotime($submission['timestamp'])) === $today) {
+            if (date('Y-m-d', strtotime($submission['timestamp'])) === $today
+                && ($submission['form_type'] ?? '') === $formType) {
                 if ($submission['email'] === $email || $submission['ip'] === $ip) {
                     $count++;
                 }
             }
         }
-        
-        return $count < $this->maxSubmissionsPerDay;
+
+        return $count < $maxAllowed;
     }
     
     /**

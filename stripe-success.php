@@ -6,6 +6,10 @@ require_once 'includes/stripe-config.php';
 require_once 'includes/functions.php';
 require_once 'includes/mail_config.php';
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // Get session ID from URL
 $sessionId = $_GET['session_id'] ?? '';
 
@@ -88,6 +92,12 @@ try {
         'stripe_session_id' => $sessionId,
         'stripe_payment_intent' => $session->payment_intent
     ];
+    if (function_exists('isCustomerLoggedIn') && isCustomerLoggedIn() && function_exists('getLoggedInCustomerId')) {
+        $cid = getLoggedInCustomerId();
+        if ($cid !== null) {
+            $orderData['customer_id'] = $cid;
+        }
+    }
 
     // Save order
     $orders = readJsonFile('orders.json');
